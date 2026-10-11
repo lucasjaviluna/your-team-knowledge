@@ -64,7 +64,7 @@ Los permisos se validan dentro de la consulta, antes de recuperar o entregar con
 
 ### Context Orchestrator
 
-Recibe un `ContextRequest` con actor, rol, workspace, intención y tarea. Decide qué fuentes consultar y devuelve un `ContextBundle` con contexto ordenado, fuentes y justificación de inclusión.
+Recibe un `ContextRequest` con actor, workspace, consulta, límites y selección opcional de fuentes. `ContextOrchestrator` consulta Agent Memory y RAG en paralelo, combina sus resultados en un `ContextBundle`, conserva las `SourceCitation` del conocimiento documental y aplica un presupuesto de caracteres antes de entregar el texto al consumidor. Cada memoria incluye una razón inicial (`query-match`) para hacer explícita su inclusión.
 
 ### Transporte HTTP
 

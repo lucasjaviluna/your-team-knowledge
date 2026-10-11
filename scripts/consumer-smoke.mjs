@@ -7,7 +7,9 @@ import { execFileSync } from "node:child_process";
 
 const root = resolve(import.meta.dirname, "..");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-const workspace = await mkdtemp(join(tmpdir(), "your-team-knowledge-consumer-"));
+const workspace = await mkdtemp(
+  join(tmpdir(), "your-team-knowledge-consumer-"),
+);
 const packageDir = join(workspace, "package");
 const consumerDir = join(workspace, "consumer");
 
@@ -25,13 +27,22 @@ try {
   await mkdir(consumerDir, { recursive: true });
 
   const packed = JSON.parse(
-    run(npmCommand, ["pack", "--json", "--pack-destination", packageDir], root, true),
+    run(
+      npmCommand,
+      ["pack", "--json", "--pack-destination", packageDir],
+      root,
+      true,
+    ),
   );
   const tarball = resolve(packageDir, packed[0].filename);
 
   await writeFile(
     join(consumerDir, "package.json"),
-    JSON.stringify({ name: "agent-memory-consumer-smoke", private: true }, null, 2),
+    JSON.stringify(
+      { name: "agent-memory-consumer-smoke", private: true },
+      null,
+      2,
+    ),
   );
   run(
     npmCommand,
@@ -78,8 +89,14 @@ if (!stored.stored || hits.entries.length !== 1 || isolated.entries.length !== 0
 console.log(JSON.stringify({ stored: stored.stored, hitCount: hits.entries.length, isolatedCount: isolated.entries.length }));
 `,
   );
-  const smokeOutput = run(process.execPath, ["consumer-smoke.mjs"], consumerDir).trim();
-  console.log(JSON.stringify({ package: packed[0].filename, ...JSON.parse(smokeOutput) }));
+  const smokeOutput = run(
+    process.execPath,
+    ["consumer-smoke.mjs"],
+    consumerDir,
+  ).trim();
+  console.log(
+    JSON.stringify({ package: packed[0].filename, ...JSON.parse(smokeOutput) }),
+  );
 } finally {
   await rm(workspace, { recursive: true, force: true });
 }

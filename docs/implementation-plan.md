@@ -75,12 +75,14 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 **Objetivo:** producir contexto unificado sin exponer detalles de almacenamiento al consumidor.
 
-- Definir `ContextRequest` con actor, rol, workspace, intención, tarea y límites de contexto.
-- Definir `ContextBundle` con memorias, documentos, fuentes, políticas y razones de inclusión.
+**Estado:** primer vertical slice implementado: `ContextRequest`, `ContextBundle`, `ContextProvider.resolve()` y `ContextOrchestrator` combinan Agent Memory y RAG, permiten seleccionar fuentes y aplican límite de caracteres con provenance documental.
+
+- Definir `ContextRequest` con actor, rol, workspace, intención, tarea y límites de contexto. **Implementado inicialmente con workspace, actor, equipos, consulta, límites y selección de fuentes.**
+- Definir `ContextBundle` con memorias, documentos, fuentes, políticas y razones de inclusión. **Implementado con memorias, citas documentales, texto unificado, razones y estado de truncamiento.**
 - Implementar detección inicial de consultas de continuidad, documentales y mixtas.
-- Seleccionar Agent Memory, RAG o ambas fuentes según la solicitud.
-- Fusionar, ordenar y limitar resultados.
-- Exponer `ContextProvider.resolve()`.
+- Seleccionar Agent Memory, RAG o ambas fuentes según la solicitud. **Implementado mediante `includeMemory`/`includeKnowledge`.**
+- Fusionar, ordenar y limitar resultados. **Implementado con consulta paralela y presupuesto `maxChars`.**
+- Exponer `ContextProvider.resolve()`. **Implementado por `ContextOrchestrator`.**
 
 **Resultado:** una única llamada prepara contexto útil y trazable para un agente.
 
