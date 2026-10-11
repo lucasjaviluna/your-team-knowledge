@@ -11,6 +11,7 @@ import type {
   AuditSink,
   KnowledgeIngestionService,
   KnowledgeQueryService,
+  ContextProvider,
 } from "../application/index.js";
 import type { KnowledgeSource } from "../domain/index.js";
 import type { MarkdownIngestionInput } from "../application/index.js";
@@ -23,6 +24,7 @@ import type {
 export interface KnowledgeHttpServices {
   ingestion: KnowledgeIngestionService;
   query: KnowledgeQueryService;
+  context?: ContextProvider;
 }
 
 export interface KnowledgeHttpOptions {
@@ -115,13 +117,41 @@ async function handleKnowledgeHttpRequest(
       return;
     }
 
+    if (request.url === "/v1/context") {
+      action = "context";
+      const contextInput = parseContextInput(
+        body as Record<string, unknown>,
+        principal,
+      );
+      workspaceId = contextInput.workspaceId;
+      await authorize(options, principal, action, workspaceId);
+      if (!services.context) {
+        throw new Error("Context service unavailable.");
+      }
+      const result = await services.context.resolve(contextInput);
+      await recordAudit(options.audit, {
+        action: "context.resolve",
+        outcome: "success",
+        actorId: principal.actorId,
+        workspaceId,
+        requestId,
+        metadata: {
+          memoryCount: result.memories.length,
+          citationCount: result.citations.length,
+          estimatedTokens: result.estimatedTokens,
+        },
+      });
+      sendJson(response, 200, result);
+      return;
+    }
+
     sendJson(response, 404, { error: "Route not found." });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unexpected error.";
     if (principal && action) {
       await recordAudit(options.audit, {
-        action: action === "query" ? "knowledge.query" : "knowledge.ingest",
+        action: auditAction(action),
         outcome: message === "Access denied." ? "denied" : "error",
         actorId: principal.actorId,
         ...(workspaceId ? { workspaceId } : {}),
@@ -132,6 +162,14 @@ async function handleKnowledgeHttpRequest(
     const statusCode = message === "Access denied." ? 403 : 400;
     sendJson(response, statusCode, { error: message });
   }
+}
+
+function auditAction(action: KnowledgeHttpAction): AuditEvent["action"] {
+  return action === "query"
+    ? "knowledge.query"
+    : action === "ingest"
+      ? "knowledge.ingest"
+      : "context.resolve";
 }
 
 function resolveRequestId(request: IncomingMessage): string {
@@ -153,6 +191,49 @@ function parseQueryInput(
     ...(body.limit === undefined
       ? {}
       : { limit: positiveInteger(body.limit, "limit") }),
+  };
+}
+
+function parseContextInput(
+  body: Record<string, unknown>,
+  principal: ApiPrincipal,
+) {
+  return {
+    workspaceId: requiredString(body.workspaceId, "workspaceId"),
+    actorId: principal.actorId,
+    teamIds: principal.teamIds,
+    query: requiredString(body.query, "query"),
+    ...(body.intent === undefined
+      ? {}
+      : { intent: contextIntent(body.intent) }),
+    ...(body.memoryLimit === undefined
+      ? {}
+      : { memoryLimit: positiveInteger(body.memoryLimit, "memoryLimit") }),
+    ...(body.knowledgeLimit === undefined
+      ? {}
+      : {
+          knowledgeLimit: positiveInteger(
+            body.knowledgeLimit,
+            "knowledgeLimit",
+          ),
+        }),
+    ...(body.maxChars === undefined
+      ? {}
+      : { maxChars: positiveInteger(body.maxChars, "maxChars") }),
+    ...(body.maxTokens === undefined
+      ? {}
+      : { maxTokens: positiveInteger(body.maxTokens, "maxTokens") }),
+    ...(body.includeMemory === undefined
+      ? {}
+      : { includeMemory: booleanValue(body.includeMemory, "includeMemory") }),
+    ...(body.includeKnowledge === undefined
+      ? {}
+      : {
+          includeKnowledge: booleanValue(
+            body.includeKnowledge,
+            "includeKnowledge",
+          ),
+        }),
   };
 }
 
@@ -291,6 +372,20 @@ function stringArray(value: unknown, name: string): string[] {
 function positiveInteger(value: unknown, name: string): number {
   if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
     throw new Error(`${name} must be a positive integer.`);
+  }
+  return value;
+}
+
+function booleanValue(value: unknown, name: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new Error(`${name} must be a boolean.`);
+  }
+  return value;
+}
+
+function contextIntent(value: unknown): "continuity" | "documentary" | "mixed" {
+  if (value !== "continuity" && value !== "documentary" && value !== "mixed") {
+    throw new Error("intent must be continuity, documentary or mixed.");
   }
   return value;
 }

@@ -27,6 +27,7 @@ describe("PiHarnessKnowledgeAdapter", () => {
         ],
       })),
       ingestMarkdown: vi.fn(),
+      context: vi.fn(),
     };
     const adapter = new PiHarnessKnowledgeAdapter(client);
 

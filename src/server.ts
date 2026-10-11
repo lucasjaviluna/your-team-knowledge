@@ -2,14 +2,17 @@ import type { DataType } from "@huggingface/transformers";
 import { createKnowledgeHttpServer } from "./api/index.js";
 import { StaticBearerSecurity, type ApiPrincipal } from "./api/security.js";
 import {
+  ContextOrchestrator,
   KnowledgeIngestionService,
   KnowledgeQueryService,
+  MemoryService,
 } from "./application/index.js";
 import { TransformersEmbeddingProvider } from "./infrastructure/embeddings/index.js";
 import {
   PostgresAuditLog,
   PostgresKnowledgeRepository,
 } from "./infrastructure/postgres/index.js";
+import { SqliteAgentMemoryRepository } from "./infrastructure/sqlite/index.js";
 
 const connectionString = requiredEnv("DATABASE_URL");
 const port = parsePort(process.env.PORT ?? "3000");
@@ -23,10 +26,18 @@ const embeddingProvider = new TransformersEmbeddingProvider({
 });
 const repository = new PostgresKnowledgeRepository(connectionString);
 const audit = new PostgresAuditLog(connectionString);
+const memoryRepository = new SqliteAgentMemoryRepository(
+  process.env.AGENT_MEMORY_DATABASE ?? "./agent-memory.sqlite",
+);
+const memory = new MemoryService(memoryRepository);
 const server = createKnowledgeHttpServer(
   {
     ingestion: new KnowledgeIngestionService(repository, embeddingProvider),
     query: new KnowledgeQueryService(repository, embeddingProvider),
+    context: new ContextOrchestrator(
+      memory,
+      new KnowledgeQueryService(repository, embeddingProvider),
+    ),
   },
   {
     security: new StaticBearerSecurity(tokens),
@@ -44,6 +55,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
     if (shuttingDown) return;
     shuttingDown = true;
     server.close(() => {
+      memoryRepository.close();
       void Promise.all([repository.close(), audit.close()]).finally(() => {
         process.exitCode = 0;
       });

@@ -25,6 +25,7 @@ En un entorno corporativo, el servidor debe recibir una implementación de `Bear
 ## Variables principales
 
 - `DATABASE_URL`: conexión a PostgreSQL.
+- `AGENT_MEMORY_DATABASE`: ruta de la base SQLite de Agent Memory; por defecto `./agent-memory.sqlite`.
 - `HOST` y `PORT`: interfaz y puerto HTTP; por defecto `0.0.0.0:3000`.
 - `EMBEDDING_DTYPE`: tipo de cuantización aceptado por Transformers.js, por ejemplo `q8`.
 - `EMBEDDING_LOCAL_ONLY=1`: evita descargas y requiere que el modelo ya exista en la caché local.

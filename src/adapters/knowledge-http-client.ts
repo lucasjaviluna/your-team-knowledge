@@ -1,4 +1,6 @@
 import type {
+  ContextBundle,
+  ContextRequest,
   KnowledgeQueryResponse,
   MarkdownIngestionInput,
   MarkdownIngestionResult,
@@ -18,9 +20,15 @@ export interface KnowledgeHttpQueryInput {
   limit?: number;
 }
 
+export type KnowledgeHttpContextInput = Omit<
+  ContextRequest,
+  "actorId" | "teamIds"
+>;
+
 export interface KnowledgeClient {
   health(): Promise<{ status: string }>;
   query(input: KnowledgeHttpQueryInput): Promise<KnowledgeQueryResponse>;
+  context(input: KnowledgeHttpContextInput): Promise<ContextBundle>;
   ingestMarkdown(
     source: KnowledgeSource,
     document: MarkdownIngestionInput,
@@ -76,6 +84,10 @@ export class KnowledgeHttpClient implements KnowledgeClient {
 
   async query(input: KnowledgeHttpQueryInput): Promise<KnowledgeQueryResponse> {
     return this.post<KnowledgeQueryResponse>("/v1/knowledge/query", input);
+  }
+
+  async context(input: KnowledgeHttpContextInput): Promise<ContextBundle> {
+    return this.post<ContextBundle>("/v1/context", input);
   }
 
   async ingestMarkdown(

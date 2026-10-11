@@ -4,6 +4,7 @@ export {
   type KnowledgeClient,
   type KnowledgeHttpClientOptions,
   type KnowledgeHttpQueryInput,
+  type KnowledgeHttpContextInput,
 } from "./knowledge-http-client.js";
 export {
   PiHarnessKnowledgeAdapter,

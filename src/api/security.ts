@@ -6,7 +6,7 @@ export interface ApiPrincipal {
   workspaceIds?: readonly string[];
 }
 
-export type KnowledgeHttpAction = "query" | "ingest";
+export type KnowledgeHttpAction = "query" | "ingest" | "context";
 
 export interface KnowledgeHttpSecurity {
   authenticate(request: IncomingMessage): Promise<ApiPrincipal | null>;

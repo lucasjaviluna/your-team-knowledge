@@ -70,4 +70,41 @@ describe("KnowledgeHttpClient", () => {
       requestId: "request-403",
     });
   });
+
+  it("sends context requests through the context endpoint", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
+      expect(input).toBe("http://knowledge.test/v1/context");
+      expect(init?.method).toBe("POST");
+      expect(JSON.parse(String(init?.body))).toEqual({
+        workspaceId: "workspace",
+        query: "deployment",
+        maxTokens: 100,
+      });
+      return new Response(
+        JSON.stringify({
+          query: "deployment",
+          intent: "mixed",
+          memories: [],
+          citations: [],
+          contextText: "",
+          estimatedTokens: 0,
+          truncated: false,
+        }),
+        { status: 200 },
+      );
+    });
+
+    const client = new KnowledgeHttpClient({
+      baseUrl: "http://knowledge.test",
+      fetch: fetchMock,
+    });
+
+    await expect(
+      client.context({
+        workspaceId: "workspace",
+        query: "deployment",
+        maxTokens: 100,
+      }),
+    ).resolves.toMatchObject({ intent: "mixed", estimatedTokens: 0 });
+  });
 });

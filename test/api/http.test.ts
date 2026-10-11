@@ -66,6 +66,19 @@ function createServices(): KnowledgeHttpServices {
       },
     } as unknown as KnowledgeHttpServices["ingestion"],
     query: new KnowledgeQueryService(repository, provider),
+    context: {
+      async resolve(input) {
+        return {
+          query: input.query,
+          intent: input.intent ?? "mixed",
+          memories: [],
+          citations: [],
+          contextText: "Contexto de prueba.",
+          estimatedTokens: 5,
+          truncated: false,
+        };
+      },
+    },
   };
 }
 
@@ -198,6 +211,19 @@ describe("knowledge HTTP API", () => {
         }),
       ]);
 
+      const context = await post(port, "/v1/context", {
+        workspaceId: "workspace",
+        query: "deployment",
+        maxTokens: 100,
+      });
+      expect(context.status).toBe(200);
+      expect(context.body).toEqual(
+        expect.objectContaining({
+          contextText: "Contexto de prueba.",
+          estimatedTokens: 5,
+        }),
+      );
+
       const ingestion = await post(port, "/v1/knowledge/documents", {
         source,
         document: {
@@ -211,14 +237,20 @@ describe("knowledge HTTP API", () => {
       });
       expect(ingestion.status).toBe(201);
       expect(ingestion.body.chunks).toEqual([chunk]);
-      expect(events).toHaveLength(2);
+      expect(events).toHaveLength(3);
       expect(events.every((event) => event.outcome === "success")).toBe(true);
       expect(events.map((event) => event.requestId)).toEqual([
         "test-request",
         "test-request",
+        "test-request",
       ]);
       expect(events[0]?.metadata).toEqual({ resultCount: 1 });
-      expect(events[1]?.metadata).toEqual({ chunkCount: 1 });
+      expect(events[1]?.metadata).toEqual({
+        memoryCount: 0,
+        citationCount: 0,
+        estimatedTokens: 5,
+      });
+      expect(events[2]?.metadata).toEqual({ chunkCount: 1 });
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

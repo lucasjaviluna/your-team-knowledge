@@ -61,9 +61,26 @@ Solicitud:
 
 La respuesta devuelve el documento y los chunks sin exponer los vectores internos. La operación requiere autorización sobre el workspace.
 
+### `POST /v1/context`
+
+Solicitud:
+
+```json
+{
+  "workspaceId": "workspace-checkout",
+  "query": "¿Qué decidimos sobre despliegues?",
+  "maxTokens": 1200,
+  "maxChars": 4800,
+  "includeMemory": true,
+  "includeKnowledge": true
+}
+```
+
+El servidor obtiene `actorId` y `teamIds` del principal autenticado. El `ContextOrchestrator` clasifica la intención, combina memoria local y conocimiento autorizado, y devuelve `ContextBundle` con `contextText`, citas, intención, `estimatedTokens` y `truncated`. `maxTokens` usa una estimación conservadora; `maxChars` continúa disponible como límite superior.
+
 ## Auditoría
 
-Las consultas, ingestas exitosas, denegaciones y errores pueden persistirse mediante `PostgresAuditLog` en la tabla `audit_events`. El evento incluye acción, resultado, actor, workspace, recurso, `requestId` y metadatos mínimos como cantidad de resultados o chunks.
+Las consultas, resoluciones de contexto, ingestas exitosas, denegaciones y errores pueden persistirse mediante `PostgresAuditLog` en la tabla `audit_events`. El evento incluye acción, resultado, actor, workspace, recurso, `requestId` y metadatos mínimos como cantidad de resultados, citas, memorias, tokens estimados o chunks.
 
 ## Errores
 

@@ -1,4 +1,5 @@
-export type AuditAction = "knowledge.query" | "knowledge.ingest";
+export type AuditAction =
+  "knowledge.query" | "knowledge.ingest" | "context.resolve";
 export type AuditOutcome = "success" | "denied" | "error";
 
 export interface AuditEvent {
