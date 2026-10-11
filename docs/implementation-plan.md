@@ -96,6 +96,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Añadir clasificación y autoridad de fuentes.
 - Crear dataset de evaluación con consultas y resultados esperados. **Implementado con casos deterministas de continuidad, documental, mixto y aislamiento por permisos.**
 - Medir relevancia, cobertura, citas y filtrado de permisos. **Implementado inicialmente con el arnés `evaluateContextProvider`, que calcula exactitud de intención, recall de memoria/citas y fugas de contenido prohibido.**
+- Habilitar una prueba funcional persistente sobre un proyecto real. **Implementado con `npm run demo:agent-memory`, que ejercita SQLite, FTS5, `projectId`/`workspaceId` y recuperación del provider tipo pi-harness sin requerir PostgreSQL ni un modelo.**
 - Definir reglas de vigencia, revisión y deprecación.
 - Añadir detección de contenido sensible durante la ingesta.
 

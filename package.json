@@ -28,6 +28,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/server.js",
+    "demo:agent-memory": "npm run build && node scripts/agent-memory-demo.mjs",
     "pack:check": "npm pack --dry-run",
     "test:consumer": "npm run build && node scripts/consumer-smoke.mjs",
     "typecheck": "tsc --project tsconfig.json --noEmit",
