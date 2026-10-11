@@ -18,6 +18,15 @@ export interface KnowledgeHttpQueryInput {
   limit?: number;
 }
 
+export interface KnowledgeClient {
+  health(): Promise<{ status: string }>;
+  query(input: KnowledgeHttpQueryInput): Promise<KnowledgeQueryResponse>;
+  ingestMarkdown(
+    source: KnowledgeSource,
+    document: MarkdownIngestionInput,
+  ): Promise<MarkdownIngestionResult>;
+}
+
 export class KnowledgeApiError extends Error {
   constructor(
     readonly status: number,
@@ -33,7 +42,7 @@ export class KnowledgeApiError extends Error {
   }
 }
 
-export class KnowledgeHttpClient {
+export class KnowledgeHttpClient implements KnowledgeClient {
   private readonly baseUrl: string;
   private readonly getToken: KnowledgeHttpClientOptions["getToken"];
   private readonly fetchImpl: typeof globalThis.fetch;

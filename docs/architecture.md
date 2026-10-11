@@ -45,6 +45,8 @@ El RAG usa contratos de documentos/chunks, un ingestor Markdown y persistencia P
 
 La capa de aplicación expone `KnowledgeIngestionService` para coordinar ingesta, generación de embeddings y persistencia, y `KnowledgeQueryService` para generar el embedding de consulta, recuperar resultados y proyectarlos a citas trazables. Los consumidores no necesitan conocer PostgreSQL ni el formato interno de pgvector.
 
+El paquete expone `KnowledgeHttpClient` y `PiHarnessKnowledgeAdapter` para consumidores externos. El adaptador traduce operaciones de búsqueda/ingesta y definiciones de herramientas, conservando las citas y dejando la integración con el registro nativo del consumidor como una capa final.
+
 ### Corporate Knowledge RAG
 
 Persistencia centralizada con PostgreSQL, `pgvector` y búsqueda full-text para:
