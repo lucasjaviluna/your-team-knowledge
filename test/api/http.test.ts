@@ -108,7 +108,12 @@ async function startServer(
   return { server, port: address.port };
 }
 
-function post(port: number, path: string, body: unknown) {
+function post(
+  port: number,
+  path: string,
+  body: unknown,
+  requestId = "test-request",
+) {
   return new Promise<{ status: number; body: Record<string, unknown> }>(
     (resolve, reject) => {
       const payload = JSON.stringify(body);
@@ -122,6 +127,7 @@ function post(port: number, path: string, body: unknown) {
             "content-type": "application/json",
             "content-length": Buffer.byteLength(payload),
             authorization: "Bearer test-token",
+            "x-request-id": requestId,
           },
         },
         (response) => {
@@ -207,6 +213,12 @@ describe("knowledge HTTP API", () => {
       expect(ingestion.body.chunks).toEqual([chunk]);
       expect(events).toHaveLength(2);
       expect(events.every((event) => event.outcome === "success")).toBe(true);
+      expect(events.map((event) => event.requestId)).toEqual([
+        "test-request",
+        "test-request",
+      ]);
+      expect(events[0]?.metadata).toEqual({ resultCount: 1 });
+      expect(events[1]?.metadata).toEqual({ chunkCount: 1 });
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

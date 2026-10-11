@@ -6,6 +6,8 @@ La primera capa de transporte usa `node:http` y delega toda la lógica en los se
 
 Las rutas de escritura y consulta requieren `Authorization: Bearer <token>`. El token se resuelve a un principal con `actorId`, equipos y workspaces permitidos. El `actorId` y los equipos del cuerpo no se utilizan para autorizar la consulta: se toman del principal autenticado. Las operaciones fuera del workspace autorizado responden `403`.
 
+Todas las respuestas incluyen `X-Request-Id`. El servidor conserva el valor enviado por el consumidor cuando no supera 200 caracteres y genera uno cuando no se proporciona. Ese identificador se persiste en los eventos de auditoría.
+
 ## Rutas
 
 ### `GET /health`
@@ -59,7 +61,7 @@ La respuesta devuelve el documento y los chunks sin exponer los vectores interno
 
 ## Auditoría
 
-Las consultas, ingestas exitosas, denegaciones y errores pueden persistirse mediante `PostgresAuditLog` en la tabla `audit_events`. El evento incluye acción, resultado, actor, workspace, recurso y metadatos mínimos.
+Las consultas, ingestas exitosas, denegaciones y errores pueden persistirse mediante `PostgresAuditLog` en la tabla `audit_events`. El evento incluye acción, resultado, actor, workspace, recurso, `requestId` y metadatos mínimos como cantidad de resultados o chunks.
 
 ## Errores
 

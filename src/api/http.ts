@@ -4,6 +4,7 @@ import {
   type Server,
   type ServerResponse,
 } from "node:http";
+import { randomUUID } from "node:crypto";
 
 import type {
   AuditEvent,
@@ -44,6 +45,8 @@ async function handleKnowledgeHttpRequest(
   services: KnowledgeHttpServices,
   options: KnowledgeHttpOptions,
 ): Promise<void> {
+  const requestId = resolveRequestId(request);
+  response.setHeader("x-request-id", requestId);
   let principal: ApiPrincipal | null = null;
   let action: KnowledgeHttpAction | undefined;
   let workspaceId: string | undefined;
@@ -79,6 +82,8 @@ async function handleKnowledgeHttpRequest(
         outcome: "success",
         actorId: principal.actorId,
         workspaceId,
+        requestId,
+        metadata: { resultCount: result.results.length },
       });
       sendJson(response, 200, result);
       return;
@@ -100,6 +105,8 @@ async function handleKnowledgeHttpRequest(
         workspaceId,
         resourceType: "document",
         resourceId: result.document.id,
+        requestId,
+        metadata: { chunkCount: result.chunks.length },
       });
       sendJson(response, 201, {
         document: result.document,
@@ -118,12 +125,20 @@ async function handleKnowledgeHttpRequest(
         outcome: message === "Access denied." ? "denied" : "error",
         actorId: principal.actorId,
         ...(workspaceId ? { workspaceId } : {}),
+        requestId,
         metadata: { error: message },
       });
     }
     const statusCode = message === "Access denied." ? 403 : 400;
     sendJson(response, statusCode, { error: message });
   }
+}
+
+function resolveRequestId(request: IncomingMessage): string {
+  const header = request.headers["x-request-id"];
+  const candidate = Array.isArray(header) ? header[0] : header;
+  const normalized = candidate?.trim();
+  return normalized && normalized.length <= 200 ? normalized : randomUUID();
 }
 
 function parseQueryInput(
