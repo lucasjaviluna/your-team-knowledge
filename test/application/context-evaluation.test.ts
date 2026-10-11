@@ -71,10 +71,11 @@ function providerReturningExpectedData(
 
       return bundle(request.query, "documentary", {
         memories: [],
-        citations:
-          includeForbiddenCitation && request.query.includes("privada")
+        citations: request.query.includes("privada")
+          ? includeForbiddenCitation
             ? [privateCitation]
-            : [deploymentCitation],
+            : []
+          : [deploymentCitation],
       });
     },
   };
@@ -91,6 +92,8 @@ describe("context evaluation harness", () => {
       intentAccuracy: 1,
       memoryRecall: 1,
       citationRecall: 1,
+      memoryPrecision: 1,
+      citationPrecision: 1,
       permissionLeakage: 0,
       passed: true,
     });
@@ -104,11 +107,13 @@ describe("context evaluation harness", () => {
     );
 
     expect(result.permissionLeakage).toBe(1);
+    expect(result.citationPrecision).toBeCloseTo(2 / 3);
     expect(result.passed).toBe(false);
     expect(
       result.cases.find((item) => item.id === "permission-isolation"),
     ).toMatchObject({
       forbiddenDocumentCount: 1,
+      citationPrecision: 0,
       passed: false,
     });
   });
