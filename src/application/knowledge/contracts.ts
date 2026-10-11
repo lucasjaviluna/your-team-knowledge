@@ -13,6 +13,15 @@ export interface KnowledgeSearchInput {
   limit?: number;
 }
 
+export interface EmbeddingProvider {
+  readonly modelId: string;
+  readonly dimensions: number;
+  embedQuery(text: string): Promise<readonly number[]>;
+  embedDocuments(
+    texts: readonly string[],
+  ): Promise<readonly (readonly number[])[]>;
+}
+
 export interface KnowledgeSearchResult {
   document: Document;
   chunk: DocumentChunk;

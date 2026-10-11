@@ -73,11 +73,13 @@ Costes:
 - `nomic-embed-text:v1.5` usa 768 dimensiones y es más pesado que las alternativas de 384.
 - La distribución del modelo debe revisarse por licencia y tamaño.
 
-## Recomendación
+## Recomendación provisional
 
 Adoptar inicialmente `intfloat/multilingual-e5-small` detrás de un `EmbeddingProvider` en TypeScript, ejecutado con Transformers.js/ONNX Runtime.
 
 La razón es que el proyecto tiene contenido en español, necesita seguir siendo distribuible desde TypeScript y todavía está en una etapa local-first. La dimensión 384 mantiene bajo el costo de almacenamiento y hace simple fijar `vector(384)` en PostgreSQL cuando validemos el modelo.
+
+El adaptador inicial ya fue implementado y verificado con el modelo ONNX cuantizado `Xenova/multilingual-e5-small`: genera vectores de 384 dimensiones para consultas y documentos. La recomendación sigue siendo provisional hasta comparar calidad y latencia contra la alternativa multilingüe MiniLM.
 
 La implementación debe:
 

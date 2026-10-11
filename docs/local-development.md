@@ -20,6 +20,8 @@ Si el puerto 5432 ya está ocupado, iniciar la instancia del proyecto en otro pu
 
 Para ejecutar también la prueba de integración PostgreSQL: `$env:DATABASE_URL='postgresql://knowledge:knowledge@localhost:55432/corporate_knowledge'; npm test`. Sin `DATABASE_URL`, esa prueba queda omitida y la suite usa únicamente dependencias locales.
 
+El proveedor local de embeddings usa `Xenova/multilingual-e5-small` con Transformers.js. La primera ejecución descarga el modelo y lo deja en la caché del runtime. Para verificarlo después de compilar: `node --input-type=module -e "import { TransformersEmbeddingProvider } from './dist/infrastructure/embeddings/index.js'; const provider = new TransformersEmbeddingProvider({ dtype: 'q8' }); console.log((await provider.embedQuery('texto de prueba')).length);"`. El resultado esperado es `384`.
+
 ## Límites actuales
 
 La base técnica todavía no expone una API. Agent Memory ya persiste memorias en SQLite y Corporate Knowledge RAG ya cuenta con persistencia y búsqueda full-text en PostgreSQL; la búsqueda vectorial y la API quedan para las siguientes etapas.

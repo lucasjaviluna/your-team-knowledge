@@ -41,7 +41,7 @@ La primera versión no sincroniza automáticamente esta memoria. Más adelante, 
 
 La implementación inicial usa un repositorio SQLite local detrás del contrato `MemoryRepository`. Permite guardar, actualizar por `subjectKey`, buscar memorias activas mediante full-text search, cerrar sesiones con resumen y registrar relaciones entre memorias.
 
-El RAG usa contratos de documentos/chunks, un ingestor Markdown y persistencia PostgreSQL transaccional. La consulta mantiene los filtros de acceso dentro de SQL y soporta dos modos: full-text cuando solo se recibe texto, y vectorial/híbrido cuando también se recibe un embedding. La puntuación híbrida combina relevancia lexical y similitud coseno; el proveedor que genera embeddings permanece fuera del repositorio.
+El RAG usa contratos de documentos/chunks, un ingestor Markdown y persistencia PostgreSQL transaccional. La consulta mantiene los filtros de acceso dentro de SQL y soporta dos modos: full-text cuando solo se recibe texto, y vectorial/híbrido cuando también se recibe un embedding. La puntuación híbrida combina relevancia lexical y similitud coseno. El contrato `EmbeddingProvider` desacopla la generación de vectores del repositorio; la primera implementación local usa Transformers.js/ONNX con el modelo provisional `Xenova/multilingual-e5-small`.
 
 ### Corporate Knowledge RAG
 
