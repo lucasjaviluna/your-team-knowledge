@@ -78,7 +78,19 @@ Para consumidores que sólo necesitan Agent Memory se recomienda el entrypoint m
 }
 ```
 
-`@corporate-knowledge/platform/memory` expone únicamente `MemoryService`, `SqliteAgentMemoryRepository` y `PiHarnessMemoryProvider`; evita cargar el entrypoint completo de RAG durante el arranque. La separación de dependencias de instalación (`pg`, Transformers.js/ONNX) queda como una mejora posterior del empaquetado.
+`@corporate-knowledge/platform/memory` expone únicamente `MemoryService`, `SqliteAgentMemoryRepository` y `PiHarnessMemoryProvider`; evita cargar el entrypoint completo de RAG durante el arranque. El paquete mantiene sólo `better-sqlite3` como dependencia obligatoria; `pg` y Transformers.js/ONNX son peer dependencies opcionales y sólo deben instalarse cuando se use RAG o el servidor corporativo.
+
+Para el consumidor de memoria local:
+
+```bash
+npm install @corporate-knowledge/platform better-sqlite3
+```
+
+Para habilitar RAG/HTTP en el mismo paquete:
+
+```bash
+npm install @corporate-knowledge/platform better-sqlite3 pg @huggingface/transformers
+```
 
 ## Estado de validación
 

@@ -49,8 +49,18 @@
     "vitest": "^3.0.7"
   },
   "dependencies": {
+    "better-sqlite3": "^13.0.3"
+  },
+  "peerDependencies": {
     "@huggingface/transformers": "^4.3.1",
-    "better-sqlite3": "^13.0.3",
     "pg": "^8.23.1"
+  },
+  "peerDependenciesMeta": {
+    "@huggingface/transformers": {
+      "optional": true
+    },
+    "pg": {
+      "optional": true
+    }
   }
 }
