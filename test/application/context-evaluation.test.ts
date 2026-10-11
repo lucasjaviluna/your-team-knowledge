@@ -86,6 +86,14 @@ describe("context evaluation harness", () => {
     const result = await evaluateContextProvider(
       providerReturningExpectedData(),
       contextEvaluationDataset,
+      {
+        intentAccuracy: 1,
+        memoryRecall: 1,
+        citationRecall: 1,
+        memoryPrecision: 1,
+        citationPrecision: 1,
+        maxPermissionLeakage: 0,
+      },
     );
 
     expect(result).toMatchObject({
