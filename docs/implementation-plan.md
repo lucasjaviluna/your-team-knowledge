@@ -107,7 +107,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 - Exponer API interna para memoria, conocimiento y contexto.
 - Publicar contratos de red independientes del lenguaje.
-- Mapear `PiHarnessKnowledgeAdapter.toolDefinitions()` al registro nativo de pi-harness cuando su runtime esté disponible.
+- En pi-harness: crear la extensión nativa que mapee `PiHarnessKnowledgeAdapter.toolDefinitions()` a `pi.registerTool`.
 - Mantener el Agent Memory como paquete local con SQLite.
 - Exponer un `MemoryProvider` compatible con pi-harness sobre el repositorio SQLite.
 - Exponer MCP cuando el núcleo y la API estén estabilizados.

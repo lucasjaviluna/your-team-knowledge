@@ -49,6 +49,8 @@ Para consumidores con memoria provider-neutral, `PiHarnessMemoryProvider` adapta
 
 El paquete expone `KnowledgeHttpClient` y `PiHarnessKnowledgeAdapter` para consumidores externos. El adaptador traduce operaciones de búsqueda/ingesta y definiciones de herramientas, conservando las citas y dejando la integración con el registro nativo del consumidor como una capa final.
 
+La extensión nativa que llama a `pi.registerTool` vive en pi-harness, no en esta plataforma: pertenece al borde de ejecución del agente y depende de la API y políticas de aprobación de Pi. Esta plataforma solo publica el SDK/adaptadores que esa extensión consume.
+
 ### Corporate Knowledge RAG
 
 Persistencia centralizada con PostgreSQL, `pgvector` y búsqueda full-text para:

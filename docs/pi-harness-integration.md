@@ -1,5 +1,11 @@
 # Integración con pi-harness
 
+## Límite entre repositorios
+
+La extensión nativa de Pi pertenece al repositorio `your-harness-v0`, porque depende de `ExtensionAPI`, `pi.registerTool`, el ciclo de vida de la TUI y la política de aprobación del harness. Este repositorio no debe importar el runtime de Pi ni registrar tools directamente.
+
+Este proyecto es responsable de los contratos y adaptadores reutilizables: `KnowledgeHttpClient`, `PiHarnessKnowledgeAdapter` y `PiHarnessMemoryProvider`. La integración nativa en pi-harness debe consumirlos desde una dependencia npm, workspace package o ruta local durante desarrollo.
+
 El repositorio no contiene el código fuente de pi-harness, por lo que la integración se implementa como un adaptador de consumidor y no como una dependencia directa. `PiHarnessKnowledgeAdapter` recibe cualquier cliente compatible con `KnowledgeClient`; en producción se le inyecta `KnowledgeHttpClient`.
 
 ```ts
