@@ -60,6 +60,10 @@ Los permisos se validan dentro de la consulta, antes de recuperar o entregar con
 
 Recibe un `ContextRequest` con actor, rol, workspace, intención y tarea. Decide qué fuentes consultar y devuelve un `ContextBundle` con contexto ordenado, fuentes y justificación de inclusión.
 
+### Transporte HTTP
+
+La API HTTP inicial se implementa con `node:http` y funciona como adaptador delgado sobre los servicios de aplicación. Expone health check, consulta documental e ingesta Markdown; no contiene reglas de ranking, permisos ni generación de embeddings. La autenticación y auditoría se incorporarán antes de exponerla fuera de un entorno confiable.
+
 ## Entidades fundacionales
 
 - `Workspace`

@@ -103,6 +103,8 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 **Objetivo:** permitir consumo desacoplado desde pi-harness y otros clientes.
 
+**Estado:** contrato de aplicación y primer transporte HTTP completados. Existe una fábrica `node:http` con health check, consulta híbrida e ingesta documental; quedan pendientes autenticación, auditoría, despliegue y cliente TypeScript.
+
 - Exponer API interna para memoria, conocimiento y contexto.
 - Publicar contratos de red independientes del lenguaje.
 - Crear un cliente TypeScript y el adaptador para pi-harness.

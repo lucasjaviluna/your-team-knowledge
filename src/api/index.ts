@@ -1,4 +1,2 @@
-/**
- * Transport-specific API handlers are added after application use cases exist.
- */
-export {};
+export { createKnowledgeHttpServer } from "./http.js";
+export type { KnowledgeHttpServices } from "./http.js";

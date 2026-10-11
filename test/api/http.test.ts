@@ -1,0 +1,180 @@
+import { request } from "node:http";
+
+import { describe, expect, it } from "vitest";
+
+import {
+  KnowledgeQueryService,
+  createKnowledgeHttpServer,
+  type EmbeddingProvider,
+  type KnowledgeHttpServices,
+  type KnowledgeRepository,
+} from "../../src/index.js";
+import type {
+  Document,
+  DocumentChunk,
+  KnowledgeSource,
+} from "../../src/domain/index.js";
+
+const source: KnowledgeSource = {
+  id: "source",
+  kind: "markdown",
+  name: "handbook",
+};
+
+const document: Document = {
+  id: "document",
+  sourceId: "source",
+  externalId: "doc-1",
+  workspaceId: "workspace",
+  title: "Handbook",
+  version: "1",
+  status: "active",
+  accessPolicy: { workspaceId: "workspace" },
+  createdAt: new Date("2026-01-01T00:00:00Z"),
+  updatedAt: new Date("2026-01-01T00:00:00Z"),
+};
+
+const chunk: DocumentChunk = {
+  id: "chunk",
+  documentId: "document",
+  ordinal: 0,
+  content: "Contenido citado.",
+  metadata: {},
+};
+
+function createServices(): KnowledgeHttpServices {
+  const provider: EmbeddingProvider = {
+    modelId: "test-model",
+    dimensions: 3,
+    embedQuery: async () => [0.9, 0.1, 0],
+    embedDocuments: async (texts) => texts.map(() => [0.1, 0.2, 0.3]),
+  };
+  const repository: KnowledgeRepository = {
+    async save() {},
+    async search() {
+      return [{ document, chunk, source, score: 0.87 }];
+    },
+    async close() {},
+  };
+  return {
+    ingestion: {
+      async ingestMarkdown() {
+        return { document, chunks: [chunk] };
+      },
+    } as unknown as KnowledgeHttpServices["ingestion"],
+    query: new KnowledgeQueryService(repository, provider),
+  };
+}
+
+async function startServer(services: KnowledgeHttpServices) {
+  const server = createKnowledgeHttpServer(services);
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    throw new Error("Test server did not expose a TCP address.");
+  }
+  return { server, port: address.port };
+}
+
+function post(port: number, path: string, body: unknown) {
+  return new Promise<{ status: number; body: Record<string, unknown> }>(
+    (resolve, reject) => {
+      const payload = JSON.stringify(body);
+      const client = request(
+        {
+          host: "127.0.0.1",
+          port,
+          path,
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "content-length": Buffer.byteLength(payload),
+          },
+        },
+        (response) => {
+          const chunks: Buffer[] = [];
+          response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+          response.on("end", () => {
+            resolve({
+              status: response.statusCode ?? 0,
+              body: JSON.parse(
+                Buffer.concat(chunks).toString("utf8"),
+              ) as Record<string, unknown>,
+            });
+          });
+        },
+      );
+      client.on("error", reject);
+      client.end(payload);
+    },
+  );
+}
+
+function get(port: number, path: string) {
+  return new Promise<{ status: number; body: Record<string, unknown> }>(
+    (resolve, reject) => {
+      const client = request(
+        { host: "127.0.0.1", port, path, method: "GET" },
+        (response) => {
+          const chunks: Buffer[] = [];
+          response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+          response.on("end", () => {
+            resolve({
+              status: response.statusCode ?? 0,
+              body: JSON.parse(
+                Buffer.concat(chunks).toString("utf8"),
+              ) as Record<string, unknown>,
+            });
+          });
+        },
+      );
+      client.on("error", reject);
+      client.end();
+    },
+  );
+}
+
+describe("knowledge HTTP API", () => {
+  it("serves health and query responses with citations", async () => {
+    const { server, port } = await startServer(createServices());
+
+    try {
+      const health = await get(port, "/health");
+      expect(health).toEqual({ status: 200, body: { status: "ok" } });
+
+      const response = await post(port, "/v1/knowledge/query", {
+        workspaceId: "workspace",
+        actorId: "actor",
+        teamIds: [],
+        query: "¿Qué dice el handbook?",
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.citations).toEqual([
+        expect.objectContaining({
+          documentId: "document",
+          chunkId: "chunk",
+          excerpt: "Contenido citado.",
+        }),
+      ]);
+
+      const ingestion = await post(port, "/v1/knowledge/documents", {
+        source,
+        document: {
+          sourceId: "source",
+          externalId: "doc-1",
+          workspaceId: "workspace",
+          title: "Handbook",
+          content: "Contenido del handbook.",
+          accessPolicy: { workspaceId: "workspace" },
+        },
+      });
+      expect(ingestion.status).toBe(201);
+      expect(ingestion.body.chunks).toEqual([chunk]);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+});
