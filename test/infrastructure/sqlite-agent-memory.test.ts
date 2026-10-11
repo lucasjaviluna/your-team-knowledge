@@ -61,8 +61,12 @@ describe("SqliteAgentMemoryRepository", () => {
     });
 
     expect(updated.id).toBe(original.id);
-    expect(service.search({ workspaceId: "workspace-checkout", query: "updated" })).toHaveLength(1);
-    expect(service.search({ workspaceId: "workspace-checkout", query: "initial" })).toHaveLength(0);
+    expect(
+      service.search({ workspaceId: "workspace-checkout", query: "updated" }),
+    ).toHaveLength(1);
+    expect(
+      service.search({ workspaceId: "workspace-checkout", query: "initial" }),
+    ).toHaveLength(0);
   });
 
   it("tracks session lifecycle and memory relations", () => {
@@ -102,7 +106,9 @@ describe("SqliteAgentMemoryRepository", () => {
 function createMemoryService() {
   const directory = mkdtempSync(join(tmpdir(), "corporate-knowledge-"));
   temporaryDirectories.push(directory);
-  const repository = new SqliteAgentMemoryRepository(join(directory, "agent-memory.sqlite"));
+  const repository = new SqliteAgentMemoryRepository(
+    join(directory, "agent-memory.sqlite"),
+  );
   resources.push(repository);
   const service = new MemoryService(repository);
 

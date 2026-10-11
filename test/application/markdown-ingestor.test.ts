@@ -10,8 +10,12 @@ describe("ingestMarkdown", () => {
       workspaceId: "workspace-checkout",
       title: "Authentication handbook",
       version: "2026-10",
-      content: "# Authentication\n\nUse the approved login flow for every checkout authentication request and validate the session before continuing.\n\nRotate credentials during incidents.",
-      accessPolicy: { workspaceId: "workspace-checkout", teamIds: ["team-platform"] },
+      content:
+        "# Authentication\n\nUse the approved login flow for every checkout authentication request and validate the session before continuing.\n\nRotate credentials during incidents.",
+      accessPolicy: {
+        workspaceId: "workspace-checkout",
+        teamIds: ["team-platform"],
+      },
       maxChunkCharacters: 100,
     });
 

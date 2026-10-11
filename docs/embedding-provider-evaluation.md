@@ -94,16 +94,27 @@ La implementación debe:
 
 Antes de convertir la recomendación en decisión permanente, crear un dataset pequeño con consultas en español, documentos autorizados y casos de acceso denegado. Comparar `multilingual-e5-small` con `paraphrase-multilingual-MiniLM-L12-v2` usando recall@k, precisión de citas y latencia CPU.
 
-## Resultado del benchmark inicial
+## Resultado del benchmark ampliado
 
-Fecha: 2026-10-11. Ejecución local en CPU, seis documentos, seis consultas en español, `k=3` y modelos ONNX cuantizados `q8`.
+Fecha: 2026-10-11. Ejecución local en CPU, doce documentos, doce consultas, `k=3`, tres corridas por modelo y modelos ONNX cuantizados `q8`. El dataset incluye consultas ambiguas, sinónimos, documentos más extensos, una consulta en inglés y un caso de contexto mixto.
 
-| Modelo                                         | Recall@3 | Precisión de cita@1 | Latencia batch documentos | Latencia media consulta | P95 consulta |
-| ---------------------------------------------- | -------: | ------------------: | ------------------------: | ----------------------: | -----------: |
-| `Xenova/multilingual-e5-small`                 |     1.00 |                1.00 |                    2.92 s |                 20.5 ms |      41.0 ms |
-| `Xenova/paraphrase-multilingual-MiniLM-L12-v2` |     1.00 |                1.00 |                   10.73 s |                 14.1 ms |      19.4 ms |
+| Modelo                                         | Recall@3 | Precisión de cita@1 | Batch documental en frío | Batch documental cálido | Consulta media cálida |   P95 cálido |
+| ---------------------------------------------- | -------: | ------------------: | -----------------------: | ----------------------: | --------------------: | -----------: |
+| `Xenova/multilingual-e5-small`                 |    0.933 |                1.00 |                1907.8 ms |          221.6–257.8 ms |            9.4–9.7 ms | 12.5–19.4 ms |
+| `Xenova/paraphrase-multilingual-MiniLM-L12-v2` |    0.867 |                0.75 |                1656.1 ms |          204.0–225.0 ms |            7.5–7.9 ms |  9.5–12.2 ms |
 
-Ambos modelos resolvieron correctamente este dataset pequeño. E5 mostró una ventaja clara en el embedding batch inicial, mientras que MiniLM tuvo menor latencia por consulta después de cargar el modelo. El resultado no es suficiente para una decisión definitiva: el dataset debe crecer con consultas ambiguas, sinónimos, documentos largos y casos multilingües. Por ahora se mantiene E5 como opción provisional.
+En este dataset más exigente, E5 obtuvo mejor cobertura y precisión de cita. MiniLM fue ligeramente más rápido por consulta, pero falló en más casos de recuperación y en el caso de contexto mixto. Por ahora se fija E5 como proveedor provisional de referencia, con dimensión 384; la decisión productiva final queda condicionada a validar permisos, calidad híbrida y comportamiento con documentos reales.
+
+### Memoria de proceso
+
+La prueba registró RSS del proceso Node antes y después de cada modelo, en el mismo proceso para evitar repetir la inicialización del runner:
+
+| Modelo                                         | RSS antes | RSS después | Incremento observado |
+| ---------------------------------------------- | --------: | ----------: | -------------------: |
+| `Xenova/multilingual-e5-small`                 |   72.1 MB |    484.1 MB |             412.1 MB |
+| `Xenova/paraphrase-multilingual-MiniLM-L12-v2` |  484.1 MB |    516.0 MB |              31.9 MB |
+
+Estos valores son una medida operacional del proceso completo y no una medición aislada del peso de cada modelo: incluyen ONNX Runtime, buffers, cachés y el modelo cargado previamente. Sirven como señal inicial para decidir el despliegue, pero no deben interpretarse como memoria exacta por proveedor.
 
 ## Fuentes oficiales
 

@@ -24,7 +24,11 @@ describeBenchmark("embedding model benchmark", () => {
         documentPrefix: "",
       },
     ];
-    const results = [];
+    const runs = Math.max(
+      1,
+      Number(process.env.EMBEDDING_BENCHMARK_RUNS ?? "3"),
+    );
+    const reports = [];
 
     for (const model of models) {
       const provider = new TransformersEmbeddingProvider({
@@ -32,18 +36,40 @@ describeBenchmark("embedding model benchmark", () => {
         dimensions: 384,
         dtype: "q8",
       });
-      results.push(
-        await runEmbeddingBenchmark({
-          provider,
-          documents: embeddingBenchmarkDocuments,
-          cases: embeddingBenchmarkCases,
-          k: 3,
-        }),
-      );
+      const rssBefore = process.memoryUsage().rss;
+      const results = [];
+
+      for (let run = 0; run < runs; run += 1) {
+        results.push(
+          await runEmbeddingBenchmark({
+            provider,
+            documents: embeddingBenchmarkDocuments,
+            cases: embeddingBenchmarkCases,
+            k: 3,
+          }),
+        );
+      }
+
+      reports.push({
+        modelId: model.modelId,
+        runs,
+        rssBeforeMb: Number((rssBefore / 1024 / 1024).toFixed(1)),
+        rssAfterMb: Number(
+          (process.memoryUsage().rss / 1024 / 1024).toFixed(1),
+        ),
+        rssDeltaMb: Number(
+          ((process.memoryUsage().rss - rssBefore) / 1024 / 1024).toFixed(1),
+        ),
+        results,
+      });
     }
 
-    console.log(JSON.stringify({ embeddingBenchmark: results }, null, 2));
-    expect(results).toHaveLength(2);
-    expect(results.every((result) => result.dimensions === 384)).toBe(true);
-  }, 120_000);
+    console.log(JSON.stringify({ embeddingBenchmark: reports }, null, 2));
+    expect(reports).toHaveLength(2);
+    expect(
+      reports.every((report) =>
+        report.results.every((result) => result.dimensions === 384),
+      ),
+    ).toBe(true);
+  }, 180_000);
 });

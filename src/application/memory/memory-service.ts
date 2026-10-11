@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 
-import type { MemoryItem, MemoryRelation, MemorySession } from "../../domain/index.js";
+import type {
+  MemoryItem,
+  MemoryRelation,
+  MemorySession,
+} from "../../domain/index.js";
 
 import type {
   MemoryRepository,
@@ -31,7 +35,9 @@ export class MemoryService {
     const item: MemoryItem = {
       id: existing?.id ?? this.idGenerator(),
       workspaceId,
-      ...(input.sessionId ? { sessionId: requireText(input.sessionId, "sessionId") } : {}),
+      ...(input.sessionId
+        ? { sessionId: requireText(input.sessionId, "sessionId") }
+        : {}),
       type: input.type,
       title,
       content,

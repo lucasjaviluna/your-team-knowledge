@@ -1,10 +1,5 @@
 export type WorkspaceType =
-  | "software"
-  | "product"
-  | "business"
-  | "design"
-  | "research"
-  | "operations";
+  "software" | "product" | "business" | "design" | "research" | "operations";
 
 export interface Workspace {
   id: string;
@@ -21,11 +16,7 @@ export interface Actor {
 }
 
 export type MemoryItemType =
-  | "decision"
-  | "discovery"
-  | "pattern"
-  | "preference"
-  | "summary";
+  "decision" | "discovery" | "pattern" | "preference" | "summary";
 
 export type MemoryItemStatus = "active" | "superseded" | "needs_review";
 
@@ -52,10 +43,7 @@ export interface MemorySession {
 }
 
 export type MemoryRelationType =
-  | "related"
-  | "supports"
-  | "conflicts_with"
-  | "supersedes";
+  "related" | "supports" | "conflicts_with" | "supersedes";
 
 export interface MemoryRelation {
   sourceMemoryId: string;

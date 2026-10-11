@@ -22,7 +22,7 @@ Para ejecutar también la prueba de integración PostgreSQL: `$env:DATABASE_URL=
 
 El proveedor local de embeddings usa `Xenova/multilingual-e5-small` con Transformers.js. La primera ejecución descarga el modelo y lo deja en la caché del runtime. Para verificarlo después de compilar: `node --input-type=module -e "import { TransformersEmbeddingProvider } from './dist/infrastructure/embeddings/index.js'; const provider = new TransformersEmbeddingProvider({ dtype: 'q8' }); console.log((await provider.embedQuery('texto de prueba')).length);"`. El resultado esperado es `384`.
 
-Para ejecutar el benchmark comparativo de modelos en PowerShell: `$env:RUN_EMBEDDING_BENCHMARK='1'; npm run test:embedding-benchmark`. Descarga ambos modelos en la caché local y muestra `recallAtK`, precisión de la primera cita y latencias. Sin esa variable, el benchmark queda omitido.
+Para ejecutar el benchmark comparativo de modelos en PowerShell: `$env:RUN_EMBEDDING_BENCHMARK='1'; $env:EMBEDDING_BENCHMARK_RUNS='3'; npm run test:embedding-benchmark`. Descarga ambos modelos en la caché local y muestra `recallAtK`, precisión de la primera cita, latencias y RSS del proceso. `EMBEDDING_BENCHMARK_RUNS` permite separar la primera corrida en frío de las corridas posteriores en caliente. Sin `RUN_EMBEDDING_BENCHMARK=1`, el benchmark queda omitido.
 
 ## Límites actuales
 

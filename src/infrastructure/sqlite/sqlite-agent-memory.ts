@@ -1,6 +1,9 @@
 import Database from "better-sqlite3";
 
-import type { MemoryRepository, SearchMemoryInput } from "../../application/index.js";
+import type {
+  MemoryRepository,
+  SearchMemoryInput,
+} from "../../application/index.js";
 import type {
   MemoryItem,
   MemoryItemStatus,
@@ -59,7 +62,13 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
         `INSERT INTO sessions (id, workspace_id, started_at, ended_at, summary)
          VALUES (?, ?, ?, ?, ?)`,
       )
-      .run(session.id, session.workspaceId, session.startedAt.toISOString(), null, null);
+      .run(
+        session.id,
+        session.workspaceId,
+        session.startedAt.toISOString(),
+        null,
+        null,
+      );
   }
 
   findSession(sessionId: string): MemorySession | undefined {
@@ -108,10 +117,9 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
     subjectKey: string,
   ): MemoryItem | undefined {
     const row = this.database
-      .prepare<
-        [string, string],
-        MemoryRow
-      >(`SELECT * FROM memory_items WHERE workspace_id = ? AND subject_key = ? AND status = 'active' LIMIT 1`)
+      .prepare<[string, string], MemoryRow>(
+        `SELECT * FROM memory_items WHERE workspace_id = ? AND subject_key = ? AND status = 'active' LIMIT 1`,
+      )
       .get(workspaceId, subjectKey);
 
     return row ? toMemoryItem(row) : undefined;
@@ -159,17 +167,16 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
     }
 
     const rows = this.database
-      .prepare<
-        [string, string, number],
-        MemoryRow
-      >(`SELECT memory_items.*
+      .prepare<[string, string, number], MemoryRow>(
+        `SELECT memory_items.*
           FROM memory_items_fts
           JOIN memory_items ON memory_items.id = memory_items_fts.memory_id
           WHERE memory_items.workspace_id = ?
             AND memory_items.status = 'active'
             AND memory_items_fts MATCH ?
           ORDER BY bm25(memory_items_fts), memory_items.updated_at DESC
-          LIMIT ?`)
+          LIMIT ?`,
+      )
       .all(input.workspaceId, ftsQuery, input.limit);
 
     return rows.map(toMemoryItem);
@@ -227,17 +234,27 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
   }
 
   private index(item: MemoryItem): void {
-    this.database.prepare("DELETE FROM memory_items_fts WHERE memory_id = ?").run(item.id);
+    this.database
+      .prepare("DELETE FROM memory_items_fts WHERE memory_id = ?")
+      .run(item.id);
     this.database
       .prepare(
         `INSERT INTO memory_items_fts (memory_id, title, content, tags, subject_key)
          VALUES (?, ?, ?, ?, ?)`,
       )
-      .run(item.id, item.title, item.content, item.tags.join(" "), item.subjectKey ?? "");
+      .run(
+        item.id,
+        item.title,
+        item.content,
+        item.tags.join(" "),
+        item.subjectKey ?? "",
+      );
   }
 }
 
-function toValues(item: MemoryItem): [
+function toValues(
+  item: MemoryItem,
+): [
   string,
   string,
   string | null,
