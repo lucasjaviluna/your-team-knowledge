@@ -104,4 +104,5 @@ npm install @corporate-knowledge/platform better-sqlite3 pg @huggingface/transfo
 - Si omitís `--title` y `--content`, el comando sólo busca y no modifica la base: `npm run demo:agent-memory -- --project mi-proyecto --area frontend --query "rutas guards"`. Esto evita que una segunda búsqueda reemplace la memoria con contenido de ejemplo.
 - En Windows, el demo normaliza el escape `^` que puede introducir `npm run`/`cmd` al reenviar argumentos; el contenido persistido permanece sin esos caracteres.
 - Esta prueba valida almacenamiento, recall y aislamiento por proyecto, pero todavía no invoca un modelo de lenguaje. El runtime real de pi-harness usa el mismo provider y agrega el ciclo de aprobación/configuración del consumidor.
+- Agent Memory aplica una expansión léxica conservadora para singular/plural (`ruta`/`rutas`, `guard`/`guards`). No es stemming semántico: consultas como `proteccion`/`protegen` todavía requieren una futura capa vectorial o de sinónimos.
 - Próximo paso: ejecutar la workflow en el repositorio remoto y cerrar la configuración de release/versionado.

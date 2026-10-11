@@ -69,6 +69,25 @@ describe("SqliteAgentMemoryRepository", () => {
     ).toHaveLength(0);
   });
 
+  it("supports simple singular and plural query variations", () => {
+    const { service } = createMemoryService();
+
+    service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Guard de ruta",
+      content: "La ruta autenticada usa un guard.",
+    });
+
+    const results = service.search({
+      workspaceId: "workspace-checkout",
+      query: "rutas guards",
+    });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]?.title).toBe("Guard de ruta");
+  });
+
   it("tracks session lifecycle and memory relations", () => {
     const { service } = createMemoryService();
     const session = service.startSession({ workspaceId: "workspace-checkout" });

@@ -40,7 +40,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 **Objetivo:** implementar la memoria operativa del agente sobre SQLite.
 
-**Estado:** núcleo inicial completado. La persistencia, búsqueda, actualización por `subjectKey`, lifecycle de sesiones y relaciones entre memorias están implementados y probados.
+**Estado:** núcleo inicial completado. La persistencia, búsqueda, actualización por `subjectKey`, lifecycle de sesiones y relaciones entre memorias están implementados y probados. La búsqueda FTS5 incorpora expansión léxica conservadora para singular/plural y el demo de consumidor separa escritura de búsqueda para evitar sobrescrituras accidentales.
 
 - Diseñar el esquema de sesiones, memorias, relaciones y resúmenes.
 - Implementar `MemoryItem` con tipo, contenido, `subjectKey`, tags, estado y fechas.
@@ -48,6 +48,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Crear resúmenes de sesión y lifecycle básico: activa, reemplazada y pendiente de revisión.
 - Exponer la interfaz `MemoryProvider`.
 - Crear pruebas de persistencia, deduplicación y actualización.
+- Mejorar recall léxico sin perder precisión. **Implementado inicialmente para variaciones simples singular/plural; quedan pendientes stemming semántico, sinónimos y retrieval vectorial.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 

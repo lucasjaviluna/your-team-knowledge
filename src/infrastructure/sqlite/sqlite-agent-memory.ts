@@ -321,6 +321,27 @@ function toFtsQuery(query: string): string {
   return query
     .split(/[^\p{L}\p{N}_/-]+/u)
     .filter(Boolean)
-    .map((term) => `"${term.replaceAll('"', '""')}"`)
+    .map((term) => {
+      const variants = [term, singularize(term)].filter(
+        (value, index, values) => values.indexOf(value) === index,
+      );
+      return variants.length === 1
+        ? quoteFtsTerm(variants[0] as string)
+        : `(${variants.map(quoteFtsTerm).join(" OR ")})`;
+    })
     .join(" AND ");
+}
+
+function quoteFtsTerm(term: string): string {
+  return `"${term.replaceAll('"', '""')}"`;
+}
+
+function singularize(term: string): string {
+  if (term.length > 5 && term.endsWith("es")) {
+    return term.slice(0, -2);
+  }
+  if (term.length > 4 && term.endsWith("s")) {
+    return term.slice(0, -1);
+  }
+  return term;
 }
