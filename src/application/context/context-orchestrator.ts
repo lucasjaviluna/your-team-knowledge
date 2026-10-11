@@ -6,6 +6,7 @@ import type {
   ContextProvider,
   ContextRequest,
 } from "./contracts.js";
+import { classifyContextIntent } from "./intent.js";
 
 export class ContextOrchestrator implements ContextProvider {
   constructor(
@@ -20,8 +21,10 @@ export class ContextOrchestrator implements ContextProvider {
       throw new Error("maxChars must be greater than zero.");
     }
 
-    const includeMemory = request.includeMemory ?? true;
-    const includeKnowledge = request.includeKnowledge ?? true;
+    const intent = request.intent ?? classifyContextIntent(query);
+    const includeMemory = request.includeMemory ?? intent !== "documentary";
+    const includeKnowledge =
+      request.includeKnowledge ?? intent !== "continuity";
     const memoryEntriesPromise = includeMemory
       ? Promise.resolve(
           this.memory.search({
@@ -57,6 +60,7 @@ export class ContextOrchestrator implements ContextProvider {
 
     return {
       query,
+      intent,
       memories,
       citations: context.citations,
       contextText: context.text,

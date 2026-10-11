@@ -79,8 +79,8 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 - Definir `ContextRequest` con actor, rol, workspace, intención, tarea y límites de contexto. **Implementado inicialmente con workspace, actor, equipos, consulta, límites y selección de fuentes.**
 - Definir `ContextBundle` con memorias, documentos, fuentes, políticas y razones de inclusión. **Implementado con memorias, citas documentales, texto unificado, razones y estado de truncamiento.**
-- Implementar detección inicial de consultas de continuidad, documentales y mixtas.
-- Seleccionar Agent Memory, RAG o ambas fuentes según la solicitud. **Implementado mediante `includeMemory`/`includeKnowledge`.**
+- Implementar detección inicial de consultas de continuidad, documentales y mixtas. **Implementado con clasificación determinista multilingüe y exposición de la intención en `ContextBundle`.**
+- Seleccionar Agent Memory, RAG o ambas fuentes según la solicitud. **Implementado mediante intención inferida y `includeMemory`/`includeKnowledge` como override.**
 - Fusionar, ordenar y limitar resultados. **Implementado con consulta paralela y presupuesto `maxChars`.**
 - Exponer `ContextProvider.resolve()`. **Implementado por `ContextOrchestrator`.**
 

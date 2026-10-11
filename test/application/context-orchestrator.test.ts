@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { ContextOrchestrator } from "../../src/application/context/index.js";
+import {
+  classifyContextIntent,
+  ContextOrchestrator,
+} from "../../src/application/context/index.js";
 import type { KnowledgeQueryResponse } from "../../src/application/knowledge/index.js";
 import type { MemoryItem, SourceCitation } from "../../src/domain/index.js";
 
@@ -26,6 +29,20 @@ const citation: SourceCitation = {
 };
 
 describe("ContextOrchestrator", () => {
+  it("classifies continuity, documentary and mixed queries", () => {
+    expect(classifyContextIntent("¿Qué decidimos en la sesión anterior?")).toBe(
+      "continuity",
+    );
+    expect(
+      classifyContextIntent("¿Qué dice la documentación de despliegue?"),
+    ).toBe("documentary");
+    expect(
+      classifyContextIntent(
+        "Recuerdo de la sesión y documentación de despliegue",
+      ),
+    ).toBe("mixed");
+  });
+
   it("combines memory and knowledge into a traceable context bundle", async () => {
     const orchestrator = new ContextOrchestrator(
       { search: () => [memory] } as never,
@@ -69,5 +86,36 @@ describe("ContextOrchestrator", () => {
     expect(bundle.contextText.length).toBe(20);
     expect(bundle.citations).toEqual([]);
     expect(bundle.truncated).toBe(true);
+  });
+
+  it("uses inferred intent to avoid an unnecessary source query", async () => {
+    let memoryCalls = 0;
+    let knowledgeCalls = 0;
+    const orchestrator = new ContextOrchestrator(
+      {
+        search: () => {
+          memoryCalls += 1;
+          return [memory];
+        },
+      } as never,
+      {
+        search: async () => {
+          knowledgeCalls += 1;
+          return { results: [], citations: [citation] };
+        },
+      } as never,
+    );
+
+    const bundle = await orchestrator.resolve({
+      workspaceId: "workspace-a",
+      actorId: "actor-1",
+      teamIds: [],
+      query: "¿Qué decidimos en la sesión anterior?",
+    });
+
+    expect(bundle.intent).toBe("continuity");
+    expect(memoryCalls).toBe(1);
+    expect(knowledgeCalls).toBe(0);
+    expect(bundle.citations).toEqual([]);
   });
 });
