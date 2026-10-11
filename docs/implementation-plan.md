@@ -109,6 +109,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Publicar contratos de red independientes del lenguaje.
 - Mapear `PiHarnessKnowledgeAdapter.toolDefinitions()` al registro nativo de pi-harness cuando su runtime esté disponible.
 - Mantener el Agent Memory como paquete local con SQLite.
+- Exponer un `MemoryProvider` compatible con pi-harness sobre el repositorio SQLite.
 - Exponer MCP cuando el núcleo y la API estén estabilizados.
 - Conectar `BearerIdentityResolver` con el proveedor de identidad corporativo.
 

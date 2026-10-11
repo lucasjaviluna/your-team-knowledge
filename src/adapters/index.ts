@@ -9,3 +9,11 @@ export {
   PiHarnessKnowledgeAdapter,
   type PiHarnessToolDefinition,
 } from "./pi-harness-knowledge.js";
+export {
+  PiHarnessMemoryProvider,
+  type PiHarnessMemoryContext,
+  type PiHarnessMemoryEntry,
+  type PiHarnessMemoryQuery,
+  type PiHarnessMemorySearchResult,
+  type PiHarnessMemoryWriteRequest,
+} from "./pi-harness-memory-provider.js";
