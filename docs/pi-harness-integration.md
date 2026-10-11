@@ -68,6 +68,18 @@ Configuración mínima del consumidor:
 
 La ruta de `module` se resuelve desde el directorio del proyecto consumidor. En instalaciones empaquetadas puede reemplazarse por el specifier del paquete instalado.
 
+Para consumidores que sólo necesitan Agent Memory se recomienda el entrypoint mínimo:
+
+```json
+{
+  "memory": {
+    "module": "@corporate-knowledge/platform/memory"
+  }
+}
+```
+
+`@corporate-knowledge/platform/memory` expone únicamente `MemoryService`, `SqliteAgentMemoryRepository` y `PiHarnessMemoryProvider`; evita cargar el entrypoint completo de RAG durante el arranque. La separación de dependencias de instalación (`pg`, Transformers.js/ONNX) queda como una mejora posterior del empaquetado.
+
 ## Estado de validación
 
 - Validado contra el checkout real de `pi-harness` en el commit `25903a2`: el módulo compilado carga los exports esperados y el smoke test confirma escritura, recuperación y aislamiento por `projectId`.
