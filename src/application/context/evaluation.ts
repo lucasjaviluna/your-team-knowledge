@@ -38,12 +38,23 @@ export interface ContextEvaluationResult {
   memoryPrecision: number;
   citationPrecision: number;
   permissionLeakage: number;
+  thresholdFailures: readonly string[];
   passed: boolean;
+}
+
+export interface ContextEvaluationThresholds {
+  intentAccuracy?: number;
+  memoryRecall?: number;
+  citationRecall?: number;
+  memoryPrecision?: number;
+  citationPrecision?: number;
+  maxPermissionLeakage?: number;
 }
 
 export async function evaluateContextProvider(
   provider: ContextProvider,
   cases: readonly ContextEvaluationCase[],
+  thresholds: ContextEvaluationThresholds = {},
 ): Promise<ContextEvaluationResult> {
   if (cases.length === 0) {
     throw new Error("At least one context evaluation case is required.");
@@ -80,8 +91,7 @@ export async function evaluateContextProvider(
     0,
   );
 
-  return {
-    cases: results,
+  const metrics = {
     intentAccuracy: intentCorrectCount / cases.length,
     memoryRecall: expectedMemoryCount
       ? results.reduce((total, item) => total + item.memoryHits, 0) /
@@ -100,8 +110,67 @@ export async function evaluateContextProvider(
         actualDocumentCount
       : 1,
     permissionLeakage,
-    passed: results.every((item) => item.passed),
   };
+  const thresholdFailures = findThresholdFailures(metrics, thresholds);
+
+  return {
+    cases: results,
+    ...metrics,
+    thresholdFailures,
+    passed:
+      results.every((item) => item.passed) && thresholdFailures.length === 0,
+  };
+}
+
+type EvaluationMetrics = Pick<
+  ContextEvaluationResult,
+  | "intentAccuracy"
+  | "memoryRecall"
+  | "citationRecall"
+  | "memoryPrecision"
+  | "citationPrecision"
+  | "permissionLeakage"
+>;
+
+function findThresholdFailures(
+  metrics: EvaluationMetrics,
+  thresholds: ContextEvaluationThresholds,
+): readonly string[] {
+  const failures: string[] = [];
+  const minimums = [
+    ["intentAccuracy", thresholds.intentAccuracy, metrics.intentAccuracy],
+    ["memoryRecall", thresholds.memoryRecall, metrics.memoryRecall],
+    ["citationRecall", thresholds.citationRecall, metrics.citationRecall],
+    ["memoryPrecision", thresholds.memoryPrecision, metrics.memoryPrecision],
+    [
+      "citationPrecision",
+      thresholds.citationPrecision,
+      metrics.citationPrecision,
+    ],
+  ] as const;
+
+  for (const [name, threshold, actual] of minimums) {
+    if (threshold === undefined) continue;
+    validateThreshold(threshold, name);
+    if (actual < threshold) failures.push(`${name}=${actual} < ${threshold}`);
+  }
+
+  if (thresholds.maxPermissionLeakage !== undefined) {
+    validateThreshold(thresholds.maxPermissionLeakage, "maxPermissionLeakage");
+    if (metrics.permissionLeakage > thresholds.maxPermissionLeakage) {
+      failures.push(
+        `permissionLeakage=${metrics.permissionLeakage} > ${thresholds.maxPermissionLeakage}`,
+      );
+    }
+  }
+
+  return failures;
+}
+
+function validateThreshold(value: number, name: string): void {
+  if (!Number.isFinite(value) || value < 0 || value > 1) {
+    throw new Error(`${name} must be between zero and one.`);
+  }
 }
 
 function evaluateCase(

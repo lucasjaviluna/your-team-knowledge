@@ -14,4 +14,5 @@ export {
   type ContextEvaluationCase,
   type ContextEvaluationCaseResult,
   type ContextEvaluationResult,
+  type ContextEvaluationThresholds,
 } from "./evaluation.js";

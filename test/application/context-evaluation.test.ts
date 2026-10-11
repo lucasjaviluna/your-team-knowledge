@@ -117,4 +117,39 @@ describe("context evaluation harness", () => {
       passed: false,
     });
   });
+
+  it("enforces configured quality thresholds", async () => {
+    const result = await evaluateContextProvider(
+      providerReturningExpectedData(),
+      contextEvaluationDataset,
+      { citationPrecision: 1, maxPermissionLeakage: 0 },
+    );
+
+    expect(result.thresholdFailures).toEqual([]);
+    expect(result.passed).toBe(true);
+
+    const degraded = await evaluateContextProvider(
+      providerReturningExpectedData(true),
+      contextEvaluationDataset,
+      { citationPrecision: 1, maxPermissionLeakage: 0 },
+    );
+
+    expect(degraded.thresholdFailures).toEqual([
+      "citationPrecision=0.6666666666666666 < 1",
+      "permissionLeakage=1 > 0",
+    ]);
+    expect(degraded.passed).toBe(false);
+  });
+
+  it("rejects invalid thresholds", async () => {
+    await expect(
+      evaluateContextProvider(
+        providerReturningExpectedData(),
+        contextEvaluationDataset,
+        {
+          memoryRecall: 1.1,
+        },
+      ),
+    ).rejects.toThrow("memoryRecall must be between zero and one.");
+  });
 });
