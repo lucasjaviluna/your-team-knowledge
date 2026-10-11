@@ -1,0 +1,32 @@
+{
+  "name": "@corporate-knowledge/platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Corporate knowledge platform with local agent memory and document retrieval.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^22.10.2",
+    "eslint": "^9.39.1",
+    "prettier": "^3.5.3",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.24.0",
+    "vitest": "^3.0.7"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3"
+  }
+}

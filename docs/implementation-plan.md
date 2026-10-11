@@ -1,0 +1,132 @@
+# Plan de implementación
+
+> Documento vivo. Las etapas y tareas se actualizan al aprobar cambios de alcance o completar hitos.
+
+## Secuencia
+
+```text
+Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
+     → Governance y evaluación → Adaptadores → Conectores y evolución
+```
+
+## Etapa 0 — Arquitectura v0 y reglas del proyecto
+
+**Objetivo:** convertir las decisiones actuales en contratos verificables.
+
+- Completar los límites de cada módulo en `docs/architecture.md`.
+- Definir el glosario de `Workspace`, `Actor`, `MemoryItem`, `Document`, `DocumentChunk`, `ContextBundle` y `subjectKey`.
+- Crear ADRs para decisiones de almacenamiento, permisos y distribución.
+- Definir escenarios de aceptación para el primer vertical slice.
+- Mantener la política de documentación viva.
+
+**Resultado:** arquitectura, nombres y fronteras estables.
+
+## Etapa 1 — Base técnica
+
+**Objetivo:** preparar el repositorio para construir y probar módulos aislados.
+
+**Estado:** en curso.
+
+- Inicializar el workspace TypeScript, package manager, linting, formato y pruebas.
+- Crear módulos `domain`, `application`, `infrastructure`, `api` y `adapters`.
+- Configurar variables de entorno y perfiles local/test.
+- Añadir PostgreSQL con pgvector para desarrollo local.
+- Implementar migraciones separadas para SQLite y PostgreSQL.
+- Configurar CI mínima: instalación, lint, tipos y pruebas.
+
+**Resultado:** desarrollo y pruebas reproducibles.
+
+## Etapa 2 — Agent Memory local
+
+**Objetivo:** implementar la memoria operativa del agente sobre SQLite.
+
+**Estado:** en curso. El repositorio SQLite, el guardado, la actualización por `subjectKey` y la búsqueda local están implementados.
+
+- Diseñar el esquema de sesiones, memorias, relaciones y resúmenes.
+- Implementar `MemoryItem` con tipo, contenido, `subjectKey`, tags, estado y fechas.
+- Implementar guardado, búsqueda, recuperación, actualización por `subjectKey` y deduplicación.
+- Crear resúmenes de sesión y lifecycle básico: activa, reemplazada y pendiente de revisión.
+- Exponer la interfaz `MemoryProvider`.
+- Crear pruebas de persistencia, deduplicación y actualización.
+
+**Resultado:** un agente preserva y recupera contexto local entre sesiones.
+
+## Etapa 3 — Corporate Knowledge RAG
+
+**Objetivo:** indexar y recuperar conocimiento documental corporativo.
+
+- Diseñar tablas para fuentes, documentos, versiones, chunks, embeddings, metadatos y políticas de acceso.
+- Implementar la ingesta inicial de documentos Markdown locales.
+- Normalizar contenido y extraer metadatos mínimos.
+- Implementar chunking configurable.
+- Definir un `EmbeddingProvider` desacoplado del proveedor concreto.
+- Implementar búsqueda full-text y vectorial.
+- Combinar ambas mediante recuperación híbrida.
+- Devolver resultados con `SourceCitation` y provenance.
+
+**Resultado:** consultas documentales relevantes, trazables y con fuentes.
+
+## Etapa 4 — Context Orchestrator
+
+**Objetivo:** producir contexto unificado sin exponer detalles de almacenamiento al consumidor.
+
+- Definir `ContextRequest` con actor, rol, workspace, intención, tarea y límites de contexto.
+- Definir `ContextBundle` con memorias, documentos, fuentes, políticas y razones de inclusión.
+- Implementar detección inicial de consultas de continuidad, documentales y mixtas.
+- Seleccionar Agent Memory, RAG o ambas fuentes según la solicitud.
+- Fusionar, ordenar y limitar resultados.
+- Exponer `ContextProvider.resolve()`.
+
+**Resultado:** una única llamada prepara contexto útil y trazable para un agente.
+
+## Etapa 5 — Permisos, calidad y evaluación
+
+**Objetivo:** verificar seguridad y calidad antes de integrar fuentes corporativas.
+
+- Implementar ACL inicial por actor, equipo y workspace.
+- Aplicar controles de acceso dentro de las consultas de RAG.
+- Registrar eventos mínimos de auditoría.
+- Añadir clasificación y autoridad de fuentes.
+- Crear dataset de evaluación con consultas y resultados esperados.
+- Medir relevancia, cobertura, citas y filtrado de permisos.
+- Definir reglas de vigencia, revisión y deprecación.
+- Añadir detección de contenido sensible durante la ingesta.
+
+**Resultado:** conocimiento relevante sin exposición no autorizada.
+
+## Etapa 6 — API y adaptadores
+
+**Objetivo:** permitir consumo desacoplado desde pi-harness y otros clientes.
+
+- Exponer API interna para memoria, conocimiento y contexto.
+- Publicar contratos de red independientes del lenguaje.
+- Crear un cliente TypeScript y el adaptador para pi-harness.
+- Mantener el Agent Memory como paquete local con SQLite.
+- Exponer MCP cuando el núcleo y la API estén estabilizados.
+- Añadir autenticación y resolución de identidad corporativa.
+
+**Resultado:** los consumidores usan el mismo servicio sin conocer sus almacenamientos internos.
+
+## Etapa 7 — Conectores y evolución corporativa
+
+**Objetivo:** ampliar fuentes y capacidades sin alterar el núcleo.
+
+- Crear un framework de conectores y sincronización incremental.
+- Incorporar fuentes por prioridad de valor.
+- Extraer y aplicar permisos de cada fuente.
+- Añadir versionado, eliminación lógica y retención.
+- Incorporar relaciones complejas entre conocimientos.
+- Mejorar reranking, observabilidad y costos operativos.
+
+**Resultado:** plataforma multi-fuente y multirol preparada para operación corporativa.
+
+## Primera entrega funcional
+
+La primera entrega incluye las etapas 1 a 4:
+
+1. Agent Memory SQLite funcional.
+2. Ingesta de Markdown en PostgreSQL.
+3. Recuperación híbrida documental.
+4. `ContextBundle` unificado.
+
+El escenario demostrable es una consulta de desarrollo que recupera una memoria local y documentación autorizada, devolviendo contexto con sus fuentes.
