@@ -44,7 +44,8 @@ export class PiHarnessMemoryProvider {
 
   constructor(private readonly memory: MemoryService) {}
 
-  async isAvailable(): Promise<boolean> {
+  async isAvailable(context: PiHarnessMemoryContext): Promise<boolean> {
+    void context;
     return true;
   }
 

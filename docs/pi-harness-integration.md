@@ -6,6 +6,8 @@ La extensión nativa de Pi pertenece al repositorio `your-harness-v0`, porque de
 
 Este proyecto es responsable de los contratos y adaptadores reutilizables: `KnowledgeHttpClient`, `PiHarnessKnowledgeAdapter` y `PiHarnessMemoryProvider`. La integración nativa en pi-harness debe consumirlos desde una dependencia npm, workspace package o ruta local durante desarrollo.
 
+El paquete publica `dist/index.js` y sus declaraciones TypeScript mediante `main`, `types` y `exports`. Para validar el artefacto local se puede ejecutar `npm run build` seguido de `npm run pack:check`; pi-harness puede apuntar `memory.module` al `dist/index.js` generado o al módulo instalado.
+
 El repositorio no contiene el código fuente de pi-harness, por lo que la integración se implementa como un adaptador de consumidor y no como una dependencia directa. `PiHarnessKnowledgeAdapter` recibe cualquier cliente compatible con `KnowledgeClient`; en producción se le inyecta `KnowledgeHttpClient`.
 
 ```ts

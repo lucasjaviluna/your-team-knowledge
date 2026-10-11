@@ -4,12 +4,27 @@
   "private": true,
   "description": "Corporate knowledge platform with local agent memory and document retrieval.",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=22.0.0"
   },
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/server.js",
+    "pack:check": "npm pack --dry-run",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "eslint .",
     "format": "prettier --check .",
