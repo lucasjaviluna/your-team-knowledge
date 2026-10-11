@@ -47,3 +47,30 @@ const binding = {
 ```
 
 El `projectId` del harness se mapea al `workspaceId` de Agent Memory. `idempotencyKey` se mapea a `subjectKey`, y las búsquedas respetan `limit` y `maxChars` antes de entregar contexto al agente.
+
+Configuración mínima del consumidor:
+
+```json
+{
+  "memory": {
+    "enabled": true,
+    "provider": "team-knowledge",
+    "module": "../your-team-knowledge/dist/index.js",
+    "database": ".harness/team-knowledge.sqlite",
+    "projectId": "workspace-checkout",
+    "defaultArea": "backend",
+    "autoRecall": false,
+    "allowWrites": true,
+    "requireApproval": true
+  }
+}
+```
+
+La ruta de `module` se resuelve desde el directorio del proyecto consumidor. En instalaciones empaquetadas puede reemplazarse por el specifier del paquete instalado.
+
+## Estado de validación
+
+- Validado contra el checkout real de `pi-harness` en el commit `25903a2`: el módulo compilado carga los exports esperados y el smoke test confirma escritura, recuperación y aislamiento por `projectId`.
+- `your-team-knowledge` pasa typecheck, lint y la suite normal: 22 tests aprobados y 2 pruebas de integración omitidas por requerir servicios externos.
+- El tarball `corporate-knowledge-platform-0.1.0.tgz` se genera correctamente. La instalación dentro del checkout temporal de `pi-harness` debe repetirse en un entorno limpio con dependencias completas; la primera prueba quedó afectada por un `node_modules` inconsistente y no se considera una validación concluyente del paquete instalado.
+- Próximo paso: ejecutar una prueba de contrato desde el módulo instalado y el smoke/e2e del consumidor con el runtime de Pi.
