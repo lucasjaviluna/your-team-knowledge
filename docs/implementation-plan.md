@@ -103,7 +103,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 **Objetivo:** permitir consumo desacoplado desde pi-harness y otros clientes.
 
-**Estado:** contrato de aplicación, transporte HTTP, autenticación/autorización inicial, auditoría persistente, interfaz de identidad, entrypoint ejecutable, despliegue Docker, cliente TypeScript y adaptador de consumidor tipo pi-harness completados. Queda pendiente conectar el resolver con el proveedor corporativo real y validar el mapeo contra el runtime concreto de pi-harness.
+**Estado:** contrato de aplicación, transporte HTTP, autenticación/autorización inicial, auditoría persistente, interfaz de identidad, entrypoint ejecutable, despliegue Docker, cliente TypeScript y adaptador de consumidor tipo pi-harness completados. La distribución local de Agent Memory está validada mediante `@corporate-knowledge/platform/memory`, dependencias RAG opcionales y el smoke `npm run test:consumer`, que se ejecuta también en CI. Queda pendiente conectar el resolver con el proveedor corporativo real y definir el release/versionado del paquete.
 
 - Exponer API interna para memoria, conocimiento y contexto.
 - Publicar contratos de red independientes del lenguaje.
