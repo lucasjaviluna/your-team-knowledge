@@ -25,7 +25,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 **Objetivo:** preparar el repositorio para construir y probar módulos aislados.
 
-**Estado:** en curso.
+**Estado:** base inicial completada. Queda pendiente formalizar migraciones ejecutables y CI.
 
 - Inicializar el workspace TypeScript, package manager, linting, formato y pruebas.
 - Crear módulos `domain`, `application`, `infrastructure`, `api` y `adapters`.
@@ -40,7 +40,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 **Objetivo:** implementar la memoria operativa del agente sobre SQLite.
 
-**Estado:** en curso. El repositorio SQLite, el guardado, la actualización por `subjectKey` y la búsqueda local están implementados.
+**Estado:** núcleo inicial completado. La persistencia, búsqueda, actualización por `subjectKey`, lifecycle de sesiones y relaciones entre memorias están implementados y probados.
 
 - Diseñar el esquema de sesiones, memorias, relaciones y resúmenes.
 - Implementar `MemoryItem` con tipo, contenido, `subjectKey`, tags, estado y fechas.
@@ -54,6 +54,8 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 ## Etapa 3 — Corporate Knowledge RAG
 
 **Objetivo:** indexar y recuperar conocimiento documental corporativo.
+
+**Estado:** en curso. Están implementados los contratos documentales, la ingesta Markdown con chunking y el esquema PostgreSQL inicial.
 
 - Diseñar tablas para fuentes, documentos, versiones, chunks, embeddings, metadatos y políticas de acceso.
 - Implementar la ingesta inicial de documentos Markdown locales.

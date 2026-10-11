@@ -64,6 +64,39 @@ describe("SqliteAgentMemoryRepository", () => {
     expect(service.search({ workspaceId: "workspace-checkout", query: "updated" })).toHaveLength(1);
     expect(service.search({ workspaceId: "workspace-checkout", query: "initial" })).toHaveLength(0);
   });
+
+  it("tracks session lifecycle and memory relations", () => {
+    const { service } = createMemoryService();
+    const session = service.startSession({ workspaceId: "workspace-checkout" });
+    const first = service.save({
+      workspaceId: "workspace-checkout",
+      sessionId: session.id,
+      type: "discovery",
+      title: "Checkout uses a BFF",
+      content: "The checkout frontend calls the BFF.",
+    });
+    const second = service.save({
+      workspaceId: "workspace-checkout",
+      sessionId: session.id,
+      type: "decision",
+      title: "Keep the BFF boundary",
+      content: "The BFF remains the integration boundary.",
+    });
+
+    const relation = service.addRelation({
+      sourceMemoryId: second.id,
+      targetMemoryId: first.id,
+      relation: "supports",
+    });
+    const ended = service.endSession({
+      sessionId: session.id,
+      summary: "Captured the BFF decision.",
+    });
+
+    expect(ended.summary).toBe("Captured the BFF decision.");
+    expect(ended.endedAt).toBeDefined();
+    expect(service.listRelations(first.id)).toEqual([relation]);
+  });
 });
 
 function createMemoryService() {

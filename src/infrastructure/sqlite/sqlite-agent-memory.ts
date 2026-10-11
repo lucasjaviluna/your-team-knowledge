@@ -1,7 +1,14 @@
 import Database from "better-sqlite3";
 
 import type { MemoryRepository, SearchMemoryInput } from "../../application/index.js";
-import type { MemoryItem, MemoryItemStatus, MemoryItemType } from "../../domain/index.js";
+import type {
+  MemoryItem,
+  MemoryItemStatus,
+  MemoryItemType,
+  MemoryRelation,
+  MemoryRelationType,
+  MemorySession,
+} from "../../domain/index.js";
 
 interface MemoryRow {
   id: string;
@@ -17,6 +24,21 @@ interface MemoryRow {
   updated_at: string;
 }
 
+interface SessionRow {
+  id: string;
+  workspace_id: string;
+  started_at: string;
+  ended_at: string | null;
+  summary: string | null;
+}
+
+interface RelationRow {
+  source_memory_id: string;
+  target_memory_id: string;
+  relation: MemoryRelationType;
+  created_at: string;
+}
+
 export class SqliteAgentMemoryRepository implements MemoryRepository {
   private readonly database: Database.Database;
 
@@ -29,6 +51,56 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
 
   close(): void {
     this.database.close();
+  }
+
+  insertSession(session: MemorySession): void {
+    this.database
+      .prepare(
+        `INSERT INTO sessions (id, workspace_id, started_at, ended_at, summary)
+         VALUES (?, ?, ?, ?, ?)`,
+      )
+      .run(session.id, session.workspaceId, session.startedAt.toISOString(), null, null);
+  }
+
+  findSession(sessionId: string): MemorySession | undefined {
+    const row = this.database
+      .prepare<[string], SessionRow>("SELECT * FROM sessions WHERE id = ?")
+      .get(sessionId);
+
+    return row ? toMemorySession(row) : undefined;
+  }
+
+  endSession(sessionId: string, endedAt: Date, summary?: string): void {
+    this.database
+      .prepare("UPDATE sessions SET ended_at = ?, summary = ? WHERE id = ?")
+      .run(endedAt.toISOString(), summary ?? null, sessionId);
+  }
+
+  addRelation(relation: MemoryRelation): void {
+    this.database
+      .prepare(
+        `INSERT OR REPLACE INTO memory_relations
+         (source_memory_id, target_memory_id, relation, created_at)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .run(
+        relation.sourceMemoryId,
+        relation.targetMemoryId,
+        relation.relation,
+        relation.createdAt.toISOString(),
+      );
+  }
+
+  listRelations(memoryId: string): readonly MemoryRelation[] {
+    const rows = this.database
+      .prepare<[string, string], RelationRow>(
+        `SELECT * FROM memory_relations
+         WHERE source_memory_id = ? OR target_memory_id = ?
+         ORDER BY created_at ASC`,
+      )
+      .all(memoryId, memoryId);
+
+    return rows.map(toMemoryRelation);
   }
 
   findActiveBySubjectKey(
@@ -206,6 +278,25 @@ function toMemoryItem(row: MemoryRow): MemoryItem {
     status: row.status,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
+  };
+}
+
+function toMemorySession(row: SessionRow): MemorySession {
+  return {
+    id: row.id,
+    workspaceId: row.workspace_id,
+    startedAt: new Date(row.started_at),
+    ...(row.ended_at ? { endedAt: new Date(row.ended_at) } : {}),
+    ...(row.summary ? { summary: row.summary } : {}),
+  };
+}
+
+function toMemoryRelation(row: RelationRow): MemoryRelation {
+  return {
+    sourceMemoryId: row.source_memory_id,
+    targetMemoryId: row.target_memory_id,
+    relation: row.relation,
+    createdAt: new Date(row.created_at),
   };
 }
 

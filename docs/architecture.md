@@ -39,7 +39,9 @@ Persistencia local-first con SQLite para:
 
 La primera versión no sincroniza automáticamente esta memoria. Más adelante, una memoria que deba compartirse podrá proyectarse a un almacenamiento corporativo bajo reglas explícitas.
 
-La implementación inicial usa un repositorio SQLite local detrás del contrato `MemoryRepository`. Permite guardar, actualizar por `subjectKey` y buscar memorias activas mediante full-text search.
+La implementación inicial usa un repositorio SQLite local detrás del contrato `MemoryRepository`. Permite guardar, actualizar por `subjectKey`, buscar memorias activas mediante full-text search, cerrar sesiones con resumen y registrar relaciones entre memorias.
+
+El RAG inicia con contratos de documentos/chunks, un ingestor Markdown y un esquema PostgreSQL que reserva vectores para embeddings futuros.
 
 ### Corporate Knowledge RAG
 

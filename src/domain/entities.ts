@@ -43,6 +43,27 @@ export interface MemoryItem {
   updatedAt: Date;
 }
 
+export interface MemorySession {
+  id: string;
+  workspaceId: string;
+  startedAt: Date;
+  endedAt?: Date;
+  summary?: string;
+}
+
+export type MemoryRelationType =
+  | "related"
+  | "supports"
+  | "conflicts_with"
+  | "supersedes";
+
+export interface MemoryRelation {
+  sourceMemoryId: string;
+  targetMemoryId: string;
+  relation: MemoryRelationType;
+  createdAt: Date;
+}
+
 export interface SourceCitation {
   sourceId: string;
   documentId: string;

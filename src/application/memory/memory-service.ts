@@ -1,11 +1,14 @@
 import { randomUUID } from "node:crypto";
 
-import type { MemoryItem } from "../../domain/index.js";
+import type { MemoryItem, MemoryRelation, MemorySession } from "../../domain/index.js";
 
 import type {
   MemoryRepository,
+  AddMemoryRelationInput,
+  EndSessionInput,
   SaveMemoryInput,
   SearchMemoryInput,
+  StartSessionInput,
 } from "./contracts.js";
 
 export class MemoryService {
@@ -56,6 +59,54 @@ export class MemoryService {
       query,
       limit: input.limit ?? 20,
     });
+  }
+
+  startSession(input: StartSessionInput): MemorySession {
+    const session: MemorySession = {
+      id: this.idGenerator(),
+      workspaceId: requireText(input.workspaceId, "workspaceId"),
+      startedAt: this.now(),
+    };
+    this.repository.insertSession(session);
+    return session;
+  }
+
+  endSession(input: EndSessionInput): MemorySession {
+    const sessionId = requireText(input.sessionId, "sessionId");
+    const existing = this.repository.findSession(sessionId);
+
+    if (!existing) {
+      throw new Error(`Session '${sessionId}' was not found.`);
+    }
+
+    const endedAt = this.now();
+    this.repository.endSession(sessionId, endedAt, optionalText(input.summary));
+
+    return {
+      ...existing,
+      ...(input.summary?.trim() ? { summary: input.summary.trim() } : {}),
+      endedAt,
+    };
+  }
+
+  addRelation(input: AddMemoryRelationInput): MemoryRelation {
+    const relation: MemoryRelation = {
+      sourceMemoryId: requireText(input.sourceMemoryId, "sourceMemoryId"),
+      targetMemoryId: requireText(input.targetMemoryId, "targetMemoryId"),
+      relation: input.relation,
+      createdAt: this.now(),
+    };
+
+    if (relation.sourceMemoryId === relation.targetMemoryId) {
+      throw new Error("A memory cannot relate to itself.");
+    }
+
+    this.repository.addRelation(relation);
+    return relation;
+  }
+
+  listRelations(memoryId: string): readonly MemoryRelation[] {
+    return this.repository.listRelations(requireText(memoryId, "memoryId"));
   }
 }
 
