@@ -2,7 +2,10 @@ import type {
   Document,
   DocumentChunk,
   KnowledgeSource,
+  SourceCitation,
 } from "../../domain/index.js";
+
+export type { SourceCitation } from "../../domain/index.js";
 
 export interface KnowledgeSearchInput {
   workspaceId: string;
@@ -27,6 +30,11 @@ export interface KnowledgeSearchResult {
   chunk: DocumentChunk;
   source: KnowledgeSource;
   score: number;
+}
+
+export interface KnowledgeQueryResponse {
+  results: readonly KnowledgeSearchResult[];
+  citations: readonly SourceCitation[];
 }
 
 export interface KnowledgeRepository {

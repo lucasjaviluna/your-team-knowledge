@@ -43,6 +43,8 @@ La implementación inicial usa un repositorio SQLite local detrás del contrato 
 
 El RAG usa contratos de documentos/chunks, un ingestor Markdown y persistencia PostgreSQL transaccional. La consulta mantiene los filtros de acceso dentro de SQL y soporta dos modos: full-text cuando solo se recibe texto, y vectorial/híbrido cuando también se recibe un embedding. La puntuación híbrida combina relevancia lexical y similitud coseno. El contrato `EmbeddingProvider` desacopla la generación de vectores del repositorio; la primera implementación local usa Transformers.js/ONNX con el modelo provisional `Xenova/multilingual-e5-small`.
 
+La capa de aplicación expone `KnowledgeIngestionService` para coordinar ingesta, generación de embeddings y persistencia, y `KnowledgeQueryService` para generar el embedding de consulta, recuperar resultados y proyectarlos a citas trazables. Los consumidores no necesitan conocer PostgreSQL ni el formato interno de pgvector.
+
 ### Corporate Knowledge RAG
 
 Persistencia centralizada con PostgreSQL, `pgvector` y búsqueda full-text para:

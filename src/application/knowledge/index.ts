@@ -3,6 +3,7 @@ export type {
   KnowledgeRepository,
   KnowledgeSearchInput,
   KnowledgeSearchResult,
+  KnowledgeQueryResponse,
 } from "./contracts.js";
 export type {
   MarkdownIngestionInput,
@@ -12,6 +13,10 @@ export {
   ingestMarkdown,
   ingestMarkdownWithEmbeddings,
 } from "./markdown-ingestor.js";
+export {
+  KnowledgeIngestionService,
+  KnowledgeQueryService,
+} from "./knowledge-services.js";
 export {
   runEmbeddingBenchmark,
   type EmbeddingBenchmarkCase,

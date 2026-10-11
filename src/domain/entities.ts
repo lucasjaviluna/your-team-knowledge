@@ -58,4 +58,10 @@ export interface SourceCitation {
   chunkId: string;
   title: string;
   uri?: string;
+  sourceKind?: string;
+  sourceName?: string;
+  documentVersion?: string;
+  chunkOrdinal?: number;
+  excerpt?: string;
+  score?: number;
 }

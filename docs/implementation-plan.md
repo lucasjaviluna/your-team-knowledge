@@ -66,7 +66,8 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Combinar ambas mediante recuperación híbrida. **Completado con ponderación lexical/coseno 0.5/0.5 como línea base.**
 - Integrar un `EmbeddingProvider` concreto y definir la dimensión estable de embeddings. **E5 queda como referencia provisional; `vector(384)` está aplicado en la migración 002 con índice HNSW y la integración real PostgreSQL pasa.**
 - Enriquecer la ingesta Markdown con embeddings antes de persistir. **Implementado mediante `ingestMarkdownWithEmbeddings`.**
-- Devolver resultados con `SourceCitation` y provenance.
+- Coordinar ingesta, embeddings y persistencia mediante una fachada de aplicación. **Implementado con `KnowledgeIngestionService`.**
+- Exponer una consulta de aplicación que genere el embedding, ejecute retrieval híbrido y devuelva `SourceCitation` con provenance. **Contrato y servicio inicial implementados con `KnowledgeQueryService`; queda pendiente el transporte HTTP/MCP.**
 
 **Resultado:** consultas documentales relevantes, trazables y con fuentes.
 
