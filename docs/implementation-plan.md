@@ -61,10 +61,10 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Implementar la ingesta inicial de documentos Markdown locales.
 - Normalizar contenido y extraer metadatos mínimos.
 - Implementar chunking configurable.
-- Definir un `EmbeddingProvider` desacoplado del proveedor concreto.
+- Definir un `EmbeddingProvider` desacoplado del proveedor concreto. **En evaluación; recomendación documentada en `docs/embedding-provider-evaluation.md`.**
 - Implementar búsqueda full-text y vectorial. **Completado en el repositorio inicial.**
 - Combinar ambas mediante recuperación híbrida. **Completado con ponderación lexical/coseno 0.5/0.5 como línea base.**
-- Integrar un `EmbeddingProvider` concreto y definir la dimensión estable de embeddings. **Pendiente.**
+- Integrar un `EmbeddingProvider` concreto y definir la dimensión estable de embeddings. **Pendiente de validación comparativa; recomendación inicial: multilingual-e5-small con Transformers.js/ONNX Runtime y 384 dimensiones.**
 - Devolver resultados con `SourceCitation` y provenance.
 
 **Resultado:** consultas documentales relevantes, trazables y con fuentes.
