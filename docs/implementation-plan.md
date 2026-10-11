@@ -55,16 +55,17 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 **Objetivo:** indexar y recuperar conocimiento documental corporativo.
 
-**Estado:** en curso avanzado. Están implementados los contratos documentales, la ingesta Markdown con chunking, el esquema PostgreSQL inicial, el repositorio de persistencia y la recuperación full-text/vectorial/híbrida con filtros de acceso.
+**Estado:** en curso avanzado. Están implementados los contratos documentales, la ingesta Markdown con chunking, el esquema PostgreSQL, el repositorio de persistencia y la recuperación full-text/vectorial/híbrida con filtros de acceso. La dimensión provisional quedó fijada en `vector(384)` y se añadió un índice HNSW.
 
 - Diseñar tablas para fuentes, documentos, versiones, chunks, embeddings, metadatos y políticas de acceso.
 - Implementar la ingesta inicial de documentos Markdown locales.
 - Normalizar contenido y extraer metadatos mínimos.
 - Implementar chunking configurable.
-- Definir un `EmbeddingProvider` desacoplado del proveedor concreto. **Contrato y adaptador inicial implementados; la selección queda provisional hasta completar el benchmark.**
+- Definir un `EmbeddingProvider` desacoplado del proveedor concreto. **Contrato y adaptador inicial implementados; E5 queda como proveedor provisional tras el benchmark ampliado.**
 - Implementar búsqueda full-text y vectorial. **Completado en el repositorio inicial.**
 - Combinar ambas mediante recuperación híbrida. **Completado con ponderación lexical/coseno 0.5/0.5 como línea base.**
-- Integrar un `EmbeddingProvider` concreto y definir la dimensión estable de embeddings. **Adaptador Transformers.js implementado y verificado con dos modelos ONNX de 384 dimensiones. El benchmark ampliado favorece provisionalmente E5 (recall@3 0.933, precisión de cita@1 1.00) frente a MiniLM (0.867 y 0.75); falta validar permisos, calidad híbrida y documentos reales antes de fijar la migración productiva.**
+- Integrar un `EmbeddingProvider` concreto y definir la dimensión estable de embeddings. **E5 queda como referencia provisional; `vector(384)` está aplicado en la migración 002 con índice HNSW y la integración real PostgreSQL pasa.**
+- Enriquecer la ingesta Markdown con embeddings antes de persistir. **Implementado mediante `ingestMarkdownWithEmbeddings`.**
 - Devolver resultados con `SourceCitation` y provenance.
 
 **Resultado:** consultas documentales relevantes, trazables y con fuentes.

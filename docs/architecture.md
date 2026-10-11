@@ -52,7 +52,7 @@ Persistencia centralizada con PostgreSQL, `pgvector` y búsqueda full-text para:
 - ACL, clasificación, auditoría y retención;
 - provenance: fuente, autor, versión, fechas, autoridad y clasificación.
 
-Los permisos se validan dentro de la consulta, antes de recuperar o entregar contenido al modelo. La dimensión concreta de los embeddings queda a cargo de la configuración del proveedor y se fijará antes de añadir un índice vectorial especializado.
+Los permisos se validan dentro de la consulta, antes de recuperar o entregar contenido al modelo. La implementación provisional usa embeddings de 384 dimensiones con `Xenova/multilingual-e5-small`. PostgreSQL fija `vector(384)` y utiliza un índice HNSW con distancia coseno; cualquier cambio de proveedor o dimensión debe pasar por un benchmark y una migración explícita.
 
 ### Context Orchestrator
 

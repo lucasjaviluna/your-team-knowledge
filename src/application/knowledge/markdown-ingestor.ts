@@ -6,6 +6,8 @@ import type {
   DocumentChunk,
 } from "../../domain/index.js";
 
+import type { EmbeddingProvider } from "./contracts.js";
+
 export interface MarkdownIngestionInput {
   sourceId: string;
   externalId: string;
@@ -47,6 +49,35 @@ export function ingestMarkdown(
   );
 
   return { document, chunks };
+}
+
+export async function ingestMarkdownWithEmbeddings(
+  input: MarkdownIngestionInput,
+  embeddingProvider: EmbeddingProvider,
+): Promise<MarkdownIngestionResult> {
+  const ingested = ingestMarkdown(input);
+  const embeddings = await embeddingProvider.embedDocuments(
+    ingested.chunks.map((chunk) => chunk.content),
+  );
+
+  if (embeddings.length !== ingested.chunks.length) {
+    throw new Error(
+      "Embedding provider returned an unexpected number of vectors.",
+    );
+  }
+
+  return {
+    document: ingested.document,
+    chunks: ingested.chunks.map((chunk, index) => {
+      const embedding = embeddings[index];
+      if (!embedding) {
+        throw new Error(
+          "Embedding provider returned an incomplete vector batch.",
+        );
+      }
+      return { ...chunk, embedding };
+    }),
+  };
 }
 
 function chunkMarkdown(

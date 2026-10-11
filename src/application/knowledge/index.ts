@@ -8,7 +8,10 @@ export type {
   MarkdownIngestionInput,
   MarkdownIngestionResult,
 } from "./markdown-ingestor.js";
-export { ingestMarkdown } from "./markdown-ingestor.js";
+export {
+  ingestMarkdown,
+  ingestMarkdownWithEmbeddings,
+} from "./markdown-ingestor.js";
 export {
   runEmbeddingBenchmark,
   type EmbeddingBenchmarkCase,

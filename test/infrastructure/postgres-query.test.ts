@@ -16,7 +16,7 @@ describe("buildKnowledgeSearchQuery", () => {
     expect(query.text).toContain("access_policy->'actorIds'");
     expect(query.text).toContain("access_policy->'teamIds'");
     expect(query.text).toContain("plainto_tsquery('simple', $4)");
-    expect(query.text).toContain("dc.embedding <=> $5::vector");
+    expect(query.text).toContain("dc.embedding <=> $5::vector(384)");
     expect(query.values).toEqual([
       "workspace-checkout",
       "actor-alice",

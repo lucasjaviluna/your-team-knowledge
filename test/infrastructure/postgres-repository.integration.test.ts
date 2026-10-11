@@ -40,9 +40,12 @@ describeIntegration("PostgresKnowledgeRepository integration", () => {
         ingested.chunks,
       );
 
+      const embedding = Array.from({ length: 384 }, (_, index) =>
+        index === 0 ? 0.1 : index === 1 ? 0.2 : index === 2 ? 0.3 : 0,
+      );
       const embeddedChunks = ingested.chunks.map((chunk) => ({
         ...chunk,
-        embedding: [0.1, 0.2, 0.3],
+        embedding,
       }));
       await repository.save(
         { id: sourceId, kind: "markdown", name: "integration-test" },
@@ -72,7 +75,7 @@ describeIntegration("PostgresKnowledgeRepository integration", () => {
         actorId: "actor-allowed",
         teamIds: ["platform"],
         query: "",
-        queryEmbedding: [0.1, 0.2, 0.3],
+        queryEmbedding: embedding,
       });
       expect(vectorOnly).toHaveLength(1);
     } finally {

@@ -38,11 +38,11 @@ export function buildKnowledgeSearchQuery(
         s.kind AS source_kind,
         s.name AS source_name,
         CASE
-          WHEN $5::vector IS NULL THEN
+          WHEN $5::vector(384) IS NULL THEN
             ts_rank_cd(to_tsvector('simple', dc.content), search_query.query)
           ELSE
             0.5 * ts_rank_cd(to_tsvector('simple', dc.content), search_query.query)
-            + 0.5 * COALESCE(1 - (dc.embedding <=> $5::vector), 0)
+            + 0.5 * COALESCE(1 - (dc.embedding <=> $5::vector(384)), 0)
         END AS score
       FROM document_chunks dc
       JOIN documents d ON d.id = dc.document_id
@@ -60,7 +60,7 @@ export function buildKnowledgeSearchQuery(
         )
         AND (
           to_tsvector('simple', dc.content) @@ search_query.query
-          OR ($5::vector IS NOT NULL AND dc.embedding IS NOT NULL)
+          OR ($5::vector(384) IS NOT NULL AND dc.embedding IS NOT NULL)
         )
       ORDER BY score DESC, dc.ordinal ASC
       LIMIT $6`,
