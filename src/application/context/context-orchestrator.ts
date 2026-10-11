@@ -3,6 +3,7 @@ import type { KnowledgeQueryService } from "../knowledge/index.js";
 import type {
   ContextBundle,
   ContextMemoryEntry,
+  ContextOrchestratorOptions,
   ContextProvider,
   ContextRequest,
 } from "./contracts.js";
@@ -12,14 +13,14 @@ export class ContextOrchestrator implements ContextProvider {
   constructor(
     private readonly memory: MemoryService,
     private readonly knowledge: KnowledgeQueryService,
+    private readonly options: ContextOrchestratorOptions = {},
   ) {}
 
   async resolve(request: ContextRequest): Promise<ContextBundle> {
     const query = requireText(request.query, "query");
-    const maxChars = request.maxChars ?? 12_000;
-    if (maxChars < 1) {
-      throw new Error("maxChars must be greater than zero.");
-    }
+    const charsPerToken = this.options.charsPerToken ?? 4;
+    validatePositive(charsPerToken, "charsPerToken");
+    const maxChars = resolveMaxChars(request, charsPerToken);
 
     const intent = request.intent ?? classifyContextIntent(query);
     const includeMemory = request.includeMemory ?? intent !== "documentary";
@@ -56,6 +57,7 @@ export class ContextOrchestrator implements ContextProvider {
       memories,
       knowledgeResponse.citations,
       maxChars,
+      this.options.ranking,
     );
 
     return {
@@ -64,6 +66,7 @@ export class ContextOrchestrator implements ContextProvider {
       memories,
       citations: context.citations,
       contextText: context.text,
+      estimatedTokens: Math.ceil(context.text.length / charsPerToken),
       truncated: context.truncated,
     };
   }
@@ -73,36 +76,79 @@ function renderContext(
   memories: readonly ContextMemoryEntry[],
   citations: readonly ContextBundle["citations"][number][],
   maxChars: number,
+  ranking: ContextOrchestratorOptions["ranking"],
 ): {
   text: string;
   citations: readonly ContextBundle["citations"][number][];
   truncated: boolean;
 } {
-  const sections: string[] = [];
-  const selectedCitations: ContextBundle["citations"][number][] = [];
-  let truncated = false;
-
-  for (const memory of memories) {
-    sections.push(`Memory: ${memory.memory.title}\n${memory.memory.content}`);
-  }
-
-  for (const citation of citations) {
-    const excerpt = citation.excerpt?.trim() ?? "";
-    sections.push(`Knowledge: ${citation.title}\n${excerpt}`);
-    selectedCitations.push(citation);
-  }
-
-  const fullText = sections.join("\n\n");
+  const memoryWeight = ranking?.memoryWeight ?? 1;
+  const knowledgeWeight = ranking?.knowledgeWeight ?? 1;
+  validatePositive(memoryWeight, "memoryWeight");
+  validatePositive(knowledgeWeight, "knowledgeWeight");
+  const candidates = [
+    ...memories.map((entry, index) => ({
+      kind: "memory" as const,
+      entry,
+      index,
+      score: memoryWeight,
+    })),
+    ...citations.map((citation, index) => ({
+      kind: "knowledge" as const,
+      citation,
+      index: memories.length + index,
+      score: (citation.score ?? 0.5) * knowledgeWeight,
+    })),
+  ].sort((left, right) => right.score - left.score || left.index - right.index);
+  const sections = candidates.map((candidate) => {
+    if (candidate.kind === "memory") {
+      return {
+        text: `Memory: ${candidate.entry.memory.title}\n${candidate.entry.memory.content}`,
+      };
+    }
+    const excerpt = candidate.citation.excerpt?.trim() ?? "";
+    return {
+      text: `Knowledge: ${candidate.citation.title}\n${excerpt}`,
+      citation: candidate.citation,
+    };
+  });
+  const fullText = sections.map((section) => section.text).join("\n\n");
   if (fullText.length <= maxChars) {
-    return { text: fullText, citations: selectedCitations, truncated };
+    return {
+      text: fullText,
+      citations: sections.flatMap((section) =>
+        section.citation ? [section.citation] : [],
+      ),
+      truncated: false,
+    };
   }
 
-  truncated = true;
   const text = fullText.slice(0, maxChars).trimEnd();
-  const visibleCitations = selectedCitations.filter((citation) =>
-    text.includes(`Knowledge: ${citation.title}`),
+  const visibleCitations = sections.flatMap((section) =>
+    section.citation && text.includes(`Knowledge: ${section.citation.title}`)
+      ? [section.citation]
+      : [],
   );
-  return { text, citations: visibleCitations, truncated };
+  return { text, citations: visibleCitations, truncated: true };
+}
+
+function resolveMaxChars(
+  request: ContextRequest,
+  charsPerToken: number,
+): number {
+  const maxChars = request.maxChars ?? 12_000;
+  validatePositive(maxChars, "maxChars");
+  if (request.maxTokens === undefined) {
+    return maxChars;
+  }
+  validatePositive(request.maxTokens, "maxTokens");
+  return Math.min(maxChars, Math.floor(request.maxTokens * charsPerToken));
+}
+
+function validatePositive(value: number, name: string): void {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`${name} must be greater than zero.`);
+  }
 }
 
 function requireText(value: string, name: string): string {

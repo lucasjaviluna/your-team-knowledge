@@ -118,4 +118,25 @@ describe("ContextOrchestrator", () => {
     expect(knowledgeCalls).toBe(0);
     expect(bundle.citations).toEqual([]);
   });
+
+  it("supports weighted fusion and an explicit token budget", async () => {
+    const orchestrator = new ContextOrchestrator(
+      { search: () => [memory] } as never,
+      { search: async () => ({ results: [], citations: [citation] }) } as never,
+      { ranking: { knowledgeWeight: 2 }, charsPerToken: 4 },
+    );
+
+    const bundle = await orchestrator.resolve({
+      workspaceId: "workspace-a",
+      actorId: "actor-1",
+      teamIds: [],
+      query: "deployment",
+      maxTokens: 5,
+    });
+
+    expect(bundle.contextText.startsWith("Knowledge: Deploy")).toBe(true);
+    expect(bundle.contextText.length).toBe(20);
+    expect(bundle.estimatedTokens).toBe(5);
+    expect(bundle.truncated).toBe(true);
+  });
 });

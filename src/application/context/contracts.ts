@@ -11,8 +11,19 @@ export interface ContextRequest {
   memoryLimit?: number;
   knowledgeLimit?: number;
   maxChars?: number;
+  maxTokens?: number;
   includeMemory?: boolean;
   includeKnowledge?: boolean;
+}
+
+export interface ContextRankingOptions {
+  memoryWeight?: number;
+  knowledgeWeight?: number;
+}
+
+export interface ContextOrchestratorOptions {
+  ranking?: ContextRankingOptions;
+  charsPerToken?: number;
 }
 
 export interface ContextMemoryEntry {
@@ -26,6 +37,7 @@ export interface ContextBundle {
   memories: readonly ContextMemoryEntry[];
   citations: readonly SourceCitation[];
   contextText: string;
+  estimatedTokens: number;
   truncated: boolean;
 }
 

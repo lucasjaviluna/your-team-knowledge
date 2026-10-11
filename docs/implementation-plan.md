@@ -81,7 +81,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Definir `ContextBundle` con memorias, documentos, fuentes, políticas y razones de inclusión. **Implementado con memorias, citas documentales, texto unificado, razones y estado de truncamiento.**
 - Implementar detección inicial de consultas de continuidad, documentales y mixtas. **Implementado con clasificación determinista multilingüe y exposición de la intención en `ContextBundle`.**
 - Seleccionar Agent Memory, RAG o ambas fuentes según la solicitud. **Implementado mediante intención inferida y `includeMemory`/`includeKnowledge` como override.**
-- Fusionar, ordenar y limitar resultados. **Implementado con consulta paralela y presupuesto `maxChars`.**
+- Fusionar, ordenar y limitar resultados. **Implementado con consulta paralela, pesos configurables por fuente, `maxChars` y `maxTokens` estimado.**
 - Exponer `ContextProvider.resolve()`. **Implementado por `ContextOrchestrator`.**
 
 **Resultado:** una única llamada prepara contexto útil y trazable para un agente.
