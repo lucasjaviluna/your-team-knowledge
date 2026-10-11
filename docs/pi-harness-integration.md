@@ -97,4 +97,6 @@ npm install @corporate-knowledge/platform better-sqlite3 pg @huggingface/transfo
 - Validado contra el checkout real de `pi-harness` en el commit `25903a2`: el módulo compilado carga los exports esperados y el smoke test confirma escritura, recuperación y aislamiento por `projectId`.
 - `your-team-knowledge` pasa typecheck, lint y la suite normal: 22 tests aprobados y 2 pruebas de integración omitidas por requerir servicios externos.
 - El tarball `corporate-knowledge-platform-0.1.0.tgz` se genera correctamente. La instalación dentro del checkout temporal de `pi-harness` debe repetirse en un entorno limpio con dependencias completas; la primera prueba quedó afectada por un `node_modules` inconsistente y no se considera una validación concluyente del paquete instalado.
-- Próximo paso: ejecutar una prueba de contrato desde el módulo instalado y el smoke/e2e del consumidor con el runtime de Pi.
+- En un checkout limpio de `pi-harness`, el tarball se instaló correctamente y el loader real cargó `@corporate-knowledge/platform/memory`. El smoke e2e confirmó escritura SQLite, recuperación y aislamiento por proyecto: `stored=true`, `hitCount=1`, `isolatedCount=0`.
+- La suite específica del harness (`tests/memory-provider.test.ts`) pasa 5/5. El e2e general pasa el caso de manifest; otros dos casos se omiten cuando la instalación automática de consumidores supera el timeout del entorno.
+- Próximo paso: incorporar este smoke como prueba reproducible del consumidor y cerrar la configuración de release/CI.
