@@ -41,7 +41,7 @@ La primera versión no sincroniza automáticamente esta memoria. Más adelante, 
 
 La implementación inicial usa un repositorio SQLite local detrás del contrato `MemoryRepository`. Permite guardar, actualizar por `subjectKey`, buscar memorias activas mediante full-text search, cerrar sesiones con resumen y registrar relaciones entre memorias.
 
-El RAG inicia con contratos de documentos/chunks, un ingestor Markdown, persistencia PostgreSQL transaccional y búsqueda full-text con filtros de acceso aplicados en la consulta. El almacenamiento reserva vectores para embeddings futuros.
+El RAG usa contratos de documentos/chunks, un ingestor Markdown y persistencia PostgreSQL transaccional. La consulta mantiene los filtros de acceso dentro de SQL y soporta dos modos: full-text cuando solo se recibe texto, y vectorial/híbrido cuando también se recibe un embedding. La puntuación híbrida combina relevancia lexical y similitud coseno; el proveedor que genera embeddings permanece fuera del repositorio.
 
 ### Corporate Knowledge RAG
 
@@ -52,7 +52,7 @@ Persistencia centralizada con PostgreSQL, `pgvector` y búsqueda full-text para:
 - ACL, clasificación, auditoría y retención;
 - provenance: fuente, autor, versión, fechas, autoridad y clasificación.
 
-Los permisos se validan antes de recuperar o entregar contenido al modelo.
+Los permisos se validan dentro de la consulta, antes de recuperar o entregar contenido al modelo. La dimensión concreta de los embeddings queda a cargo de la configuración del proveedor y se fijará antes de añadir un índice vectorial especializado.
 
 ### Context Orchestrator
 

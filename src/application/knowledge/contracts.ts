@@ -9,6 +9,7 @@ export interface KnowledgeSearchInput {
   actorId: string;
   teamIds: readonly string[];
   query: string;
+  queryEmbedding?: readonly number[];
   limit?: number;
 }
 

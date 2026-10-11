@@ -6,7 +6,13 @@ export interface SqlQuery {
 }
 
 export function buildKnowledgeSearchQuery(
-  input: Required<KnowledgeSearchInput>,
+  input: Required<
+    Pick<
+      KnowledgeSearchInput,
+      "workspaceId" | "actorId" | "teamIds" | "query" | "limit"
+    >
+  > &
+    Pick<KnowledgeSearchInput, "queryEmbedding">,
 ): SqlQuery {
   return {
     text: `
@@ -31,7 +37,13 @@ export function buildKnowledgeSearchQuery(
         dc.metadata,
         s.kind AS source_kind,
         s.name AS source_name,
-        ts_rank_cd(to_tsvector('simple', dc.content), search_query.query) AS score
+        CASE
+          WHEN $5::vector IS NULL THEN
+            ts_rank_cd(to_tsvector('simple', dc.content), search_query.query)
+          ELSE
+            0.5 * ts_rank_cd(to_tsvector('simple', dc.content), search_query.query)
+            + 0.5 * COALESCE(1 - (dc.embedding <=> $5::vector), 0)
+        END AS score
       FROM document_chunks dc
       JOIN documents d ON d.id = dc.document_id
       JOIN knowledge_sources s ON s.id = d.source_id
@@ -46,15 +58,25 @@ export function buildKnowledgeSearchQuery(
           OR COALESCE(d.access_policy->'actorIds', '[]'::jsonb) ? $2
           OR COALESCE(d.access_policy->'teamIds', '[]'::jsonb) ?| $3::text[]
         )
-        AND to_tsvector('simple', dc.content) @@ search_query.query
+        AND (
+          to_tsvector('simple', dc.content) @@ search_query.query
+          OR ($5::vector IS NOT NULL AND dc.embedding IS NOT NULL)
+        )
       ORDER BY score DESC, dc.ordinal ASC
-      LIMIT $5`,
+      LIMIT $6`,
     values: [
       input.workspaceId,
       input.actorId,
       input.teamIds,
       input.query,
+      toVectorValue(input.queryEmbedding),
       input.limit,
     ],
   };
+}
+
+function toVectorValue(
+  embedding: readonly number[] | undefined,
+): string | null {
+  return embedding ? `[${embedding.join(",")}]` : null;
 }

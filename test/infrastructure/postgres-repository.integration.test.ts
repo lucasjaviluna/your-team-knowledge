@@ -40,6 +40,16 @@ describeIntegration("PostgresKnowledgeRepository integration", () => {
         ingested.chunks,
       );
 
+      const embeddedChunks = ingested.chunks.map((chunk) => ({
+        ...chunk,
+        embedding: [0.1, 0.2, 0.3],
+      }));
+      await repository.save(
+        { id: sourceId, kind: "markdown", name: "integration-test" },
+        ingested.document,
+        embeddedChunks,
+      );
+
       const allowed = await repository.search({
         workspaceId,
         actorId: "actor-allowed",
@@ -56,6 +66,15 @@ describeIntegration("PostgresKnowledgeRepository integration", () => {
       expect(allowed).toHaveLength(1);
       expect(allowed[0]?.chunk.content).toContain("aprobación");
       expect(denied).toHaveLength(0);
+
+      const vectorOnly = await repository.search({
+        workspaceId,
+        actorId: "actor-allowed",
+        teamIds: ["platform"],
+        query: "",
+        queryEmbedding: [0.1, 0.2, 0.3],
+      });
+      expect(vectorOnly).toHaveLength(1);
     } finally {
       await repository.close();
       await cleanupPool?.query("DELETE FROM documents WHERE id = $1", [

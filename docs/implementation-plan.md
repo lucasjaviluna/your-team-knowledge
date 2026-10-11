@@ -55,15 +55,16 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 **Objetivo:** indexar y recuperar conocimiento documental corporativo.
 
-**Estado:** en curso. Están implementados los contratos documentales, la ingesta Markdown con chunking, el esquema PostgreSQL inicial y el repositorio de persistencia/búsqueda full-text con filtros de acceso.
+**Estado:** en curso avanzado. Están implementados los contratos documentales, la ingesta Markdown con chunking, el esquema PostgreSQL inicial, el repositorio de persistencia y la recuperación full-text/vectorial/híbrida con filtros de acceso.
 
 - Diseñar tablas para fuentes, documentos, versiones, chunks, embeddings, metadatos y políticas de acceso.
 - Implementar la ingesta inicial de documentos Markdown locales.
 - Normalizar contenido y extraer metadatos mínimos.
 - Implementar chunking configurable.
 - Definir un `EmbeddingProvider` desacoplado del proveedor concreto.
-- Implementar búsqueda full-text y vectorial.
-- Combinar ambas mediante recuperación híbrida.
+- Implementar búsqueda full-text y vectorial. **Completado en el repositorio inicial.**
+- Combinar ambas mediante recuperación híbrida. **Completado con ponderación lexical/coseno 0.5/0.5 como línea base.**
+- Integrar un `EmbeddingProvider` concreto y definir la dimensión estable de embeddings. **Pendiente.**
 - Devolver resultados con `SourceCitation` y provenance.
 
 **Resultado:** consultas documentales relevantes, trazables y con fuentes.
