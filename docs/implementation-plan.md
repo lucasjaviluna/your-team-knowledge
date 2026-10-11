@@ -94,8 +94,8 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Aplicar controles de acceso dentro de las consultas de RAG.
 - Registrar eventos mínimos de auditoría.
 - Añadir clasificación y autoridad de fuentes.
-- Crear dataset de evaluación con consultas y resultados esperados.
-- Medir relevancia, cobertura, citas y filtrado de permisos.
+- Crear dataset de evaluación con consultas y resultados esperados. **Implementado con casos deterministas de continuidad, documental, mixto y aislamiento por permisos.**
+- Medir relevancia, cobertura, citas y filtrado de permisos. **Implementado inicialmente con el arnés `evaluateContextProvider`, que calcula exactitud de intención, recall de memoria/citas y fugas de contenido prohibido.**
 - Definir reglas de vigencia, revisión y deprecación.
 - Añadir detección de contenido sensible durante la ingesta.
 

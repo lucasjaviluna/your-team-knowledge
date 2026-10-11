@@ -66,6 +66,8 @@ Los permisos se validan dentro de la consulta, antes de recuperar o entregar con
 
 Recibe un `ContextRequest` con actor, workspace, consulta, límites y selección opcional de fuentes. `ContextOrchestrator` clasifica inicialmente la intención como `continuity`, `documentary` o `mixed`; con esa clasificación evita consultar una fuente innecesaria y deja los flags explícitos como override. Cuando corresponde, consulta Agent Memory y RAG en paralelo, fusiona resultados mediante pesos configurables por fuente, conserva las `SourceCitation` del conocimiento documental y aplica un presupuesto de caracteres o tokens antes de entregar el texto al consumidor. Cada memoria incluye una razón inicial (`query-match`) para hacer explícita su inclusión.
 
+El arnés de evaluación `evaluateContextProvider` permite ejecutar el mismo dataset contra cualquier implementación de `ContextProvider`. Los casos declaran intención esperada, IDs que deben recuperarse y contenido prohibido; las métricas iniciales son exactitud de intención, recall de memoria, recall de citas y conteo de fugas por permisos. El dataset determinista vive en `test/fixtures/context-evaluation-dataset.ts` y se ejecuta con `npm run test:context-evaluation`.
+
 ### Transporte HTTP
 
 La API HTTP inicial se implementa con `node:http` y funciona como adaptador delgado sobre los servicios de aplicación. Expone health check, consulta documental e ingesta Markdown; no contiene reglas de ranking ni generación de embeddings. El borde resuelve el principal autenticado, aplica autorización por workspace y registra eventos mediante `AuditSink`; la integración futura con identidad corporativa reemplazará el autenticador estático.
