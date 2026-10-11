@@ -103,14 +103,14 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 **Objetivo:** permitir consumo desacoplado desde pi-harness y otros clientes.
 
-**Estado:** contrato de aplicación, transporte HTTP, autenticación/autorización inicial y auditoría persistente completados. Existe una fábrica `node:http` con health check, consulta híbrida e ingesta documental; quedan pendientes identidad corporativa, despliegue y cliente TypeScript.
+**Estado:** contrato de aplicación, transporte HTTP, autenticación/autorización inicial, auditoría persistente, interfaz de identidad, entrypoint ejecutable, despliegue Docker y cliente TypeScript completados. Queda pendiente conectar el resolver con el proveedor corporativo real y ampliar provenance/audit.
 
 - Exponer API interna para memoria, conocimiento y contexto.
 - Publicar contratos de red independientes del lenguaje.
-- Crear un cliente TypeScript y el adaptador para pi-harness.
+- Integrar `KnowledgeHttpClient` con pi-harness y otros consumidores.
 - Mantener el Agent Memory como paquete local con SQLite.
 - Exponer MCP cuando el núcleo y la API estén estabilizados.
-- Añadir autenticación y resolución de identidad corporativa.
+- Conectar `BearerIdentityResolver` con el proveedor de identidad corporativo.
 
 **Resultado:** los consumidores usan el mismo servicio sin conocer sus almacenamientos internos.
 

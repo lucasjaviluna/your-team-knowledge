@@ -1,4 +1,6 @@
-/**
- * Consumer adapters, including the future pi-harness adapter, live here.
- */
-export {};
+export {
+  KnowledgeHttpClient,
+  KnowledgeApiError,
+  type KnowledgeHttpClientOptions,
+  type KnowledgeHttpQueryInput,
+} from "./knowledge-http-client.js";

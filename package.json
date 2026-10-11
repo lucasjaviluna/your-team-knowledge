@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
+    "start": "node dist/server.js",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "eslint .",
     "format": "prettier --check .",

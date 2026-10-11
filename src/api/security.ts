@@ -17,6 +17,34 @@ export interface KnowledgeHttpSecurity {
   ): Promise<boolean>;
 }
 
+/** Provider-neutral boundary for resolving a corporate bearer token. */
+export interface BearerIdentityResolver {
+  resolve(
+    token: string,
+    request: IncomingMessage,
+  ): Promise<ApiPrincipal | null>;
+}
+
+export class BearerIdentitySecurity implements KnowledgeHttpSecurity {
+  constructor(private readonly resolver: BearerIdentityResolver) {}
+
+  async authenticate(request: IncomingMessage): Promise<ApiPrincipal | null> {
+    const token = extractBearerToken(request.headers);
+    return token ? this.resolver.resolve(token, request) : null;
+  }
+
+  async authorize(
+    principal: ApiPrincipal,
+    _action: KnowledgeHttpAction,
+    workspaceId: string,
+  ): Promise<boolean> {
+    return (
+      principal.workspaceIds === undefined ||
+      principal.workspaceIds.includes(workspaceId)
+    );
+  }
+}
+
 export class StaticBearerSecurity implements KnowledgeHttpSecurity {
   private readonly principals: ReadonlyMap<string, ApiPrincipal>;
 
@@ -25,7 +53,7 @@ export class StaticBearerSecurity implements KnowledgeHttpSecurity {
   }
 
   async authenticate(request: IncomingMessage): Promise<ApiPrincipal | null> {
-    const token = bearerToken(request.headers);
+    const token = extractBearerToken(request.headers);
     return token ? (this.principals.get(token) ?? null) : null;
   }
 
@@ -41,7 +69,7 @@ export class StaticBearerSecurity implements KnowledgeHttpSecurity {
   }
 }
 
-function bearerToken(headers: IncomingHttpHeaders): string | undefined {
+function extractBearerToken(headers: IncomingHttpHeaders): string | undefined {
   const value = headers.authorization;
   if (!value?.startsWith("Bearer ")) return undefined;
   const token = value.slice("Bearer ".length).trim();
