@@ -94,6 +94,17 @@ La implementación debe:
 
 Antes de convertir la recomendación en decisión permanente, crear un dataset pequeño con consultas en español, documentos autorizados y casos de acceso denegado. Comparar `multilingual-e5-small` con `paraphrase-multilingual-MiniLM-L12-v2` usando recall@k, precisión de citas y latencia CPU.
 
+## Resultado del benchmark inicial
+
+Fecha: 2026-10-11. Ejecución local en CPU, seis documentos, seis consultas en español, `k=3` y modelos ONNX cuantizados `q8`.
+
+| Modelo                                         | Recall@3 | Precisión de cita@1 | Latencia batch documentos | Latencia media consulta | P95 consulta |
+| ---------------------------------------------- | -------: | ------------------: | ------------------------: | ----------------------: | -----------: |
+| `Xenova/multilingual-e5-small`                 |     1.00 |                1.00 |                    2.92 s |                 20.5 ms |      41.0 ms |
+| `Xenova/paraphrase-multilingual-MiniLM-L12-v2` |     1.00 |                1.00 |                   10.73 s |                 14.1 ms |      19.4 ms |
+
+Ambos modelos resolvieron correctamente este dataset pequeño. E5 mostró una ventaja clara en el embedding batch inicial, mientras que MiniLM tuvo menor latencia por consulta después de cargar el modelo. El resultado no es suficiente para una decisión definitiva: el dataset debe crecer con consultas ambiguas, sinónimos, documentos largos y casos multilingües. Por ahora se mantiene E5 como opción provisional.
+
 ## Fuentes oficiales
 
 - [multilingual-e5-small](https://huggingface.co/intfloat/multilingual-e5-small)

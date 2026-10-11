@@ -14,6 +14,8 @@ const DEFAULT_DIMENSIONS = 384;
 export interface TransformersEmbeddingProviderOptions {
   modelId?: string;
   dimensions?: number;
+  queryPrefix?: string;
+  documentPrefix?: string;
   dtype?: DataType;
   cacheDir?: string;
   localFilesOnly?: boolean;
@@ -24,6 +26,8 @@ export class TransformersEmbeddingProvider implements EmbeddingProvider {
   readonly modelId: string;
   readonly dimensions: number;
 
+  private readonly queryPrefix: string;
+  private readonly documentPrefix: string;
   private readonly dtype: DataType | undefined;
   private readonly cacheDir: string | undefined;
   private readonly localFilesOnly: boolean;
@@ -33,6 +37,8 @@ export class TransformersEmbeddingProvider implements EmbeddingProvider {
   constructor(options: TransformersEmbeddingProviderOptions = {}) {
     this.modelId = options.modelId ?? DEFAULT_MODEL_ID;
     this.dimensions = options.dimensions ?? DEFAULT_DIMENSIONS;
+    this.queryPrefix = options.queryPrefix ?? "query: ";
+    this.documentPrefix = options.documentPrefix ?? "passage: ";
     this.dtype = options.dtype;
     this.cacheDir = options.cacheDir;
     this.localFilesOnly = options.localFilesOnly ?? false;
@@ -44,7 +50,9 @@ export class TransformersEmbeddingProvider implements EmbeddingProvider {
   }
 
   async embedQuery(text: string): Promise<readonly number[]> {
-    const [embedding] = await this.embed([`query: ${requireText(text)}`]);
+    const [embedding] = await this.embed([
+      `${this.queryPrefix}${requireText(text)}`,
+    ]);
     if (!embedding)
       throw new Error("Embedding provider returned no query vector.");
     return embedding;
@@ -54,7 +62,9 @@ export class TransformersEmbeddingProvider implements EmbeddingProvider {
     texts: readonly string[],
   ): Promise<readonly (readonly number[])[]> {
     if (texts.length === 0) return [];
-    return this.embed(texts.map((text) => `passage: ${requireText(text)}`));
+    return this.embed(
+      texts.map((text) => `${this.documentPrefix}${requireText(text)}`),
+    );
   }
 
   private async embed(

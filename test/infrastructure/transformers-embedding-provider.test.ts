@@ -46,6 +46,21 @@ describe("TransformersEmbeddingProvider", () => {
     ]);
   });
 
+  it("allows models without E5 prefixes", async () => {
+    const { extractor, calls } = mockExtractor();
+    const provider = new TransformersEmbeddingProvider({
+      dimensions: 3,
+      queryPrefix: "",
+      documentPrefix: "",
+      extractor,
+    });
+
+    await provider.embedQuery("consulta");
+    await provider.embedDocuments(["documento"]);
+
+    expect(calls).toEqual([["consulta"], ["documento"]]);
+  });
+
   it("does not initialize the model for an empty batch", async () => {
     const { extractor, calls } = mockExtractor();
     const provider = new TransformersEmbeddingProvider({

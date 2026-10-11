@@ -64,7 +64,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Definir un `EmbeddingProvider` desacoplado del proveedor concreto. **Contrato y adaptador inicial implementados; la selección queda provisional hasta completar el benchmark.**
 - Implementar búsqueda full-text y vectorial. **Completado en el repositorio inicial.**
 - Combinar ambas mediante recuperación híbrida. **Completado con ponderación lexical/coseno 0.5/0.5 como línea base.**
-- Integrar un `EmbeddingProvider` concreto y definir la dimensión estable de embeddings. **Adaptador Transformers.js implementado y verificado con `Xenova/multilingual-e5-small` cuantizado; dimensión observada: 384. Falta benchmark comparativo antes de fijar la migración productiva.**
+- Integrar un `EmbeddingProvider` concreto y definir la dimensión estable de embeddings. **Adaptador Transformers.js implementado y verificado con dos modelos ONNX de 384 dimensiones. El benchmark inicial empata en calidad; falta ampliar el dataset antes de fijar la migración productiva.**
 - Devolver resultados con `SourceCitation` y provenance.
 
 **Resultado:** consultas documentales relevantes, trazables y con fuentes.
