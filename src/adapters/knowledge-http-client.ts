@@ -9,6 +9,7 @@ export interface KnowledgeHttpClientOptions {
   baseUrl: string;
   getToken?: () => string | Promise<string>;
   fetch?: typeof globalThis.fetch;
+  timeoutMs?: number;
 }
 
 export interface KnowledgeHttpQueryInput {
@@ -21,8 +22,13 @@ export class KnowledgeApiError extends Error {
   constructor(
     readonly status: number,
     readonly body: unknown,
+    readonly requestId?: string,
   ) {
-    super(`Knowledge API request failed with status ${status}.`);
+    super(
+      `Knowledge API request failed with status ${status}${
+        requestId ? ` (request ${requestId})` : ""
+      }.`,
+    );
     this.name = "KnowledgeApiError";
   }
 }
@@ -31,11 +37,32 @@ export class KnowledgeHttpClient {
   private readonly baseUrl: string;
   private readonly getToken: KnowledgeHttpClientOptions["getToken"];
   private readonly fetchImpl: typeof globalThis.fetch;
+  private readonly timeoutMs: number;
 
   constructor(options: KnowledgeHttpClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/+$/u, "");
     this.getToken = options.getToken;
     this.fetchImpl = options.fetch ?? globalThis.fetch;
+    this.timeoutMs = options.timeoutMs ?? 10_000;
+    if (!Number.isInteger(this.timeoutMs) || this.timeoutMs < 1) {
+      throw new Error("timeoutMs must be a positive integer.");
+    }
+  }
+
+  async health(): Promise<{ status: string }> {
+    const response = await this.fetchImpl(`${this.baseUrl}/health`, {
+      method: "GET",
+      signal: AbortSignal.timeout(this.timeoutMs),
+    });
+    const payload = await response.json().catch(() => undefined);
+    if (!response.ok) {
+      throw new KnowledgeApiError(
+        response.status,
+        payload,
+        response.headers.get("x-request-id") ?? undefined,
+      );
+    }
+    return payload as { status: string };
   }
 
   async query(input: KnowledgeHttpQueryInput): Promise<KnowledgeQueryResponse> {
@@ -63,9 +90,16 @@ export class KnowledgeHttpClient {
       method: "POST",
       headers,
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(this.timeoutMs),
     });
     const payload = await response.json().catch(() => undefined);
-    if (!response.ok) throw new KnowledgeApiError(response.status, payload);
+    if (!response.ok) {
+      throw new KnowledgeApiError(
+        response.status,
+        payload,
+        response.headers.get("x-request-id") ?? undefined,
+      );
+    }
     return payload as T;
   }
 }

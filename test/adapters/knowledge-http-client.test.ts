@@ -3,6 +3,21 @@ import { describe, expect, it, vi } from "vitest";
 import { KnowledgeHttpClient } from "../../src/index.js";
 
 describe("KnowledgeHttpClient", () => {
+  it("checks API health without requiring a token", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
+      expect(input).toBe("http://knowledge.test/health");
+      expect(init?.method).toBe("GET");
+      return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
+    });
+
+    const client = new KnowledgeHttpClient({
+      baseUrl: "http://knowledge.test/",
+      fetch: fetchMock,
+    });
+
+    await expect(client.health()).resolves.toEqual({ status: "ok" });
+  });
+
   it("sends a bearer token and the language-neutral query contract", async () => {
     const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
       expect(input).toBe("http://knowledge.test/v1/knowledge/query");
@@ -41,7 +56,10 @@ describe("KnowledgeHttpClient", () => {
     const client = new KnowledgeHttpClient({
       baseUrl: "http://knowledge.test",
       fetch: async () =>
-        new Response(JSON.stringify({ error: "Forbidden." }), { status: 403 }),
+        new Response(JSON.stringify({ error: "Forbidden." }), {
+          status: 403,
+          headers: { "x-request-id": "request-403" },
+        }),
     });
 
     await expect(
@@ -49,6 +67,7 @@ describe("KnowledgeHttpClient", () => {
     ).rejects.toMatchObject({
       status: 403,
       body: { error: "Forbidden." },
+      requestId: "request-403",
     });
   });
 });

@@ -8,6 +8,8 @@ Las rutas de escritura y consulta requieren `Authorization: Bearer <token>`. El 
 
 Todas las respuestas incluyen `X-Request-Id`. El servidor conserva el valor enviado por el consumidor cuando no supera 200 caracteres y genera uno cuando no se proporciona. Ese identificador se persiste en los eventos de auditoría.
 
+Los consumidores TypeScript pueden usar `KnowledgeHttpClient`, que ofrece `health()`, `query()` e `ingestMarkdown()`. El cliente admite token asíncrono, timeout configurable y expone el `requestId` del servidor en `KnowledgeApiError`.
+
 ## Rutas
 
 ### `GET /health`
