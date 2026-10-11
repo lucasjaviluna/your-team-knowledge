@@ -4,8 +4,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   KnowledgeQueryService,
+  StaticBearerSecurity,
   createKnowledgeHttpServer,
+  type AuditEvent,
   type EmbeddingProvider,
+  type KnowledgeHttpOptions,
   type KnowledgeHttpServices,
   type KnowledgeRepository,
 } from "../../src/index.js";
@@ -66,8 +69,37 @@ function createServices(): KnowledgeHttpServices {
   };
 }
 
-async function startServer(services: KnowledgeHttpServices) {
-  const server = createKnowledgeHttpServer(services);
+function createOptions() {
+  const events: AuditEvent[] = [];
+  return {
+    options: {
+      security: new StaticBearerSecurity(
+        new Map([
+          [
+            "test-token",
+            {
+              actorId: "actor",
+              teamIds: ["team-platform"],
+              workspaceIds: ["workspace"],
+            },
+          ],
+        ]),
+      ),
+      audit: {
+        record: async (event: AuditEvent) => {
+          events.push(event);
+        },
+      },
+    },
+    events,
+  };
+}
+
+async function startServer(
+  services: KnowledgeHttpServices,
+  options: KnowledgeHttpOptions,
+) {
+  const server = createKnowledgeHttpServer(services, options);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   if (!address || typeof address === "string") {
@@ -89,6 +121,7 @@ function post(port: number, path: string, body: unknown) {
           headers: {
             "content-type": "application/json",
             "content-length": Buffer.byteLength(payload),
+            authorization: "Bearer test-token",
           },
         },
         (response) => {
@@ -136,7 +169,8 @@ function get(port: number, path: string) {
 
 describe("knowledge HTTP API", () => {
   it("serves health and query responses with citations", async () => {
-    const { server, port } = await startServer(createServices());
+    const { options, events } = createOptions();
+    const { server, port } = await startServer(createServices(), options);
 
     try {
       const health = await get(port, "/health");
@@ -171,6 +205,35 @@ describe("knowledge HTTP API", () => {
       });
       expect(ingestion.status).toBe(201);
       expect(ingestion.body.chunks).toEqual([chunk]);
+      expect(events).toHaveLength(2);
+      expect(events.every((event) => event.outcome === "success")).toBe(true);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it("rejects an unauthorized workspace and audits the denial", async () => {
+    const { options, events } = createOptions();
+    const { server, port } = await startServer(createServices(), options);
+
+    try {
+      const response = await post(port, "/v1/knowledge/query", {
+        workspaceId: "workspace-other",
+        query: "consulta",
+      });
+
+      expect(response.status).toBe(403);
+      expect(response.body).toEqual({ error: "Access denied." });
+      expect(events).toEqual([
+        expect.objectContaining({
+          action: "knowledge.query",
+          outcome: "denied",
+          actorId: "actor",
+          workspaceId: "workspace-other",
+        }),
+      ]);
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

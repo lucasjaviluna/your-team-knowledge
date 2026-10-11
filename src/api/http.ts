@@ -6,22 +6,35 @@ import {
 } from "node:http";
 
 import type {
+  AuditEvent,
+  AuditSink,
   KnowledgeIngestionService,
   KnowledgeQueryService,
 } from "../application/index.js";
 import type { KnowledgeSource } from "../domain/index.js";
 import type { MarkdownIngestionInput } from "../application/index.js";
+import type {
+  ApiPrincipal,
+  KnowledgeHttpAction,
+  KnowledgeHttpSecurity,
+} from "./security.js";
 
 export interface KnowledgeHttpServices {
   ingestion: KnowledgeIngestionService;
   query: KnowledgeQueryService;
 }
 
+export interface KnowledgeHttpOptions {
+  security: KnowledgeHttpSecurity;
+  audit: AuditSink;
+}
+
 export function createKnowledgeHttpServer(
   services: KnowledgeHttpServices,
+  options: KnowledgeHttpOptions,
 ): Server {
   return createServer((request, response) => {
-    void handleKnowledgeHttpRequest(request, response, services);
+    void handleKnowledgeHttpRequest(request, response, services, options);
   });
 }
 
@@ -29,7 +42,11 @@ async function handleKnowledgeHttpRequest(
   request: IncomingMessage,
   response: ServerResponse,
   services: KnowledgeHttpServices,
+  options: KnowledgeHttpOptions,
 ): Promise<void> {
+  let principal: ApiPrincipal | null = null;
+  let action: KnowledgeHttpAction | undefined;
+  let workspaceId: string | undefined;
   try {
     if (request.method === "GET" && request.url === "/health") {
       sendJson(response, 200, { status: "ok" });
@@ -41,21 +58,49 @@ async function handleKnowledgeHttpRequest(
       return;
     }
 
+    principal = await options.security.authenticate(request);
+    if (!principal) {
+      sendJson(response, 401, { error: "Authentication required." });
+      return;
+    }
+
     const body = await readJson(request);
     if (request.url === "/v1/knowledge/query") {
-      const result = await services.query.search(
-        parseQueryInput(body as Record<string, unknown>),
+      action = "query";
+      const queryInput = parseQueryInput(
+        body as Record<string, unknown>,
+        principal,
       );
+      workspaceId = queryInput.workspaceId;
+      await authorize(options, principal, action, workspaceId);
+      const result = await services.query.search(queryInput);
+      await recordAudit(options.audit, {
+        action: "knowledge.query",
+        outcome: "success",
+        actorId: principal.actorId,
+        workspaceId,
+      });
       sendJson(response, 200, result);
       return;
     }
 
     if (request.url === "/v1/knowledge/documents") {
+      action = "ingest";
       const input = parseIngestionInput(body as Record<string, unknown>);
+      workspaceId = input.document.workspaceId;
+      await authorize(options, principal, action, workspaceId);
       const result = await services.ingestion.ingestMarkdown(
         input.source,
         input.document,
       );
+      await recordAudit(options.audit, {
+        action: "knowledge.ingest",
+        outcome: "success",
+        actorId: principal.actorId,
+        workspaceId,
+        resourceType: "document",
+        resourceId: result.document.id,
+      });
       sendJson(response, 201, {
         document: result.document,
         chunks: result.chunks.map(withoutEmbedding),
@@ -67,20 +112,51 @@ async function handleKnowledgeHttpRequest(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unexpected error.";
-    sendJson(response, 400, { error: message });
+    if (principal && action) {
+      await recordAudit(options.audit, {
+        action: action === "query" ? "knowledge.query" : "knowledge.ingest",
+        outcome: message === "Access denied." ? "denied" : "error",
+        actorId: principal.actorId,
+        ...(workspaceId ? { workspaceId } : {}),
+        metadata: { error: message },
+      });
+    }
+    const statusCode = message === "Access denied." ? 403 : 400;
+    sendJson(response, statusCode, { error: message });
   }
 }
 
-function parseQueryInput(body: Record<string, unknown>) {
+function parseQueryInput(
+  body: Record<string, unknown>,
+  principal: ApiPrincipal,
+) {
   return {
     workspaceId: requiredString(body.workspaceId, "workspaceId"),
-    actorId: requiredString(body.actorId, "actorId"),
-    teamIds: stringArray(body.teamIds, "teamIds"),
+    actorId: principal.actorId,
+    teamIds: principal.teamIds,
     query: requiredString(body.query, "query"),
     ...(body.limit === undefined
       ? {}
       : { limit: positiveInteger(body.limit, "limit") }),
   };
+}
+
+async function authorize(
+  options: KnowledgeHttpOptions,
+  principal: ApiPrincipal,
+  action: KnowledgeHttpAction,
+  workspaceId: string | undefined,
+): Promise<void> {
+  if (
+    !workspaceId ||
+    !(await options.security.authorize(principal, action, workspaceId))
+  ) {
+    throw new Error("Access denied.");
+  }
+}
+
+async function recordAudit(audit: AuditSink, event: AuditEvent): Promise<void> {
+  await audit.record(event);
 }
 
 function parseIngestionInput(body: Record<string, unknown>): {

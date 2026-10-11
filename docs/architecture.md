@@ -62,7 +62,7 @@ Recibe un `ContextRequest` con actor, rol, workspace, intención y tarea. Decide
 
 ### Transporte HTTP
 
-La API HTTP inicial se implementa con `node:http` y funciona como adaptador delgado sobre los servicios de aplicación. Expone health check, consulta documental e ingesta Markdown; no contiene reglas de ranking, permisos ni generación de embeddings. La autenticación y auditoría se incorporarán antes de exponerla fuera de un entorno confiable.
+La API HTTP inicial se implementa con `node:http` y funciona como adaptador delgado sobre los servicios de aplicación. Expone health check, consulta documental e ingesta Markdown; no contiene reglas de ranking ni generación de embeddings. El borde resuelve el principal autenticado, aplica autorización por workspace y registra eventos mediante `AuditSink`; la integración futura con identidad corporativa reemplazará el autenticador estático.
 
 ## Entidades fundacionales
 

@@ -11,7 +11,7 @@
 1. Copiar `.env.example` como `.env` y ajustar valores si fuera necesario.
 2. Ejecutar `npm install`.
 3. Ejecutar `docker compose up -d postgres`.
-4. Aplicar las migraciones con `docker compose exec -T postgres psql -U knowledge -d corporate_knowledge -f /migrations/001-knowledge-schema.sql` y luego `docker compose exec -T postgres psql -U knowledge -d corporate_knowledge -f /migrations/002-embedding-dimension-and-index.sql`.
+4. Aplicar las migraciones con `docker compose exec -T postgres psql -U knowledge -d corporate_knowledge -f /migrations/001-knowledge-schema.sql`, luego `002-embedding-dimension-and-index.sql` y finalmente `003-audit-events.sql`.
 5. Validar la base técnica con `npm run lint`, `npm run typecheck` y `npm test`.
 
 La instancia local de PostgreSQL habilita la extensión `vector` al inicializarse. Las migraciones se mantienen en `infrastructure/postgres/migrations` y se montan como solo lectura dentro del contenedor.

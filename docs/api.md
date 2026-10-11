@@ -1,6 +1,10 @@
 # API de transporte HTTP
 
-La primera capa de transporte usa `node:http` y delega toda la lógica en los servicios de aplicación. El servidor se crea con `createKnowledgeHttpServer`, por lo que el proceso que lo hospeda conserva el control sobre puerto, autenticación y ciclo de vida.
+La primera capa de transporte usa `node:http` y delega toda la lógica en los servicios de aplicación. El servidor se crea con `createKnowledgeHttpServer`, por lo que el proceso que lo hospeda conserva el control sobre puerto y ciclo de vida. La fábrica recibe un autenticador/autorizador y un `AuditSink`.
+
+## Seguridad
+
+Las rutas de escritura y consulta requieren `Authorization: Bearer <token>`. El token se resuelve a un principal con `actorId`, equipos y workspaces permitidos. El `actorId` y los equipos del cuerpo no se utilizan para autorizar la consulta: se toman del principal autenticado. Las operaciones fuera del workspace autorizado responden `403`.
 
 ## Rutas
 
@@ -19,8 +23,6 @@ Solicitud:
 ```json
 {
   "workspaceId": "workspace-checkout",
-  "actorId": "actor-alice",
-  "teamIds": ["team-platform"],
   "query": "¿Cómo se aprueba un despliegue?",
   "limit": 10
 }
@@ -53,8 +55,12 @@ Solicitud:
 }
 ```
 
-La respuesta devuelve el documento y los chunks sin exponer los vectores internos. La autenticación, autorización de la operación de escritura, rate limiting y auditoría de transporte quedan pendientes para la etapa de gobernanza.
+La respuesta devuelve el documento y los chunks sin exponer los vectores internos. La operación requiere autorización sobre el workspace.
+
+## Auditoría
+
+Las consultas, ingestas exitosas, denegaciones y errores pueden persistirse mediante `PostgresAuditLog` en la tabla `audit_events`. El evento incluye acción, resultado, actor, workspace, recurso y metadatos mínimos.
 
 ## Errores
 
-Los errores de validación o rutas no soportadas se devuelven inicialmente como JSON con `{ "error": "..." }`. El transporte actual usa `400` para errores de entrada o de aplicación, `404` para rutas desconocidas y `405` para métodos no soportados.
+Los errores de validación o rutas no soportadas se devuelven inicialmente como JSON con `{ "error": "..." }`. El transporte actual usa `400` para errores de entrada o de aplicación, `401` sin autenticación, `403` sin autorización, `404` para rutas desconocidas y `405` para métodos no soportados.
