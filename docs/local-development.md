@@ -11,10 +11,15 @@
 1. Copiar `.env.example` como `.env` y ajustar valores si fuera necesario.
 2. Ejecutar `npm install`.
 3. Ejecutar `docker compose up -d postgres`.
-4. Validar la base técnica con `npm run lint`, `npm run typecheck` y `npm test`.
+4. Aplicar las migraciones con `docker compose exec -T postgres psql -U knowledge -d corporate_knowledge -f /migrations/001-knowledge-schema.sql`.
+5. Validar la base técnica con `npm run lint`, `npm run typecheck` y `npm test`.
 
-La instancia local de PostgreSQL habilita la extensión `vector` al inicializarse. Su uso funcional comienza en la etapa de Corporate Knowledge RAG.
+La instancia local de PostgreSQL habilita la extensión `vector` al inicializarse. Las migraciones se mantienen en `infrastructure/postgres/migrations` y se montan como solo lectura dentro del contenedor.
+
+Si el puerto 5432 ya está ocupado, iniciar la instancia del proyecto en otro puerto. En PowerShell, por ejemplo: `$env:POSTGRES_PORT='55432'; docker compose up -d postgres`. Luego utilizar ese puerto en el `DATABASE_URL` del proceso local.
+
+Para ejecutar también la prueba de integración PostgreSQL: `$env:DATABASE_URL='postgresql://knowledge:knowledge@localhost:55432/corporate_knowledge'; npm test`. Sin `DATABASE_URL`, esa prueba queda omitida y la suite usa únicamente dependencias locales.
 
 ## Límites actuales
 
-La base técnica todavía no expone una API ni persiste memorias o documentos. Esos comportamientos se implementarán en las siguientes etapas.
+La base técnica todavía no expone una API. Agent Memory ya persiste memorias en SQLite y Corporate Knowledge RAG ya cuenta con persistencia y búsqueda full-text en PostgreSQL; la búsqueda vectorial y la API quedan para las siguientes etapas.

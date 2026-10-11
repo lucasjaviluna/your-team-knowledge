@@ -41,7 +41,7 @@ La primera versión no sincroniza automáticamente esta memoria. Más adelante, 
 
 La implementación inicial usa un repositorio SQLite local detrás del contrato `MemoryRepository`. Permite guardar, actualizar por `subjectKey`, buscar memorias activas mediante full-text search, cerrar sesiones con resumen y registrar relaciones entre memorias.
 
-El RAG inicia con contratos de documentos/chunks, un ingestor Markdown y un esquema PostgreSQL que reserva vectores para embeddings futuros.
+El RAG inicia con contratos de documentos/chunks, un ingestor Markdown, persistencia PostgreSQL transaccional y búsqueda full-text con filtros de acceso aplicados en la consulta. El almacenamiento reserva vectores para embeddings futuros.
 
 ### Corporate Knowledge RAG
 

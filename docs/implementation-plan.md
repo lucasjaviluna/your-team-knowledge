@@ -55,7 +55,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 **Objetivo:** indexar y recuperar conocimiento documental corporativo.
 
-**Estado:** en curso. Están implementados los contratos documentales, la ingesta Markdown con chunking y el esquema PostgreSQL inicial.
+**Estado:** en curso. Están implementados los contratos documentales, la ingesta Markdown con chunking, el esquema PostgreSQL inicial y el repositorio de persistencia/búsqueda full-text con filtros de acceso.
 
 - Diseñar tablas para fuentes, documentos, versiones, chunks, embeddings, metadatos y políticas de acceso.
 - Implementar la ingesta inicial de documentos Markdown locales.

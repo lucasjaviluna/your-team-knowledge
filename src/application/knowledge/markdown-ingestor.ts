@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 
-import type { AccessPolicy, Document, DocumentChunk } from "../../domain/index.js";
+import type {
+  AccessPolicy,
+  Document,
+  DocumentChunk,
+} from "../../domain/index.js";
 
 export interface MarkdownIngestionInput {
   sourceId: string;
@@ -19,7 +23,9 @@ export interface MarkdownIngestionResult {
   chunks: readonly DocumentChunk[];
 }
 
-export function ingestMarkdown(input: MarkdownIngestionInput): MarkdownIngestionResult {
+export function ingestMarkdown(
+  input: MarkdownIngestionInput,
+): MarkdownIngestionResult {
   const now = new Date();
   const document: Document = {
     id: randomUUID(),
@@ -34,7 +40,11 @@ export function ingestMarkdown(input: MarkdownIngestionInput): MarkdownIngestion
     createdAt: now,
     updatedAt: now,
   };
-  const chunks = chunkMarkdown(document.id, input.content, input.maxChunkCharacters ?? 1200);
+  const chunks = chunkMarkdown(
+    document.id,
+    input.content,
+    input.maxChunkCharacters ?? 1200,
+  );
 
   return { document, chunks };
 }
@@ -45,7 +55,9 @@ function chunkMarkdown(
   maxChunkCharacters: number,
 ): readonly DocumentChunk[] {
   if (!Number.isInteger(maxChunkCharacters) || maxChunkCharacters < 100) {
-    throw new Error("maxChunkCharacters must be an integer greater than or equal to 100.");
+    throw new Error(
+      "maxChunkCharacters must be an integer greater than or equal to 100.",
+    );
   }
 
   const paragraphs = content
