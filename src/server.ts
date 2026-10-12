@@ -1,6 +1,6 @@
 import type { DataType } from "@huggingface/transformers";
 import { createKnowledgeHttpServer } from "./api/index.js";
-import { StaticBearerSecurity, type ApiPrincipal } from "./api/security.js";
+import { StaticBearerSecurity } from "./api/security.js";
 import {
   ContextOrchestrator,
   KnowledgeIngestionService,
@@ -13,21 +13,19 @@ import {
   PostgresKnowledgeRepository,
 } from "./infrastructure/postgres/index.js";
 import { SqliteAgentMemoryRepository } from "./infrastructure/sqlite/index.js";
+import { loadServerConfig } from "./server-config.js";
 
-const connectionString = requiredEnv("DATABASE_URL");
-const port = parsePort(process.env.PORT ?? "3000");
-const host = process.env.HOST ?? "0.0.0.0";
-const tokens = parseTokenMap(process.env.API_TOKENS_JSON);
+const config = loadServerConfig(process.env);
 
-const embeddingDtype = process.env.EMBEDDING_DTYPE as DataType | undefined;
+const embeddingDtype = config.embeddingDtype as DataType | undefined;
 const embeddingProvider = new TransformersEmbeddingProvider({
   ...(embeddingDtype ? { dtype: embeddingDtype } : {}),
-  localFilesOnly: process.env.EMBEDDING_LOCAL_ONLY === "1",
+  localFilesOnly: config.embeddingLocalOnly,
 });
-const repository = new PostgresKnowledgeRepository(connectionString);
-const audit = new PostgresAuditLog(connectionString);
+const repository = new PostgresKnowledgeRepository(config.connectionString);
+const audit = new PostgresAuditLog(config.connectionString);
 const memoryRepository = new SqliteAgentMemoryRepository(
-  process.env.AGENT_MEMORY_DATABASE ?? "./agent-memory.sqlite",
+  config.agentMemoryDatabase,
 );
 const memory = new MemoryService(memoryRepository);
 const server = createKnowledgeHttpServer(
@@ -40,13 +38,15 @@ const server = createKnowledgeHttpServer(
     ),
   },
   {
-    security: new StaticBearerSecurity(tokens),
+    security: new StaticBearerSecurity(config.tokens),
     audit,
   },
 );
 
-server.listen(port, host, () => {
-  console.log(`Knowledge API listening on http://${host}:${port}`);
+server.listen(config.port, config.host, () => {
+  console.log(
+    `Knowledge API listening on http://${config.host}:${config.port}`,
+  );
 });
 
 let shuttingDown = false;
@@ -61,65 +61,4 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
       });
     });
   });
-}
-
-function requiredEnv(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) throw new Error(`${name} is required.`);
-  return value;
-}
-
-function parsePort(value: string): number {
-  const port = Number(value);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error("PORT must be an integer between 1 and 65535.");
-  }
-  return port;
-}
-
-function parseTokenMap(
-  value: string | undefined,
-): ReadonlyMap<string, ApiPrincipal> {
-  if (!value) {
-    throw new Error(
-      "API_TOKENS_JSON is required for the development security adapter.",
-    );
-  }
-
-  const parsed: unknown = JSON.parse(value);
-  if (!isRecord(parsed))
-    throw new Error("API_TOKENS_JSON must be a JSON object.");
-
-  const entries: Array<[string, ApiPrincipal]> = [];
-  for (const [token, principal] of Object.entries(parsed)) {
-    if (!isRecord(principal) || typeof principal.actorId !== "string") {
-      throw new Error(`Invalid principal for token ${token}.`);
-    }
-    if (!isStringArray(principal.teamIds)) {
-      throw new Error(`teamIds must be an array for token ${token}.`);
-    }
-    const workspaceIds = principal.workspaceIds;
-    if (workspaceIds !== undefined && !isStringArray(workspaceIds)) {
-      throw new Error(`workspaceIds must be an array for token ${token}.`);
-    }
-    entries.push([
-      token,
-      {
-        actorId: principal.actorId,
-        teamIds: principal.teamIds,
-        ...(workspaceIds ? { workspaceIds } : {}),
-      },
-    ]);
-  }
-  return new Map(entries);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isStringArray(value: unknown): value is string[] {
-  return (
-    Array.isArray(value) && value.every((item) => typeof item === "string")
-  );
 }

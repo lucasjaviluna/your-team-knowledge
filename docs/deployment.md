@@ -20,6 +20,8 @@ La plataforma se ejecuta como un proceso Node.js que expone la API HTTP y usa Po
 }
 ```
 
+El arranque falla de forma explícita si falta `DATABASE_URL` o `API_TOKENS_JSON`, el puerto no es válido, el JSON de tokens está mal formado, no hay tokens o un principal no tiene `actorId`/`teamIds` válidos. Estas reglas se prueban en `test/application/server-config.test.ts` antes de crear conexiones a PostgreSQL o SQLite.
+
 En un entorno corporativo, el servidor debe recibir una implementación de `BearerIdentityResolver` que valide el token contra el proveedor de identidad y devuelva el principal con sus equipos y espacios de trabajo. El núcleo de la API no depende de un proveedor específico.
 
 ## Variables principales
