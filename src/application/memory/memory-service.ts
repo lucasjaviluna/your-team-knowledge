@@ -14,6 +14,7 @@ import type {
   SearchMemoryInput,
   StartSessionInput,
 } from "./contracts.js";
+import { detectSensitiveContent } from "../governance.js";
 
 export class MemoryService {
   constructor(
@@ -26,6 +27,9 @@ export class MemoryService {
     const workspaceId = requireText(input.workspaceId, "workspaceId");
     const title = requireText(input.title, "title");
     const content = requireText(input.content, "content");
+    if (detectSensitiveContent(`${title}\n${content}`).length > 0) {
+      throw new Error("Sensitive content detected in memory.");
+    }
     const subjectKey = optionalText(input.subjectKey);
     const now = this.now();
     const existing = subjectKey

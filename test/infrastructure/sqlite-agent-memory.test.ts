@@ -69,6 +69,32 @@ describe("SqliteAgentMemoryRepository", () => {
     ).toHaveLength(0);
   });
 
+  it("rejects credential-like content before persisting it", () => {
+    const { repository, service } = createMemoryService();
+
+    expect(() =>
+      service.save({
+        workspaceId: "workspace-checkout",
+        type: "discovery",
+        title: "Runtime configuration",
+        content: "client_secret: 12345678901234567890",
+      }),
+    ).toThrow("Sensitive content detected in memory.");
+
+    expect(
+      service.search({
+        workspaceId: "workspace-checkout",
+        query: "runtime configuration",
+      }),
+    ).toHaveLength(0);
+    expect(
+      repository.findActiveBySubjectKey(
+        "workspace-checkout",
+        "runtime/configuration",
+      ),
+    ).toBeUndefined();
+  });
+
   it("supports simple singular and plural query variations", () => {
     const { service } = createMemoryService();
 
