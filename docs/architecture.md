@@ -68,6 +68,8 @@ Recibe un `ContextRequest` con actor, workspace, consulta, límites y selección
 
 El arnés de evaluación `evaluateContextProvider` permite ejecutar el mismo dataset contra cualquier implementación de `ContextProvider`. Los casos declaran intención esperada, IDs que deben recuperarse y contenido prohibido; las métricas son exactitud de intención, precision/recall de memoria y citas, y conteo de fugas por permisos. La precisión penaliza resultados extra no esperados, mientras que la fuga de permisos se reporta por separado. El arnés acepta umbrales opcionales y expone `thresholdFailures` para hacer fallar CI con un diagnóstico concreto. El dataset determinista vive en `test/fixtures/context-evaluation-dataset.ts`; se ejecuta como suite normal y mediante el paso dedicado `npm run test:context-evaluation` del workflow.
 
+La evaluación integrada `context-evaluation.real-provider.test.ts` comprueba el mismo contrato sobre la composición real de aplicación: SQLite persistente para Agent Memory, `MemoryService`, `KnowledgeQueryService`, `ContextOrchestrator` y un repositorio documental reproducible con políticas de acceso. La prueba no sustituye la integración opt-in contra PostgreSQL; cubre el comportamiento del orquestador sin hacer depender el CI básico de servicios externos.
+
 ### Transporte HTTP
 
 La API HTTP inicial se implementa con `node:http` y funciona como adaptador delgado sobre los servicios de aplicación. Expone health check, consulta documental e ingesta Markdown; no contiene reglas de ranking ni generación de embeddings. El borde resuelve el principal autenticado, aplica autorización por workspace y registra eventos mediante `AuditSink`; la integración futura con identidad corporativa reemplazará el autenticador estático.
