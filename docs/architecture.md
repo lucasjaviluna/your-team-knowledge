@@ -70,6 +70,8 @@ El arnés de evaluación `evaluateContextProvider` permite ejecutar el mismo dat
 
 La evaluación integrada `context-evaluation.real-provider.test.ts` comprueba el mismo contrato sobre la composición real de aplicación: SQLite persistente para Agent Memory, `MemoryService`, `KnowledgeQueryService`, `ContextOrchestrator` y un repositorio documental reproducible con políticas de acceso. La prueba no sustituye la integración opt-in contra PostgreSQL; cubre el comportamiento del orquestador sin hacer depender el CI básico de servicios externos.
 
+La evaluación `context-evaluation.postgres.integration.test.ts` repite el contrato contra `PostgresKnowledgeRepository` y pgvector cuando `DATABASE_URL` está disponible. Es opt-in para conservar un CI básico rápido y reproducible, pero valida la ruta de ingesta, embeddings, recuperación híbrida y ACL en el almacenamiento corporativo real.
+
 ### Transporte HTTP
 
 La API HTTP inicial se implementa con `node:http` y funciona como adaptador delgado sobre los servicios de aplicación. Expone health check, consulta documental e ingesta Markdown; no contiene reglas de ranking ni generación de embeddings. El borde resuelve el principal autenticado, aplica autorización por workspace y registra eventos mediante `AuditSink`; la integración futura con identidad corporativa reemplazará el autenticador estático.

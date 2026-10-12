@@ -98,6 +98,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Crear dataset de evaluación con consultas y resultados esperados. **Implementado con casos deterministas de continuidad, documental, mixto y aislamiento por permisos.**
 - Medir relevancia, cobertura, citas y filtrado de permisos. **Implementado con el arnés `evaluateContextProvider`, que calcula exactitud de intención, precision/recall de memoria y citas, fugas de contenido prohibido y umbrales configurables para CI mediante `thresholdFailures`; el workflow ejecuta además `npm run test:context-evaluation` como verificación dedicada.**
 - Evaluar el recorrido real de composición. **Implementado con `context-evaluation.real-provider.test.ts`: usa SQLite real para Agent Memory, `MemoryService`, `KnowledgeQueryService`, un repositorio documental determinista con ACL y `ContextOrchestrator`.**
+- Comparar contra el almacenamiento corporativo real. **Implementado de forma opt-in con `context-evaluation.postgres.integration.test.ts`: usa PostgreSQL/pgvector, ingesta con embeddings de 384 dimensiones, consulta híbrida, filtros ACL y los mismos umbrales; se ejecuta cuando existe `DATABASE_URL`.**
 - Habilitar una prueba funcional persistente sobre un proyecto real. **Implementado con `npm run demo:agent-memory`, que ejercita SQLite, FTS5, `projectId`/`workspaceId` y recuperación del provider tipo pi-harness sin requerir PostgreSQL ni un modelo.**
 - Definir reglas de vigencia, revisión y deprecación.
 - Añadir detección de contenido sensible durante la ingesta.
