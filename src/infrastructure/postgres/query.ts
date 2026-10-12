@@ -60,7 +60,11 @@ export function buildKnowledgeSearchQuery(
         )
         AND (
           to_tsvector('simple', dc.content) @@ search_query.query
-          OR ($5::vector(384) IS NOT NULL AND dc.embedding IS NOT NULL)
+          OR (
+            $5::vector(384) IS NOT NULL
+            AND dc.embedding IS NOT NULL
+            AND 1 - (dc.embedding <=> $5::vector(384)) >= 0.5
+          )
         )
       ORDER BY score DESC, dc.ordinal ASC
       LIMIT $6`,

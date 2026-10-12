@@ -14,6 +14,7 @@ El repositorio PostgreSQL admite un embedding opcional en la consulta:
 
 - sin embedding: búsqueda full-text con `ts_rank_cd`;
 - con embedding: combinación de `ts_rank_cd` y similitud coseno de `pgvector`;
+- la rama vectorial exige una similitud coseno mínima de `0.5` para evitar que cualquier chunk con embedding entre como resultado irrelevante;
 - los filtros de workspace, actor, equipo y estado activo se ejecutan dentro de la misma consulta SQL;
 - el repositorio no genera embeddings: recibe vectores producidos por un `EmbeddingProvider` externo al módulo de infraestructura.
 
