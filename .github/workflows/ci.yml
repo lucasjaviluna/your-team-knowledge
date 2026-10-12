@@ -19,5 +19,6 @@ jobs:
       - run: npm test -- --run
       - run: npm run test:context-evaluation
       - run: npm run package:check
+      - run: npm run migrations:check
       - run: npm run pack:check
       - run: npm run test:consumer

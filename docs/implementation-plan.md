@@ -25,7 +25,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 **Objetivo:** preparar el repositorio para construir y probar módulos aislados.
 
-**Estado:** base inicial completada. Queda pendiente formalizar migraciones ejecutables y CI.
+**Estado:** base inicial completada. Las migraciones ejecutables y sus contratos de orden/nombre se validan con `npm run migrations:check`; CI cubre esta comprobación junto con calidad, pruebas y empaquetado.
 
 - Inicializar el workspace TypeScript, package manager, linting, formato y pruebas.
 - Crear módulos `domain`, `application`, `infrastructure`, `api` y `adapters`.
