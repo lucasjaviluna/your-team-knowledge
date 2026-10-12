@@ -95,7 +95,7 @@ async function handleKnowledgeHttpRequest(
       workspaceId = queryInput.workspaceId;
       await authorize(options, principal, action, workspaceId);
       const result = await services.query.search(queryInput);
-      await recordAudit(
+      const auditDurationMs = await recordAudit(
         options.audit,
         {
           action: "knowledge.query",
@@ -107,7 +107,7 @@ async function handleKnowledgeHttpRequest(
         },
         startedAt,
       );
-      sendJson(response, 200, result, startedAt);
+      sendJson(response, 200, result, startedAt, auditDurationMs);
       return;
     }
 
@@ -120,7 +120,7 @@ async function handleKnowledgeHttpRequest(
         input.source,
         input.document,
       );
-      await recordAudit(
+      const auditDurationMs = await recordAudit(
         options.audit,
         {
           action: "knowledge.ingest",
@@ -142,6 +142,7 @@ async function handleKnowledgeHttpRequest(
           chunks: result.chunks.map(withoutEmbedding),
         },
         startedAt,
+        auditDurationMs,
       );
       return;
     }
@@ -158,7 +159,7 @@ async function handleKnowledgeHttpRequest(
         throw new Error("Context service unavailable.");
       }
       const result = await services.context.resolve(contextInput);
-      await recordAudit(
+      const auditDurationMs = await recordAudit(
         options.audit,
         {
           action: "context.resolve",
@@ -174,7 +175,7 @@ async function handleKnowledgeHttpRequest(
         },
         startedAt,
       );
-      sendJson(response, 200, result, startedAt);
+      sendJson(response, 200, result, startedAt, auditDurationMs);
       return;
     }
 
@@ -182,8 +183,9 @@ async function handleKnowledgeHttpRequest(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unexpected error.";
+    let auditDurationMs: number | undefined;
     if (principal && action) {
-      await recordAudit(
+      auditDurationMs = await recordAudit(
         options.audit,
         {
           action: auditAction(action),
@@ -197,7 +199,13 @@ async function handleKnowledgeHttpRequest(
       );
     }
     const statusCode = message === "Access denied." ? 403 : 400;
-    sendJson(response, statusCode, { error: message }, startedAt);
+    sendJson(
+      response,
+      statusCode,
+      { error: message },
+      startedAt,
+      auditDurationMs,
+    );
   }
 }
 
@@ -292,7 +300,7 @@ async function recordAudit(
   audit: AuditSink,
   event: AuditEvent,
   startedAt: number,
-): Promise<void> {
+): Promise<number> {
   const durationMs = Math.max(0, Math.round(performance.now() - startedAt));
   if (event.metadata?.durationMs === undefined) {
     event = {
@@ -301,6 +309,7 @@ async function recordAudit(
     };
   }
   await audit.record(event);
+  return durationMs;
 }
 
 function parseIngestionInput(body: Record<string, unknown>): {
@@ -389,9 +398,12 @@ function sendJson(
   statusCode: number,
   body: unknown,
   startedAt: number,
+  reportedDurationMs?: number,
 ) {
   const payload = JSON.stringify(body);
-  const durationMs = Math.max(0, Math.round(performance.now() - startedAt));
+  const durationMs =
+    reportedDurationMs ??
+    Math.max(0, Math.round(performance.now() - startedAt));
   response.writeHead(statusCode, {
     "content-type": "application/json; charset=utf-8",
     "content-length": Buffer.byteLength(payload),
