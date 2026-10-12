@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { runEmbeddingBenchmark } from "../../src/application/index.js";
+import {
+  getEmbeddingBenchmarkThresholdFailures,
+  runEmbeddingBenchmark,
+} from "../../src/application/index.js";
 import { TransformersEmbeddingProvider } from "../../src/infrastructure/embeddings/index.js";
 import {
   embeddingBenchmarkCases,
@@ -61,6 +64,14 @@ describeBenchmark("embedding model benchmark", () => {
           ((process.memoryUsage().rss - rssBefore) / 1024 / 1024).toFixed(1),
         ),
         results,
+        thresholdFailures: results.flatMap((result) =>
+          getEmbeddingBenchmarkThresholdFailures(result, {
+            minRecallAtK:
+              model.modelId === "Xenova/multilingual-e5-small" ? 0.9 : 0.8,
+            minCitationPrecisionAt1:
+              model.modelId === "Xenova/multilingual-e5-small" ? 0.95 : 0.7,
+          }),
+        ),
       });
     }
 
@@ -71,5 +82,6 @@ describeBenchmark("embedding model benchmark", () => {
         report.results.every((result) => result.dimensions === 384),
       ),
     ).toBe(true);
+    expect(reports.flatMap((report) => report.thresholdFailures)).toEqual([]);
   }, 180_000);
 });

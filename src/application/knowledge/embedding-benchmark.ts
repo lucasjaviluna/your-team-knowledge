@@ -34,6 +34,55 @@ export interface EmbeddingBenchmarkResult {
   }[];
 }
 
+export interface EmbeddingBenchmarkThresholds {
+  minRecallAtK?: number;
+  minCitationPrecisionAt1?: number;
+  maxMeanQueryLatencyMs?: number;
+  maxP95QueryLatencyMs?: number;
+}
+
+export interface EmbeddingBenchmarkThresholdFailure {
+  metric: keyof EmbeddingBenchmarkThresholds;
+  actual: number;
+  expected: number;
+}
+
+export function getEmbeddingBenchmarkThresholdFailures(
+  result: EmbeddingBenchmarkResult,
+  thresholds: EmbeddingBenchmarkThresholds,
+): readonly EmbeddingBenchmarkThresholdFailure[] {
+  const failures: EmbeddingBenchmarkThresholdFailure[] = [];
+  const checks = [
+    ["minRecallAtK", result.recallAtK, thresholds.minRecallAtK, "min"],
+    [
+      "minCitationPrecisionAt1",
+      result.citationPrecisionAt1,
+      thresholds.minCitationPrecisionAt1,
+      "min",
+    ],
+    [
+      "maxMeanQueryLatencyMs",
+      result.meanQueryLatencyMs,
+      thresholds.maxMeanQueryLatencyMs,
+      "max",
+    ],
+    [
+      "maxP95QueryLatencyMs",
+      result.p95QueryLatencyMs,
+      thresholds.maxP95QueryLatencyMs,
+      "max",
+    ],
+  ] as const;
+
+  for (const [metric, actual, expected, direction] of checks) {
+    if (expected === undefined) continue;
+    const passed =
+      direction === "min" ? actual >= expected : actual <= expected;
+    if (!passed) failures.push({ metric, actual, expected });
+  }
+  return failures;
+}
+
 export async function runEmbeddingBenchmark(
   options: EmbeddingBenchmarkOptions,
 ): Promise<EmbeddingBenchmarkResult> {

@@ -23,4 +23,7 @@ export {
   type EmbeddingBenchmarkDocument,
   type EmbeddingBenchmarkOptions,
   type EmbeddingBenchmarkResult,
+  getEmbeddingBenchmarkThresholdFailures,
+  type EmbeddingBenchmarkThresholdFailure,
+  type EmbeddingBenchmarkThresholds,
 } from "./embedding-benchmark.js";

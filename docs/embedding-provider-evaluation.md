@@ -105,6 +105,8 @@ Fecha: 2026-10-11. Ejecución local en CPU, doce documentos, doce consultas, `k=
 
 En este dataset más exigente, E5 obtuvo mejor cobertura y precisión de cita. MiniLM fue ligeramente más rápido por consulta, pero falló en más casos de recuperación y en el caso de contexto mixto. Por ahora se fija E5 como proveedor provisional de referencia, con dimensión 384; la decisión productiva final queda condicionada a validar permisos, calidad híbrida y comportamiento con documentos reales.
 
+La prueba opt-in aplica ahora una puerta de calidad por modelo: E5 debe mantener al menos `0.90` de recall@3 y `0.95` de precisión de cita@1; MiniLM debe mantener al menos `0.80` y `0.70`, respectivamente. Los umbrales se basan en la línea base ampliada y producen fallos explícitos si una corrida futura degrada la calidad. La latencia se sigue reportando, pero no se convierte todavía en un umbral rígido porque depende fuertemente de CPU, caché y carga del proceso.
+
 ### Memoria de proceso
 
 La prueba registró RSS del proceso Node antes y después de cada modelo, en el mismo proceso para evitar repetir la inicialización del runner:
