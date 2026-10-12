@@ -67,6 +67,32 @@ describe("KnowledgeIngestionService", () => {
     expect(repository.saved?.document.id).toBe(result.document.id);
     expect(repository.saved?.chunks).toEqual(result.chunks);
   });
+
+  it("rejects credential-like content before embedding or persistence", async () => {
+    const repository = createRepository();
+    const provider = createProvider();
+    const embedDocuments = provider.embedDocuments;
+    provider.embedDocuments = async (...args) => {
+      throw new Error(`embedding should not run: ${args.length}`);
+    };
+    const service = new KnowledgeIngestionService(repository, provider);
+
+    await expect(
+      service.ingestMarkdown(
+        { id: "source", kind: "markdown", name: "handbook" },
+        {
+          sourceId: "source",
+          externalId: "doc-secret",
+          workspaceId: "workspace",
+          title: "Configuration",
+          content: "client_secret: 12345678901234567890",
+          accessPolicy: { workspaceId: "workspace" },
+        },
+      ),
+    ).rejects.toThrow("Sensitive content detected");
+    expect(repository.saved).toBeUndefined();
+    expect(embedDocuments).toBeDefined();
+  });
 });
 
 describe("KnowledgeQueryService", () => {

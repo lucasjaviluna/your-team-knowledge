@@ -102,7 +102,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Convertir la evaluación del `EmbeddingProvider` en una regresión automatizable. **Implementado de forma opt-in con `test:embedding-benchmark`: la comparación real aplica umbrales de recall@3 y precisión de cita@1 por modelo, además de reportar latencia media y P95.**
 - Habilitar una prueba funcional persistente sobre un proyecto real. **Implementado con `npm run demo:agent-memory`, que ejercita SQLite, FTS5, `projectId`/`workspaceId` y recuperación del provider tipo pi-harness sin requerir PostgreSQL ni un modelo.**
 - Definir reglas de vigencia, revisión y deprecación.
-- Añadir detección de contenido sensible durante la ingesta.
+- Añadir detección de contenido sensible durante la ingesta. **Implementado con patrones conservadores para claves privadas, JWT, claves AWS y asignaciones de credenciales; se ejecuta antes de embeddings/persistencia.**
 
 **Resultado:** conocimiento relevante sin exposición no autorizada.
 

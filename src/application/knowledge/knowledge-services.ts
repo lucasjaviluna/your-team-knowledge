@@ -12,17 +12,31 @@ import type {
 } from "./markdown-ingestor.js";
 import type { KnowledgeSource } from "../../domain/index.js";
 import { ingestMarkdownWithEmbeddings } from "./markdown-ingestor.js";
+import { detectSensitiveContent } from "../governance.js";
+
+export interface KnowledgeIngestionOptions {
+  rejectSensitiveContent?: boolean;
+}
 
 export class KnowledgeIngestionService {
   constructor(
     private readonly repository: KnowledgeRepository,
     private readonly embeddingProvider: EmbeddingProvider,
+    private readonly options: KnowledgeIngestionOptions = {},
   ) {}
 
   async ingestMarkdown(
     source: KnowledgeSource,
     input: MarkdownIngestionInput,
   ): Promise<MarkdownIngestionResult> {
+    if (this.options.rejectSensitiveContent !== false) {
+      const sensitiveKinds = detectSensitiveContent(
+        `${input.title}\n${input.content}`,
+      );
+      if (sensitiveKinds.length > 0) {
+        throw new Error("Sensitive content detected in document.");
+      }
+    }
     const ingested = await ingestMarkdownWithEmbeddings(
       input,
       this.embeddingProvider,
