@@ -163,28 +163,38 @@ function post(
   );
 }
 
-function get(port: number, path: string) {
-  return new Promise<{ status: number; body: Record<string, unknown> }>(
-    (resolve, reject) => {
-      const client = request(
-        { host: "127.0.0.1", port, path, method: "GET" },
-        (response) => {
-          const chunks: Buffer[] = [];
-          response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-          response.on("end", () => {
-            resolve({
-              status: response.statusCode ?? 0,
-              body: JSON.parse(
-                Buffer.concat(chunks).toString("utf8"),
-              ) as Record<string, unknown>,
-            });
+function get(port: number, path: string, includeTiming = false) {
+  return new Promise<{
+    status: number;
+    body: Record<string, unknown>;
+    serverTiming?: string;
+  }>((resolve, reject) => {
+    const client = request(
+      { host: "127.0.0.1", port, path, method: "GET" },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+        response.on("end", () => {
+          resolve({
+            status: response.statusCode ?? 0,
+            body: JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<
+              string,
+              unknown
+            >,
+            ...(includeTiming
+              ? {
+                  serverTiming: Array.isArray(response.headers["server-timing"])
+                    ? (response.headers["server-timing"][0] ?? "")
+                    : (response.headers["server-timing"] ?? ""),
+                }
+              : {}),
           });
-        },
-      );
-      client.on("error", reject);
-      client.end();
-    },
-  );
+        });
+      },
+    );
+    client.on("error", reject);
+    client.end();
+  });
 }
 
 describe("knowledge HTTP API", () => {
@@ -193,8 +203,9 @@ describe("knowledge HTTP API", () => {
     const { server, port } = await startServer(createServices(), options);
 
     try {
-      const health = await get(port, "/health");
-      expect(health).toEqual({ status: 200, body: { status: "ok" } });
+      const health = await get(port, "/health", true);
+      expect(health).toMatchObject({ status: 200, body: { status: "ok" } });
+      expect(health.serverTiming).toMatch(/^app;dur=\d+$/);
 
       const response = await post(port, "/v1/knowledge/query", {
         workspaceId: "workspace",
@@ -245,13 +256,22 @@ describe("knowledge HTTP API", () => {
         "test-request",
         "test-request",
       ]);
-      expect(events[0]?.metadata).toEqual({ resultCount: 1 });
-      expect(events[1]?.metadata).toEqual({
-        memoryCount: 0,
-        citationCount: 0,
-        estimatedTokens: 5,
-      });
-      expect(events[2]?.metadata).toEqual({ chunkCount: 1 });
+      expect(events[0]?.metadata).toEqual(
+        expect.objectContaining({ resultCount: 1 }),
+      );
+      expect(events[1]?.metadata).toEqual(
+        expect.objectContaining({
+          memoryCount: 0,
+          citationCount: 0,
+          estimatedTokens: 5,
+        }),
+      );
+      expect(events[2]?.metadata).toEqual(
+        expect.objectContaining({ chunkCount: 1 }),
+      );
+      expect(
+        events.every((event) => typeof event.metadata?.durationMs === "number"),
+      ).toBe(true);
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

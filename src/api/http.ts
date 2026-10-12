@@ -49,38 +49,39 @@ async function handleKnowledgeHttpRequest(
   options: KnowledgeHttpOptions,
 ): Promise<void> {
   const requestId = resolveRequestId(request);
+  const startedAt = performance.now();
   response.setHeader("x-request-id", requestId);
   let principal: ApiPrincipal | null = null;
   let action: KnowledgeHttpAction | undefined;
   let workspaceId: string | undefined;
   try {
     if (request.method === "GET" && request.url === "/health") {
-      sendJson(response, 200, { status: "ok" });
+      sendJson(response, 200, { status: "ok" }, startedAt);
       return;
     }
 
     if (request.method === "GET" && request.url === "/ready") {
       if (!options.readiness) {
-        sendJson(response, 200, { status: "ready" });
+        sendJson(response, 200, { status: "ready" }, startedAt);
         return;
       }
       try {
         const details = await options.readiness();
-        sendJson(response, 200, { status: "ready", ...details });
+        sendJson(response, 200, { status: "ready", ...details }, startedAt);
       } catch {
-        sendJson(response, 503, { status: "not_ready" });
+        sendJson(response, 503, { status: "not_ready" }, startedAt);
       }
       return;
     }
 
     if (request.method !== "POST") {
-      sendJson(response, 405, { error: "Method not allowed." });
+      sendJson(response, 405, { error: "Method not allowed." }, startedAt);
       return;
     }
 
     principal = await options.security.authenticate(request);
     if (!principal) {
-      sendJson(response, 401, { error: "Authentication required." });
+      sendJson(response, 401, { error: "Authentication required." }, startedAt);
       return;
     }
 
@@ -94,15 +95,19 @@ async function handleKnowledgeHttpRequest(
       workspaceId = queryInput.workspaceId;
       await authorize(options, principal, action, workspaceId);
       const result = await services.query.search(queryInput);
-      await recordAudit(options.audit, {
-        action: "knowledge.query",
-        outcome: "success",
-        actorId: principal.actorId,
-        workspaceId,
-        requestId,
-        metadata: { resultCount: result.results.length },
-      });
-      sendJson(response, 200, result);
+      await recordAudit(
+        options.audit,
+        {
+          action: "knowledge.query",
+          outcome: "success",
+          actorId: principal.actorId,
+          workspaceId,
+          requestId,
+          metadata: { resultCount: result.results.length },
+        },
+        startedAt,
+      );
+      sendJson(response, 200, result, startedAt);
       return;
     }
 
@@ -115,20 +120,29 @@ async function handleKnowledgeHttpRequest(
         input.source,
         input.document,
       );
-      await recordAudit(options.audit, {
-        action: "knowledge.ingest",
-        outcome: "success",
-        actorId: principal.actorId,
-        workspaceId,
-        resourceType: "document",
-        resourceId: result.document.id,
-        requestId,
-        metadata: { chunkCount: result.chunks.length },
-      });
-      sendJson(response, 201, {
-        document: result.document,
-        chunks: result.chunks.map(withoutEmbedding),
-      });
+      await recordAudit(
+        options.audit,
+        {
+          action: "knowledge.ingest",
+          outcome: "success",
+          actorId: principal.actorId,
+          workspaceId,
+          resourceType: "document",
+          resourceId: result.document.id,
+          requestId,
+          metadata: { chunkCount: result.chunks.length },
+        },
+        startedAt,
+      );
+      sendJson(
+        response,
+        201,
+        {
+          document: result.document,
+          chunks: result.chunks.map(withoutEmbedding),
+        },
+        startedAt,
+      );
       return;
     }
 
@@ -144,38 +158,46 @@ async function handleKnowledgeHttpRequest(
         throw new Error("Context service unavailable.");
       }
       const result = await services.context.resolve(contextInput);
-      await recordAudit(options.audit, {
-        action: "context.resolve",
-        outcome: "success",
-        actorId: principal.actorId,
-        workspaceId,
-        requestId,
-        metadata: {
-          memoryCount: result.memories.length,
-          citationCount: result.citations.length,
-          estimatedTokens: result.estimatedTokens,
+      await recordAudit(
+        options.audit,
+        {
+          action: "context.resolve",
+          outcome: "success",
+          actorId: principal.actorId,
+          workspaceId,
+          requestId,
+          metadata: {
+            memoryCount: result.memories.length,
+            citationCount: result.citations.length,
+            estimatedTokens: result.estimatedTokens,
+          },
         },
-      });
-      sendJson(response, 200, result);
+        startedAt,
+      );
+      sendJson(response, 200, result, startedAt);
       return;
     }
 
-    sendJson(response, 404, { error: "Route not found." });
+    sendJson(response, 404, { error: "Route not found." }, startedAt);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unexpected error.";
     if (principal && action) {
-      await recordAudit(options.audit, {
-        action: auditAction(action),
-        outcome: message === "Access denied." ? "denied" : "error",
-        actorId: principal.actorId,
-        ...(workspaceId ? { workspaceId } : {}),
-        requestId,
-        metadata: { error: message },
-      });
+      await recordAudit(
+        options.audit,
+        {
+          action: auditAction(action),
+          outcome: message === "Access denied." ? "denied" : "error",
+          actorId: principal.actorId,
+          ...(workspaceId ? { workspaceId } : {}),
+          requestId,
+          metadata: { error: message },
+        },
+        startedAt,
+      );
     }
     const statusCode = message === "Access denied." ? 403 : 400;
-    sendJson(response, statusCode, { error: message });
+    sendJson(response, statusCode, { error: message }, startedAt);
   }
 }
 
@@ -266,7 +288,18 @@ async function authorize(
   }
 }
 
-async function recordAudit(audit: AuditSink, event: AuditEvent): Promise<void> {
+async function recordAudit(
+  audit: AuditSink,
+  event: AuditEvent,
+  startedAt: number,
+): Promise<void> {
+  const durationMs = Math.max(0, Math.round(performance.now() - startedAt));
+  if (event.metadata?.durationMs === undefined) {
+    event = {
+      ...event,
+      metadata: { ...(event.metadata ?? {}), durationMs },
+    };
+  }
   await audit.record(event);
 }
 
@@ -351,11 +384,18 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
   return parsed;
 }
 
-function sendJson(response: ServerResponse, statusCode: number, body: unknown) {
+function sendJson(
+  response: ServerResponse,
+  statusCode: number,
+  body: unknown,
+  startedAt: number,
+) {
   const payload = JSON.stringify(body);
+  const durationMs = Math.max(0, Math.round(performance.now() - startedAt));
   response.writeHead(statusCode, {
     "content-type": "application/json; charset=utf-8",
     "content-length": Buffer.byteLength(payload),
+    "server-timing": `app;dur=${durationMs}`,
   });
   response.end(payload);
 }

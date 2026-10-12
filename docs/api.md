@@ -10,6 +10,8 @@ Todas las respuestas incluyen `X-Request-Id`. El servidor conserva el valor envi
 
 Los consumidores TypeScript pueden usar `KnowledgeHttpClient`, que ofrece `health()`, `query()` e `ingestMarkdown()`. El cliente admite token asíncrono, timeout configurable y expone el `requestId` del servidor en `KnowledgeApiError`.
 
+Las respuestas HTTP incluyen `X-Request-Id` y `Server-Timing: app;dur=<milisegundos>`. Los eventos de auditoría exitosos y fallidos conservan la misma duración en `metadata.durationMs`, sin registrar payloads, tokens ni credenciales.
+
 ## Rutas
 
 ### `GET /health`
