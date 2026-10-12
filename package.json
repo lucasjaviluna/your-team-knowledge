@@ -30,6 +30,7 @@
     "start": "node dist/server.js",
     "demo:agent-memory": "npm run build && node scripts/agent-memory-demo.mjs",
     "pack:check": "npm pack --dry-run",
+    "package:check": "node scripts/package-contract-check.mjs",
     "test:consumer": "npm run build && node scripts/consumer-smoke.mjs",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "eslint .",
