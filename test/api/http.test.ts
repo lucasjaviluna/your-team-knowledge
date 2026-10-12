@@ -84,26 +84,27 @@ function createServices(): KnowledgeHttpServices {
 
 function createOptions() {
   const events: AuditEvent[] = [];
-  return {
-    options: {
-      security: new StaticBearerSecurity(
-        new Map([
-          [
-            "test-token",
-            {
-              actorId: "actor",
-              teamIds: ["team-platform"],
-              workspaceIds: ["workspace"],
-            },
-          ],
-        ]),
-      ),
-      audit: {
-        record: async (event: AuditEvent) => {
-          events.push(event);
-        },
+  const options: KnowledgeHttpOptions = {
+    security: new StaticBearerSecurity(
+      new Map([
+        [
+          "test-token",
+          {
+            actorId: "actor",
+            teamIds: ["team-platform"],
+            workspaceIds: ["workspace"],
+          },
+        ],
+      ]),
+    ),
+    audit: {
+      record: async (event: AuditEvent) => {
+        events.push(event);
       },
     },
+  };
+  return {
+    options,
     events,
   };
 }
@@ -255,6 +256,47 @@ describe("knowledge HTTP API", () => {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
       );
+    }
+  });
+
+  it("separates liveness from dependency readiness", async () => {
+    const { options } = createOptions();
+    options.readiness = async () => ({
+      dependencies: { postgres: "ok", audit: "ok" },
+    });
+    const { server, port } = await startServer(createServices(), options);
+
+    try {
+      await expect(get(port, "/health")).resolves.toMatchObject({
+        status: 200,
+        body: { status: "ok" },
+      });
+      await expect(get(port, "/ready")).resolves.toEqual({
+        status: 200,
+        body: {
+          status: "ready",
+          dependencies: { postgres: "ok", audit: "ok" },
+        },
+      });
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it("returns 503 when readiness dependencies fail", async () => {
+    const { options } = createOptions();
+    options.readiness = async () => {
+      throw new Error("database unavailable");
+    };
+    const { server, port } = await startServer(createServices(), options);
+
+    try {
+      await expect(get(port, "/ready")).resolves.toEqual({
+        status: 503,
+        body: { status: "not_ready" },
+      });
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
     }
   });
 

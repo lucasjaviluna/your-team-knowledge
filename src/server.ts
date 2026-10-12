@@ -40,6 +40,11 @@ const server = createKnowledgeHttpServer(
   {
     security: new StaticBearerSecurity(config.tokens),
     audit,
+    readiness: async () => {
+      await repository.health();
+      await audit.health();
+      return { dependencies: { postgres: "ok", audit: "ok" } };
+    },
   },
 );
 

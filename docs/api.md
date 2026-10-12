@@ -14,6 +14,12 @@ Los consumidores TypeScript pueden usar `KnowledgeHttpClient`, que ofrece `healt
 
 ### `GET /health`
 
+Liveness del proceso. No requiere autenticación ni consulta dependencias; devuelve `{ "status": "ok" }` cuando el servidor puede atender requests.
+
+### `GET /ready`
+
+Readiness operacional. No requiere autenticación. En el servidor ejecutable consulta PostgreSQL y el almacén de auditoría; devuelve `200` con `status: "ready"` o `503` con `status: "not_ready"`. La fábrica permite inyectar un check de readiness para otros despliegues.
+
 Respuesta:
 
 ```json

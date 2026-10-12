@@ -50,6 +50,10 @@ export class PostgresKnowledgeRepository implements KnowledgeRepository {
     }
   }
 
+  async health(): Promise<void> {
+    await this.pool.query("SELECT 1");
+  }
+
   async save(
     source: KnowledgeSource,
     document: Document,

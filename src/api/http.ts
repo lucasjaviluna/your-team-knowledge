@@ -30,6 +30,7 @@ export interface KnowledgeHttpServices {
 export interface KnowledgeHttpOptions {
   security: KnowledgeHttpSecurity;
   audit: AuditSink;
+  readiness?: () => Promise<Readonly<Record<string, unknown>>>;
 }
 
 export function createKnowledgeHttpServer(
@@ -55,6 +56,20 @@ async function handleKnowledgeHttpRequest(
   try {
     if (request.method === "GET" && request.url === "/health") {
       sendJson(response, 200, { status: "ok" });
+      return;
+    }
+
+    if (request.method === "GET" && request.url === "/ready") {
+      if (!options.readiness) {
+        sendJson(response, 200, { status: "ready" });
+        return;
+      }
+      try {
+        const details = await options.readiness();
+        sendJson(response, 200, { status: "ready", ...details });
+      } catch {
+        sendJson(response, 503, { status: "not_ready" });
+      }
       return;
     }
 

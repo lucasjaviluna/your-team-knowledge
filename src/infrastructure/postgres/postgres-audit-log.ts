@@ -15,6 +15,10 @@ export class PostgresAuditLog implements AuditSink {
     if (this.ownsPool) await this.pool.end();
   }
 
+  async health(): Promise<void> {
+    await this.pool.query("SELECT 1");
+  }
+
   async record(event: AuditEvent): Promise<void> {
     const client: PoolClient = await this.pool.connect();
     try {

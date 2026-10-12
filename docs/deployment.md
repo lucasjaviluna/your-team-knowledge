@@ -8,6 +8,8 @@ La plataforma se ejecuta como un proceso Node.js que expone la API HTTP y usa Po
 2. Definir `DATABASE_URL` y `API_TOKENS_JSON` a partir de `.env.example`.
 3. Ejecutar `npm run build` y luego `npm start`.
 
+Los probes del proceso son `GET /health` para liveness y `GET /ready` para readiness. El primero no depende de PostgreSQL; el segundo devuelve `503` si PostgreSQL o la auditoría no están disponibles.
+
 `API_TOKENS_JSON` es un adaptador de desarrollo. Su formato es un mapa de token a principal, por ejemplo:
 
 ```json
