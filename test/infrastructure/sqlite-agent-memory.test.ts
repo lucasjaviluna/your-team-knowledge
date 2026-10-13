@@ -408,7 +408,7 @@ describe("SqliteAgentMemoryRepository", () => {
       allWorkspaces: false,
       expiredCandidateIds: [expired.id],
       archivedCount: 0,
-      purgeCandidateIds: [archived.id],
+      purgeCandidateIds: [archived.id, expired.id],
       purgedCount: 0,
     });
     expect(repository.findById(expired.id)?.status).toBe("active");

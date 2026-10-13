@@ -37,7 +37,7 @@ Las transiciones de lifecycle se validan en la capa de aplicación: `active` pue
 
 El mismo observer recibe eventos `expired_archived` cuando `archiveExpired()` archiva memorias vencidas y `purged` cuando una purga elimina memorias archivadas. La simulación (`dry-run`) no emite eventos destructivos.
 
-`MemoryService.runRetention()` coordina ambos pasos: en modo simulación devuelve candidatos de expiración y purga sin modificar SQLite; con `dryRun: false` archiva vencidas, purga según `purgeBefore` y conserva la observabilidad de cada operación. La retención exige `workspaceId` para aislar una base compartida; el alcance global sólo se habilita con `allWorkspaces: true` de forma explícita.
+`MemoryService.runRetention()` coordina ambos pasos: en modo simulación devuelve candidatos de expiración y el conjunto de memorias que quedarían purgadas después del archivado proyectado, sin modificar SQLite; con `dryRun: false` archiva vencidas, purga según `purgeBefore` y conserva la observabilidad de cada operación. La retención exige `workspaceId` para aislar una base compartida; el alcance global sólo se habilita con `allWorkspaces: true` de forma explícita.
 
 Persistencia local-first con SQLite para:
 

@@ -19,6 +19,18 @@ const provider = new PiHarnessMemoryProvider(memory);
 const context = { projectId: options.project, area: options.area };
 
 try {
+  const backup = options.backupTo
+    ? await repository.backup(resolve(options.backupTo))
+    : undefined;
+  const retention = options.retentionPurgeBefore
+    ? memory.runRetention({
+        purgeBefore: new Date(options.retentionPurgeBefore),
+        ...(options.retentionAllWorkspaces
+          ? { allWorkspaces: true }
+          : { workspaceId: options.project }),
+        dryRun: options.retentionDryRun,
+      })
+    : undefined;
   const compacted = options.compactIds
     ? memory.compact({
         workspaceId: options.project,
@@ -61,6 +73,8 @@ try {
         database,
         projectId: options.project,
         stored,
+        backup,
+        retention,
         compacted,
         lifecycle,
         purge,
@@ -117,6 +131,10 @@ function parseOptions(args) {
     ),
     archiveSources: values.get("archive-sources") === "true",
     inspectLifecycle: values.get("inspect-lifecycle") === "true",
+    backupTo: values.get("backup-to"),
+    retentionPurgeBefore: values.get("retention-purge-before"),
+    retentionDryRun: values.get("retention-dry-run") !== "false",
+    retentionAllWorkspaces: values.get("retention-all-workspaces") === "true",
     purgeArchivedBefore: values.get("purge-archived-before"),
     purgeDryRun: values.get("purge-dry-run") !== "false",
   };

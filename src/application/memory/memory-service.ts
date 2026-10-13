@@ -310,10 +310,19 @@ export class MemoryService {
     }
 
     const dryRun = input.dryRun ?? true;
+    const asOf = this.now();
     const expiredCandidateIds = this.repository.listExpiredIds(
-      this.now(),
+      asOf,
       workspaceId,
     );
+    const existingPurgeCandidateIds = this.repository.listArchivedIds(
+      input.purgeBefore,
+      workspaceId,
+    );
+    const projectedPurgeCandidateIds = [
+      ...existingPurgeCandidateIds,
+      ...(input.purgeBefore > asOf ? expiredCandidateIds : []),
+    ].filter((id, index, ids) => ids.indexOf(id) === index);
     if (dryRun) {
       return {
         dryRun: true,
@@ -321,10 +330,7 @@ export class MemoryService {
         allWorkspaces,
         expiredCandidateIds,
         archivedCount: 0,
-        purgeCandidateIds: this.repository.listArchivedIds(
-          input.purgeBefore,
-          workspaceId,
-        ),
+        purgeCandidateIds: projectedPurgeCandidateIds,
         purgedCount: 0,
       };
     }
