@@ -188,6 +188,46 @@ describe("SqliteAgentMemoryRepository", () => {
     expect(service.listRelations(first.id)).toEqual([relation]);
   });
 
+  it("rejects invalid cross-workspace, missing and archived relations", () => {
+    const { service } = createMemoryService();
+    const first = service.save({
+      workspaceId: "workspace-checkout",
+      type: "discovery",
+      title: "Checkout discovery",
+      content: "The checkout uses a BFF.",
+    });
+    const second = service.save({
+      workspaceId: "workspace-other",
+      type: "discovery",
+      title: "Other discovery",
+      content: "The other workspace uses a BFF.",
+    });
+
+    expect(() =>
+      service.addRelation({
+        sourceMemoryId: first.id,
+        targetMemoryId: second.id,
+        relation: "related",
+      }),
+    ).toThrow("same workspace");
+    expect(() =>
+      service.addRelation({
+        sourceMemoryId: first.id,
+        targetMemoryId: "missing-memory",
+        relation: "related",
+      }),
+    ).toThrow("Both memories must exist");
+
+    service.setStatus(first.id, "archived");
+    expect(() =>
+      service.addRelation({
+        sourceMemoryId: first.id,
+        targetMemoryId: first.id,
+        relation: "related",
+      }),
+    ).toThrow("cannot participate");
+  });
+
   it("filters memories by validity and review lifecycle", () => {
     const now = new Date("2026-10-13T12:00:00.000Z");
     const { service } = createMemoryService(() => now);
@@ -251,6 +291,11 @@ describe("SqliteAgentMemoryRepository", () => {
       title: "Retained decision",
       content: "This decision remains active.",
     });
+    service.addRelation({
+      sourceMemoryId: retained.id,
+      targetMemoryId: expired.id,
+      relation: "related",
+    });
 
     expect(service.archiveExpired()).toBe(1);
     expect(repository.findById(expired.id)?.status).toBe("archived");
@@ -265,6 +310,7 @@ describe("SqliteAgentMemoryRepository", () => {
     ).toHaveLength(0);
     expect(service.purgeArchived(new Date("2026-10-14T00:00:00.000Z"))).toBe(1);
     expect(repository.findById(expired.id)).toBeUndefined();
+    expect(service.listRelations(retained.id)).toHaveLength(0);
   });
 
   it("creates a bounded summary with source relations and optional archival", () => {

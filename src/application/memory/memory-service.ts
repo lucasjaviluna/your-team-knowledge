@@ -254,9 +254,24 @@ export class MemoryService {
   }
 
   addRelation(input: AddMemoryRelationInput): MemoryRelation {
+    const sourceMemoryId = requireText(input.sourceMemoryId, "sourceMemoryId");
+    const targetMemoryId = requireText(input.targetMemoryId, "targetMemoryId");
+    const source = this.repository.findById(sourceMemoryId);
+    const target = this.repository.findById(targetMemoryId);
+
+    if (!source || !target) {
+      throw new Error("Both memories must exist before creating a relation.");
+    }
+    if (source.workspaceId !== target.workspaceId) {
+      throw new Error("Related memories must belong to the same workspace.");
+    }
+    if (source.status === "archived" || target.status === "archived") {
+      throw new Error("Archived memories cannot participate in new relations.");
+    }
+
     const relation: MemoryRelation = {
-      sourceMemoryId: requireText(input.sourceMemoryId, "sourceMemoryId"),
-      targetMemoryId: requireText(input.targetMemoryId, "targetMemoryId"),
+      sourceMemoryId,
+      targetMemoryId,
       relation: input.relation,
       createdAt: this.now(),
     };

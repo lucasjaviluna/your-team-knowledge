@@ -29,6 +29,8 @@ SQLite local    PostgreSQL + pgvector
 
 ### Agent Memory
 
+Las relaciones entre memorias requieren extremos existentes, del mismo workspace y no archivados. La purga de memorias archivadas elimina también sus relaciones para evitar vínculos huérfanos.
+
 Persistencia local-first con SQLite para:
 
 - sesiones y resúmenes;
