@@ -41,7 +41,7 @@ El mismo observer recibe eventos `expired_archived` cuando `archiveExpired()` ar
 
 El resultado de `runRetention()` también incluye `metrics` con cantidades resumidas de candidatos vencidos, archivados, candidatos de purga y elementos purgados. Los IDs detallados se mantienen para auditoría y los contadores permiten a automatizadores consumir el resultado sin recalcularlo.
 
-La cola de revisión se puede consultar sin modificar SQLite mediante `MemoryService.listDueForReview(workspaceId)`; el demo la expone con `--list-due-for-review true`.
+La cola de revisión se puede consultar sin modificar SQLite mediante `MemoryService.listDueForReview(workspaceId)`; el demo la expone con `--list-due-for-review true`. Una revisión se completa con `completeReview({ memoryId, nextReviewAt, reason })`: exige una fecha futura, vuelve la memoria `active`, reprograma `reviewAt` y emite un evento `review_completed` después de persistir.
 
 Persistencia local-first con SQLite para:
 

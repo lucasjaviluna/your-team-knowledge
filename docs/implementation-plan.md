@@ -66,6 +66,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Evitar sobrescritura accidental de backups. **Implementado: los destinos existentes se rechazan por defecto y requieren overwrite explícito.**
 - Exponer métricas resumidas de mantenimiento. **Implementado: `runRetention()` devuelve contadores de candidatos, archivado y purga junto con los IDs detallados.**
 - Exponer la cola de revisión al consumidor. **Implementado: el demo permite consultar memorias con `reviewAt` vencido mediante `--list-due-for-review true` sin modificar SQLite.**
+- Completar y reprogramar revisiones. **Implementado: `completeReview()` exige una próxima fecha futura, reactiva la memoria y emite `review_completed`; el demo lo expone con `--complete-review` y `--next-review-at`.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 

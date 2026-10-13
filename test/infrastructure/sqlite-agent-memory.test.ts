@@ -357,7 +357,9 @@ describe("SqliteAgentMemoryRepository", () => {
         const memoryId =
           event.type === "status_changed"
             ? event.transition.memory.id
-            : event.memoryId;
+            : event.type === "review_completed"
+              ? event.completion.memory.id
+              : event.memoryId;
         events.push(`${event.type}:${memoryId}`);
       },
     );
@@ -571,6 +573,38 @@ describe("SqliteAgentMemoryRepository", () => {
         reason: "Scheduled review requested by the agent.",
       },
     ]);
+  });
+
+  it("completes a due review and schedules the next review", () => {
+    const now = new Date("2026-10-13T12:00:00.000Z");
+    const events: string[] = [];
+    const { service, repository } = createMemoryService(
+      () => now,
+      (event) => events.push(event.type),
+    );
+    const memory = service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Reviewable decision",
+      content: "This decision must be reviewed periodically.",
+      validFrom: new Date("2026-10-01T00:00:00.000Z"),
+      reviewAt: new Date("2026-10-12T00:00:00.000Z"),
+    });
+
+    const completion = service.completeReview({
+      memoryId: memory.id,
+      nextReviewAt: new Date("2026-11-13T12:00:00.000Z"),
+      reason: "Decision confirmed during the scheduled review.",
+    });
+
+    expect(completion.previousStatus).toBe("active");
+    expect(completion.status).toBe("active");
+    expect(completion.reviewAt.toISOString()).toBe("2026-11-13T12:00:00.000Z");
+    expect(repository.findById(memory.id)?.reviewAt?.toISOString()).toBe(
+      "2026-11-13T12:00:00.000Z",
+    );
+    expect(service.listDueForReview("workspace-checkout")).toHaveLength(0);
+    expect(events).toEqual(["review_completed"]);
   });
 
   it("creates a bounded summary with source relations and optional archival", () => {

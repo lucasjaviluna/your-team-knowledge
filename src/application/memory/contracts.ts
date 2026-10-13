@@ -74,6 +74,27 @@ export interface MemoryStatusChangedEvent {
   transition: MemoryStatusTransition;
 }
 
+export interface CompleteMemoryReviewInput {
+  memoryId: string;
+  nextReviewAt: Date;
+  reason?: string;
+}
+
+export interface MemoryReviewCompletion {
+  memory: MemoryItem;
+  previousStatus: MemoryItemStatus;
+  status: "active";
+  previousReviewAt?: Date;
+  reviewAt: Date;
+  reason: string;
+  occurredAt: Date;
+}
+
+export interface MemoryReviewCompletedEvent {
+  type: "review_completed";
+  completion: MemoryReviewCompletion;
+}
+
 export interface MemoryExpiredEvent {
   type: "expired_archived";
   memoryId: string;
@@ -95,7 +116,10 @@ export interface MemoryPurgedEvent {
 }
 
 export type MemoryLifecycleEvent =
-  MemoryStatusChangedEvent | MemoryExpiredEvent | MemoryPurgedEvent;
+  | MemoryStatusChangedEvent
+  | MemoryReviewCompletedEvent
+  | MemoryExpiredEvent
+  | MemoryPurgedEvent;
 
 export type MemoryLifecycleObserver = (event: MemoryLifecycleEvent) => void;
 

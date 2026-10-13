@@ -48,6 +48,13 @@ try {
   const dueForReview = options.listDueForReview
     ? memory.listDueForReview(options.project)
     : undefined;
+  const reviewCompleted = options.completeReviewId
+    ? memory.completeReview({
+        memoryId: options.completeReviewId,
+        nextReviewAt: new Date(options.nextReviewAt),
+        reason: options.reviewReason,
+      })
+    : undefined;
   const purge = options.purgeArchivedBefore
     ? memory.purgeArchivedWithPlan({
         before: new Date(options.purgeArchivedBefore),
@@ -83,6 +90,7 @@ try {
         compacted,
         lifecycle,
         dueForReview,
+        reviewCompleted,
         purge,
         query: options.query,
         entries: result.entries,
@@ -111,8 +119,18 @@ function parseOptions(args) {
 
   const title = values.get("title");
   const content = values.get("content");
+  const completeReviewId = values.get("complete-review");
+  const nextReviewAt = values.get("next-review-at");
   if ((title && !content) || (!title && content)) {
     throw new Error("--title and --content must be provided together.");
+  }
+  if (
+    (completeReviewId && !nextReviewAt) ||
+    (!completeReviewId && nextReviewAt)
+  ) {
+    throw new Error(
+      "--complete-review and --next-review-at must be provided together.",
+    );
   }
 
   return {
@@ -138,6 +156,9 @@ function parseOptions(args) {
     archiveSources: values.get("archive-sources") === "true",
     inspectLifecycle: values.get("inspect-lifecycle") === "true",
     listDueForReview: values.get("list-due-for-review") === "true",
+    completeReviewId,
+    nextReviewAt,
+    reviewReason: values.get("review-reason"),
     backupTo: values.get("backup-to"),
     backupOverwrite: values.get("backup-overwrite") === "true",
     retentionPurgeBefore: values.get("retention-purge-before"),

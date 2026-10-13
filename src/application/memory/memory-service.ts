@@ -19,6 +19,8 @@ import type {
   MemoryLifecycleSnapshot,
   MemoryLifecycleObserver,
   MemoryStatusTransition,
+  CompleteMemoryReviewInput,
+  MemoryReviewCompletion,
   PurgeArchivedInput,
   PurgeArchivedResult,
   RunMemoryRetentionInput,
@@ -221,6 +223,51 @@ export class MemoryService {
     };
     this.lifecycleObserver?.({ type: "status_changed", transition });
     return transition;
+  }
+
+  completeReview(input: CompleteMemoryReviewInput): MemoryReviewCompletion {
+    const normalizedId = requireText(input.memoryId, "memoryId");
+    const item = this.repository.findById(normalizedId);
+
+    if (!item) {
+      throw new Error(`Memory '${normalizedId}' was not found.`);
+    }
+
+    const occurredAt = this.now();
+    if (Number.isNaN(input.nextReviewAt.getTime())) {
+      throw new Error("nextReviewAt must be a valid date.");
+    }
+    if (input.nextReviewAt <= occurredAt) {
+      throw new Error("nextReviewAt must be in the future.");
+    }
+    if (item.status !== "active" && item.status !== "needs_review") {
+      throw new Error(
+        `Memory '${normalizedId}' cannot complete review from status '${item.status}'.`,
+      );
+    }
+    if (item.reviewAt && item.reviewAt > occurredAt) {
+      throw new Error(`Memory '${normalizedId}' is not due for review.`);
+    }
+
+    const updated: MemoryItem = {
+      ...item,
+      status: "active",
+      reviewAt: input.nextReviewAt,
+      updatedAt: occurredAt,
+    };
+    validateLifecycle(updated);
+    this.repository.update(updated);
+    const completion: MemoryReviewCompletion = {
+      memory: updated,
+      previousStatus: item.status,
+      status: "active",
+      ...(item.reviewAt ? { previousReviewAt: item.reviewAt } : {}),
+      reviewAt: input.nextReviewAt,
+      reason: optionalText(input.reason) ?? "memory review completed",
+      occurredAt,
+    };
+    this.lifecycleObserver?.({ type: "review_completed", completion });
+    return completion;
   }
 
   listDueForReview(workspaceId?: string): readonly MemoryItem[] {
