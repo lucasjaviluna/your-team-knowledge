@@ -186,6 +186,14 @@ describe("SqliteAgentMemoryRepository", () => {
     expect(ended.summary).toBe("Captured the BFF decision.");
     expect(ended.endedAt).toBeDefined();
     expect(service.listRelations(first.id)).toEqual([relation]);
+    expect(
+      service.addRelation({
+        sourceMemoryId: second.id,
+        targetMemoryId: first.id,
+        relation: "supports",
+      }),
+    ).toEqual(relation);
+    expect(service.listRelations(first.id)).toHaveLength(1);
   });
 
   it("rejects invalid cross-workspace, missing and archived relations", () => {
@@ -226,6 +234,26 @@ describe("SqliteAgentMemoryRepository", () => {
         relation: "related",
       }),
     ).toThrow("cannot participate");
+
+    const active = service.save({
+      workspaceId: "workspace-checkout",
+      type: "pattern",
+      title: "Active pattern",
+      content: "The active pattern can receive relations.",
+    });
+    const peer = service.save({
+      workspaceId: "workspace-checkout",
+      type: "discovery",
+      title: "Active peer",
+      content: "The peer can receive relations.",
+    });
+    expect(() =>
+      service.addRelation({
+        sourceMemoryId: active.id,
+        targetMemoryId: peer.id,
+        relation: "unknown" as never,
+      }),
+    ).toThrow("Unsupported memory relation type");
   });
 
   it("filters memories by validity and review lifecycle", () => {

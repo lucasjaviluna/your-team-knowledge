@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type {
   MemoryItem,
   MemoryRelation,
+  MemoryRelationType,
   MemorySession,
 } from "../../domain/index.js";
 
@@ -272,12 +273,23 @@ export class MemoryService {
     const relation: MemoryRelation = {
       sourceMemoryId,
       targetMemoryId,
-      relation: input.relation,
+      relation: requireRelationType(input.relation),
       createdAt: this.now(),
     };
 
     if (relation.sourceMemoryId === relation.targetMemoryId) {
       throw new Error("A memory cannot relate to itself.");
+    }
+
+    const existing = this.repository
+      .listRelations(sourceMemoryId)
+      .find(
+        (candidate) =>
+          candidate.targetMemoryId === targetMemoryId &&
+          candidate.relation === relation.relation,
+      );
+    if (existing) {
+      return existing;
     }
 
     this.repository.addRelation(relation);
@@ -297,6 +309,19 @@ function requireText(value: string, name: string): string {
   }
 
   return normalized;
+}
+
+function requireRelationType(value: unknown): MemoryRelationType {
+  if (
+    value !== "related" &&
+    value !== "supports" &&
+    value !== "conflicts_with" &&
+    value !== "supersedes"
+  ) {
+    throw new Error(`Unsupported memory relation type: '${String(value)}'.`);
+  }
+
+  return value;
 }
 
 function optionalText(value: string | undefined): string | undefined {

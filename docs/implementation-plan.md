@@ -53,6 +53,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Endurecer idempotencia e inspección del lifecycle. **Implementado con clave estable para reutilizar resúmenes y `--inspect-lifecycle true` para consultar conteos por estado y vigencia.**
 - Hacer segura la retención de archivadas. **Implementado con plan de purga, lista de candidatos y `dry-run` predeterminado; la eliminación requiere `--purge-dry-run false`.**
 - Reforzar la consistencia referencial de relaciones. **Implementado: ambas memorias deben existir, pertenecer al mismo workspace y no estar archivadas; la purga elimina los vínculos de las memorias eliminadas.**
+- Validar semántica runtime de relaciones. **Implementado: se rechazan tipos desconocidos y la creación repetida del mismo vínculo es idempotente.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 
