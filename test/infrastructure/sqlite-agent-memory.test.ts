@@ -6,6 +6,7 @@ import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { MemoryService } from "../../src/application/index.js";
+import type { MemoryLifecycleEvent } from "../../src/application/index.js";
 import { SqliteAgentMemoryRepository } from "../../src/infrastructure/index.js";
 
 const resources: SqliteAgentMemoryRepository[] = [];
@@ -347,6 +348,41 @@ describe("SqliteAgentMemoryRepository", () => {
     expect(service.listRelations(retained.id)).toHaveLength(0);
   });
 
+  it("returns and observes lifecycle transition reasons", () => {
+    const events: Array<{ type: string; status: string; reason: string }> = [];
+    const { service } = createMemoryService(undefined, (event) => {
+      events.push({
+        type: event.type,
+        status: event.transition.status,
+        reason: event.transition.reason,
+      });
+    });
+    const memory = service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Reviewable decision",
+      content: "This decision needs a review cycle.",
+    });
+
+    const transition = service.transitionStatus({
+      memoryId: memory.id,
+      status: "needs_review",
+      reason: "Scheduled review requested by the agent.",
+    });
+
+    expect(transition.previousStatus).toBe("active");
+    expect(transition.status).toBe("needs_review");
+    expect(transition.reason).toBe("Scheduled review requested by the agent.");
+    expect(transition.changed).toBe(true);
+    expect(events).toEqual([
+      {
+        type: "status_changed",
+        status: "needs_review",
+        reason: "Scheduled review requested by the agent.",
+      },
+    ]);
+  });
+
   it("creates a bounded summary with source relations and optional archival", () => {
     const { repository, service } = createMemoryService();
     const first = service.save({
@@ -548,14 +584,22 @@ describe("SqliteAgentMemoryRepository", () => {
   });
 });
 
-function createMemoryService(now?: () => Date) {
+function createMemoryService(
+  now?: () => Date,
+  lifecycleObserver?: (event: MemoryLifecycleEvent) => void,
+) {
   const directory = mkdtempSync(join(tmpdir(), "corporate-knowledge-"));
   temporaryDirectories.push(directory);
   const repository = new SqliteAgentMemoryRepository(
     join(directory, "agent-memory.sqlite"),
   );
   resources.push(repository);
-  const service = new MemoryService(repository, now);
+  const service = new MemoryService(
+    repository,
+    now,
+    undefined,
+    lifecycleObserver,
+  );
 
   return { repository, service };
 }

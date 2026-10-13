@@ -33,6 +33,8 @@ Las relaciones entre memorias requieren extremos existentes, del mismo workspace
 
 Las transiciones de lifecycle se validan en la capa de aplicación: `active` puede pasar a revisión, reemplazada o archivada; `needs_review` puede volver a activa, reemplazada o archivada; `superseded` sólo puede permanecer así o archivarse; `archived` es terminal.
 
+`MemoryService.transitionStatus()` devuelve la transición estructurada —estado anterior, nuevo estado, motivo, timestamp e indicador de cambio— y puede notificar un observer con eventos `status_changed`. `setStatus()` se conserva como atajo compatible cuando sólo se necesita la memoria actualizada.
+
 Persistencia local-first con SQLite para:
 
 - sesiones y resúmenes;

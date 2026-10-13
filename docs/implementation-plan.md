@@ -55,6 +55,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Reforzar la consistencia referencial de relaciones. **Implementado: ambas memorias deben existir, pertenecer al mismo workspace y no estar archivadas; la purga elimina los vínculos de las memorias eliminadas.**
 - Validar semántica runtime de relaciones. **Implementado: se rechazan tipos desconocidos y la creación repetida del mismo vínculo es idempotente.**
 - Formalizar transiciones de lifecycle. **Implementado: se validan estados runtime, se restringen transiciones inválidas y `archived` queda como estado terminal.**
+- Hacer observable el lifecycle para consumidores. **Implementado con `transitionStatus()`, motivos explícitos y observer tipado para eventos `status_changed`; `setStatus()` mantiene compatibilidad.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 

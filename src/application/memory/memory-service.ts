@@ -17,8 +17,11 @@ import type {
   SearchMemoryInput,
   StartSessionInput,
   MemoryLifecycleSnapshot,
+  MemoryLifecycleObserver,
+  MemoryStatusTransition,
   PurgeArchivedInput,
   PurgeArchivedResult,
+  TransitionMemoryStatusInput,
 } from "./contracts.js";
 import { detectSensitiveContent } from "../governance.js";
 
@@ -27,6 +30,7 @@ export class MemoryService {
     private readonly repository: MemoryRepository,
     private readonly now: () => Date = () => new Date(),
     private readonly idGenerator: () => string = randomUUID,
+    private readonly lifecycleObserver?: MemoryLifecycleObserver,
   ) {}
 
   save(input: SaveMemoryInput): MemoryItem {
@@ -178,14 +182,18 @@ export class MemoryService {
   }
 
   setStatus(memoryId: string, status: MemoryItem["status"]): MemoryItem {
-    const normalizedId = requireText(memoryId, "memoryId");
+    return this.transitionStatus({ memoryId, status }).memory;
+  }
+
+  transitionStatus(input: TransitionMemoryStatusInput): MemoryStatusTransition {
+    const normalizedId = requireText(input.memoryId, "memoryId");
     const item = this.repository.findById(normalizedId);
 
     if (!item) {
       throw new Error(`Memory '${normalizedId}' was not found.`);
     }
 
-    const nextStatus = requireMemoryStatus(status);
+    const nextStatus = requireMemoryStatus(input.status);
     assertStatusTransition(item.status, nextStatus);
     const now = this.now();
     const updated: MemoryItem = {
@@ -198,7 +206,18 @@ export class MemoryService {
     };
     validateLifecycle(updated);
     this.repository.update(updated);
-    return updated;
+    const transition: MemoryStatusTransition = {
+      memory: updated,
+      previousStatus: item.status,
+      status: nextStatus,
+      reason:
+        optionalText(input.reason) ??
+        `status transition: ${item.status} -> ${nextStatus}`,
+      changed: item.status !== nextStatus,
+      occurredAt: now,
+    };
+    this.lifecycleObserver?.({ type: "status_changed", transition });
+    return transition;
   }
 
   listDueForReview(workspaceId?: string): readonly MemoryItem[] {

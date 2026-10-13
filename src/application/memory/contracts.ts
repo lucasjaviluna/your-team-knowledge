@@ -54,6 +54,28 @@ export interface MemoryLifecycleSnapshot {
   dueForReview: number;
 }
 
+export interface TransitionMemoryStatusInput {
+  memoryId: string;
+  status: MemoryItemStatus;
+  reason?: string;
+}
+
+export interface MemoryStatusTransition {
+  memory: MemoryItem;
+  previousStatus: MemoryItemStatus;
+  status: MemoryItemStatus;
+  reason: string;
+  changed: boolean;
+  occurredAt: Date;
+}
+
+export interface MemoryLifecycleEvent {
+  type: "status_changed";
+  transition: MemoryStatusTransition;
+}
+
+export type MemoryLifecycleObserver = (event: MemoryLifecycleEvent) => void;
+
 export interface PurgeArchivedInput {
   before: Date;
   dryRun?: boolean;

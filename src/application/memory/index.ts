@@ -2,7 +2,10 @@ export type {
   AddMemoryRelationInput,
   CompactMemoryInput,
   CompactMemoryResult,
+  MemoryLifecycleEvent,
+  MemoryLifecycleObserver,
   MemoryLifecycleSnapshot,
+  MemoryStatusTransition,
   PurgeArchivedInput,
   PurgeArchivedResult,
   EndSessionInput,
@@ -11,5 +14,6 @@ export type {
   SaveMemoryInput,
   SearchMemoryInput,
   StartSessionInput,
+  TransitionMemoryStatusInput,
 } from "./contracts.js";
 export { MemoryService } from "./memory-service.js";
