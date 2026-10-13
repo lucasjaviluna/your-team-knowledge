@@ -57,4 +57,49 @@ describe("PiHarnessMemoryProvider", () => {
       provider.isAvailable({ projectId: "workspace" }),
     ).resolves.toBe(true);
   });
+
+  it("completes only due reviews within the consumer project", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "pi-memory-review-"));
+    const repository = new SqliteAgentMemoryRepository(
+      join(directory, "memory.db"),
+    );
+    resources.push({ repository, directory });
+    const service = new MemoryService(
+      repository,
+      () => new Date("2026-10-13T12:00:00.000Z"),
+    );
+    const provider = new PiHarnessMemoryProvider(service);
+    const memory = service.save({
+      workspaceId: "workspace",
+      type: "decision",
+      title: "Reviewable decision",
+      content: "Review this decision periodically.",
+      validFrom: new Date("2026-10-01T00:00:00.000Z"),
+      reviewAt: new Date("2026-10-12T00:00:00.000Z"),
+    });
+
+    await expect(
+      provider.completeReview(
+        {
+          memoryId: memory.id,
+          nextReviewAt: "2026-11-13T12:00:00.000Z",
+          reason: "Confirmed by pi-harness.",
+        },
+        { projectId: "workspace" },
+      ),
+    ).resolves.toEqual({
+      reviewed: true,
+      entryId: memory.id,
+      nextReviewAt: "2026-11-13T12:00:00.000Z",
+    });
+    await expect(
+      provider.completeReview(
+        {
+          memoryId: memory.id,
+          nextReviewAt: "2026-12-13T12:00:00.000Z",
+        },
+        { projectId: "other-workspace" },
+      ),
+    ).resolves.toEqual({ reviewed: false, reason: "not_due" });
+  });
 });

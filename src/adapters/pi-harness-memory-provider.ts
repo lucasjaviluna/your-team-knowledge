@@ -38,6 +38,19 @@ export interface PiHarnessMemoryContext {
   area?: string;
 }
 
+export interface PiHarnessMemoryReviewRequest {
+  memoryId: string;
+  nextReviewAt: string;
+  reason?: string;
+}
+
+export interface PiHarnessMemoryReviewResult {
+  reviewed: boolean;
+  entryId?: string;
+  nextReviewAt?: string;
+  reason?: "not_due";
+}
+
 /** Implements pi-harness' provider-neutral MemoryProvider contract over SQLite. */
 export class PiHarnessMemoryProvider {
   readonly id = "agent-memory-sqlite";
@@ -93,6 +106,29 @@ export class PiHarnessMemoryProvider {
       ],
     });
     return { stored: true, entryId: item.id };
+  }
+
+  async completeReview(
+    request: PiHarnessMemoryReviewRequest,
+    context: PiHarnessMemoryContext,
+  ): Promise<PiHarnessMemoryReviewResult> {
+    const due = this.memory
+      .listDueForReview(context.projectId)
+      .some((item) => item.id === request.memoryId);
+    if (!due) {
+      return { reviewed: false, reason: "not_due" };
+    }
+
+    const completion = this.memory.completeReview({
+      memoryId: request.memoryId,
+      nextReviewAt: new Date(request.nextReviewAt),
+      ...(request.reason ? { reason: request.reason } : {}),
+    });
+    return {
+      reviewed: true,
+      entryId: completion.memory.id,
+      nextReviewAt: completion.reviewAt.toISOString(),
+    };
   }
 }
 

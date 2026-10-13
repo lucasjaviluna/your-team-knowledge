@@ -16,5 +16,7 @@ export {
   type PiHarnessMemoryEntry,
   type PiHarnessMemoryQuery,
   type PiHarnessMemorySearchResult,
+  type PiHarnessMemoryReviewRequest,
+  type PiHarnessMemoryReviewResult,
   type PiHarnessMemoryWriteRequest,
 } from "./pi-harness-memory-provider.js";
