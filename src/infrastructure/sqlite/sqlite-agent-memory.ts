@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 
 import type {
   MemoryRepository,
+  MemoryLifecycleSnapshot,
   ResolvedSearchMemoryInput,
 } from "../../application/index.js";
 import type {
@@ -344,6 +345,42 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
     });
 
     return transaction();
+  }
+
+  inspectLifecycle(asOf: Date, workspaceId?: string): MemoryLifecycleSnapshot {
+    const rows = workspaceId
+      ? this.database
+          .prepare<[string], MemoryRow>(
+            "SELECT * FROM memory_items WHERE workspace_id = ?",
+          )
+          .all(workspaceId)
+      : this.database
+          .prepare<[], MemoryRow>("SELECT * FROM memory_items")
+          .all();
+    const byStatus: Record<MemoryItemStatus, number> = {
+      active: 0,
+      needs_review: 0,
+      superseded: 0,
+      archived: 0,
+    };
+    let future = 0;
+    let expired = 0;
+    let dueForReview = 0;
+
+    for (const row of rows) {
+      byStatus[row.status] += 1;
+      if (new Date(row.valid_from) > asOf) future += 1;
+      if (row.expires_at && new Date(row.expires_at) <= asOf) expired += 1;
+      if (
+        row.review_at &&
+        new Date(row.review_at) <= asOf &&
+        row.status === "active"
+      ) {
+        dueForReview += 1;
+      }
+    }
+
+    return { total: rows.length, byStatus, future, expired, dueForReview };
   }
 
   private migrate(): void {

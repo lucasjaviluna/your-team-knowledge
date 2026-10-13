@@ -28,6 +28,9 @@ try {
         archiveSources: options.archiveSources,
       })
     : undefined;
+  const lifecycle = options.inspectLifecycle
+    ? memory.inspectLifecycle(options.project)
+    : undefined;
   const stored = options.shouldStore
     ? await provider.store(
         {
@@ -53,6 +56,7 @@ try {
         projectId: options.project,
         stored,
         compacted,
+        lifecycle,
         query: options.query,
         entries: result.entries,
         hint: options.shouldStore
@@ -105,6 +109,7 @@ function parseOptions(args) {
       "compact-max-chars",
     ),
     archiveSources: values.get("archive-sources") === "true",
+    inspectLifecycle: values.get("inspect-lifecycle") === "true",
   };
 }
 

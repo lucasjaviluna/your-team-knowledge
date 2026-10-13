@@ -306,6 +306,74 @@ describe("SqliteAgentMemoryRepository", () => {
     ).toHaveLength(1);
   });
 
+  it("reuses the same compact summary for the same sources", () => {
+    const { service } = createMemoryService();
+    const source = service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Stable boundary",
+      content: "The BFF remains the boundary.",
+    });
+
+    const first = service.compact({
+      workspaceId: "workspace-checkout",
+      memoryIds: [source.id],
+      title: "Boundary summary",
+    });
+    const second = service.compact({
+      workspaceId: "workspace-checkout",
+      memoryIds: [source.id],
+      title: "Boundary summary",
+    });
+
+    expect(first.reused).toBe(false);
+    expect(second.reused).toBe(true);
+    expect(second.summary.id).toBe(first.summary.id);
+    expect(
+      service.search({
+        workspaceId: "workspace-checkout",
+        query: "Boundary summary",
+      }),
+    ).toHaveLength(1);
+  });
+
+  it("reports lifecycle counts and temporal signals", () => {
+    const now = new Date("2026-10-13T12:00:00.000Z");
+    const { service } = createMemoryService(() => now);
+    service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Future",
+      content: "Future decision.",
+      validFrom: new Date("2026-10-14T00:00:00.000Z"),
+    });
+    service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Expired",
+      content: "Expired decision.",
+      validFrom: new Date("2026-10-01T00:00:00.000Z"),
+      expiresAt: new Date("2026-10-12T00:00:00.000Z"),
+    });
+    const review = service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Review",
+      content: "Review decision.",
+      validFrom: new Date("2026-10-01T00:00:00.000Z"),
+      reviewAt: new Date("2026-10-12T00:00:00.000Z"),
+    });
+    service.setStatus(review.id, "needs_review");
+
+    expect(service.inspectLifecycle("workspace-checkout")).toEqual({
+      total: 3,
+      byStatus: { active: 2, needs_review: 1, superseded: 0, archived: 0 },
+      future: 1,
+      expired: 1,
+      dueForReview: 0,
+    });
+  });
+
   it("migrates a legacy SQLite memory table with lifecycle columns", () => {
     const directory = mkdtempSync(join(tmpdir(), "corporate-knowledge-"));
     temporaryDirectories.push(directory);

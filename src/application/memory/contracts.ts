@@ -36,12 +36,22 @@ export interface CompactMemoryInput {
   maxChars?: number;
   archiveSources?: boolean;
   tags?: readonly string[];
+  subjectKey?: string;
 }
 
 export interface CompactMemoryResult {
   summary: MemoryItem;
   sources: readonly MemoryItem[];
   archivedSourceIds: readonly string[];
+  reused: boolean;
+}
+
+export interface MemoryLifecycleSnapshot {
+  total: number;
+  byStatus: Readonly<Record<MemoryItemStatus, number>>;
+  future: number;
+  expired: number;
+  dueForReview: number;
 }
 
 export interface StartSessionInput {
@@ -77,6 +87,7 @@ export interface MemoryRepository {
   listDueForReview(asOf: Date, workspaceId?: string): readonly MemoryItem[];
   archiveExpired(asOf: Date): number;
   purgeArchived(before: Date): number;
+  inspectLifecycle(asOf: Date, workspaceId?: string): MemoryLifecycleSnapshot;
 }
 
 export interface ResolvedSearchMemoryInput {

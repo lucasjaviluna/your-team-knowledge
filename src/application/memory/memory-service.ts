@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import type {
   MemoryItem,
@@ -15,6 +15,7 @@ import type {
   SaveMemoryInput,
   SearchMemoryInput,
   StartSessionInput,
+  MemoryLifecycleSnapshot,
 } from "./contracts.js";
 import { detectSensitiveContent } from "../governance.js";
 
@@ -117,13 +118,26 @@ export class MemoryService {
       return item;
     });
 
+    const title =
+      input.title?.trim() || `Resumen compacto (${sources.length} memorias)`;
+    const subjectKey =
+      input.subjectKey?.trim() ||
+      `compaction/${createHash("sha256")
+        .update(`${workspaceId}\n${title}\n${[...memoryIds].sort().join(",")}`)
+        .digest("hex")
+        .slice(0, 24)}`;
+    const existingSummary = this.repository.findActiveBySubjectKey(
+      workspaceId,
+      subjectKey,
+      this.now(),
+    );
     const content = buildCompactContent(sources, maxChars);
     const summary = this.save({
       workspaceId,
       type: "summary",
-      title:
-        input.title?.trim() || `Resumen compacto (${sources.length} memorias)`,
+      title,
       content,
+      subjectKey,
       tags: [
         "compacted",
         ...sources.flatMap((source) => source.tags),
@@ -147,7 +161,16 @@ export class MemoryService {
       }
     }
 
-    return { summary, sources, archivedSourceIds };
+    return {
+      summary,
+      sources,
+      archivedSourceIds,
+      reused: Boolean(existingSummary),
+    };
+  }
+
+  inspectLifecycle(workspaceId?: string): MemoryLifecycleSnapshot {
+    return this.repository.inspectLifecycle(this.now(), workspaceId);
   }
 
   setStatus(memoryId: string, status: MemoryItem["status"]): MemoryItem {
