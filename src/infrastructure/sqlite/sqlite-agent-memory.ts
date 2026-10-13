@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 
 import type {
   MemoryRepository,
-  SearchMemoryInput,
+  ResolvedSearchMemoryInput,
 } from "../../application/index.js";
 import type {
   MemoryItem,
@@ -25,6 +25,10 @@ interface MemoryRow {
   status: MemoryItemStatus;
   created_at: string;
   updated_at: string;
+  valid_from: string;
+  expires_at: string | null;
+  review_at: string | null;
+  archived_at: string | null;
 }
 
 interface SessionRow {
@@ -115,12 +119,32 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
   findActiveBySubjectKey(
     workspaceId: string,
     subjectKey: string,
+    asOf = new Date(),
   ): MemoryItem | undefined {
     const row = this.database
-      .prepare<[string, string], MemoryRow>(
-        `SELECT * FROM memory_items WHERE workspace_id = ? AND subject_key = ? AND status = 'active' LIMIT 1`,
+      .prepare<[string, string, string, string, string], MemoryRow>(
+        `SELECT * FROM memory_items
+         WHERE workspace_id = ? AND subject_key = ? AND status = 'active'
+           AND valid_from <= ?
+           AND (expires_at IS NULL OR expires_at > ?)
+           AND (review_at IS NULL OR review_at > ?)
+         LIMIT 1`,
       )
-      .get(workspaceId, subjectKey);
+      .get(
+        workspaceId,
+        subjectKey,
+        asOf.toISOString(),
+        asOf.toISOString(),
+        asOf.toISOString(),
+      );
+
+    return row ? toMemoryItem(row) : undefined;
+  }
+
+  findById(memoryId: string): MemoryItem | undefined {
+    const row = this.database
+      .prepare<[string], MemoryRow>("SELECT * FROM memory_items WHERE id = ?")
+      .get(memoryId);
 
     return row ? toMemoryItem(row) : undefined;
   }
@@ -130,8 +154,9 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
       .prepare(
         `INSERT INTO memory_items (
           id, workspace_id, session_id, type, title, content, subject_key,
-          tags_json, status, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          tags_json, status, created_at, updated_at, valid_from, expires_at,
+          review_at, archived_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(...toValues(item));
     this.index(item);
@@ -142,7 +167,8 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
       .prepare(
         `UPDATE memory_items SET
           session_id = ?, type = ?, title = ?, content = ?, subject_key = ?,
-          tags_json = ?, status = ?, updated_at = ?
+          tags_json = ?, status = ?, updated_at = ?, valid_from = ?,
+          expires_at = ?, review_at = ?, archived_at = ?
         WHERE id = ?`,
       )
       .run(
@@ -154,32 +180,120 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
         JSON.stringify(item.tags),
         item.status,
         item.updatedAt.toISOString(),
+        (item.validFrom ?? item.createdAt).toISOString(),
+        item.expiresAt?.toISOString() ?? null,
+        item.reviewAt?.toISOString() ?? null,
+        item.archivedAt?.toISOString() ?? null,
         item.id,
       );
     this.index(item);
   }
 
-  search(input: Required<SearchMemoryInput>): readonly MemoryItem[] {
+  search(input: ResolvedSearchMemoryInput): readonly MemoryItem[] {
     const ftsQuery = toFtsQuery(input.query);
 
     if (!ftsQuery) {
       return [];
     }
 
+    const reviewClause = input.includeNeedsReview
+      ? "AND memory_items.status IN ('active', 'needs_review')"
+      : "AND memory_items.status = 'active' AND (memory_items.review_at IS NULL OR memory_items.review_at > ?)";
+    const parameters = input.includeNeedsReview
+      ? [
+          input.workspaceId,
+          input.asOf.toISOString(),
+          input.asOf.toISOString(),
+          ftsQuery,
+          input.limit,
+        ]
+      : [
+          input.workspaceId,
+          input.asOf.toISOString(),
+          input.asOf.toISOString(),
+          input.asOf.toISOString(),
+          ftsQuery,
+          input.limit,
+        ];
     const rows = this.database
-      .prepare<[string, string, number], MemoryRow>(
+      .prepare<unknown[], MemoryRow>(
         `SELECT memory_items.*
           FROM memory_items_fts
           JOIN memory_items ON memory_items.id = memory_items_fts.memory_id
           WHERE memory_items.workspace_id = ?
-            AND memory_items.status = 'active'
+            AND memory_items.valid_from <= ?
+            AND (memory_items.expires_at IS NULL OR memory_items.expires_at > ?)
+            ${reviewClause}
             AND memory_items_fts MATCH ?
           ORDER BY bm25(memory_items_fts), memory_items.updated_at DESC
           LIMIT ?`,
       )
-      .all(input.workspaceId, ftsQuery, input.limit);
+      .all(...parameters);
 
     return rows.map(toMemoryItem);
+  }
+
+  listDueForReview(asOf: Date, workspaceId?: string): readonly MemoryItem[] {
+    const rows = workspaceId
+      ? this.database
+          .prepare<[string, string], MemoryRow>(
+            `SELECT * FROM memory_items
+             WHERE workspace_id = ? AND status = 'active'
+               AND review_at IS NOT NULL AND review_at <= ?
+             ORDER BY review_at ASC, updated_at ASC`,
+          )
+          .all(workspaceId, asOf.toISOString())
+      : this.database
+          .prepare<[string], MemoryRow>(
+            `SELECT * FROM memory_items
+             WHERE status = 'active'
+               AND review_at IS NOT NULL AND review_at <= ?
+             ORDER BY review_at ASC, updated_at ASC`,
+          )
+          .all(asOf.toISOString());
+
+    return rows.map(toMemoryItem);
+  }
+
+  archiveExpired(asOf: Date): number {
+    const result = this.database
+      .prepare(
+        `UPDATE memory_items
+         SET status = 'archived', archived_at = ?, updated_at = ?
+         WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= ?`,
+      )
+      .run(asOf.toISOString(), asOf.toISOString(), asOf.toISOString());
+
+    return result.changes;
+  }
+
+  purgeArchived(before: Date): number {
+    const transaction = this.database.transaction(() => {
+      const rows = this.database
+        .prepare<[string], { id: string }>(
+          `SELECT id FROM memory_items
+           WHERE status = 'archived' AND COALESCE(archived_at, updated_at) < ?`,
+        )
+        .all(before.toISOString());
+
+      for (const row of rows) {
+        this.database
+          .prepare("DELETE FROM memory_items_fts WHERE memory_id = ?")
+          .run(row.id);
+        this.database
+          .prepare(
+            "DELETE FROM memory_relations WHERE source_memory_id = ? OR target_memory_id = ?",
+          )
+          .run(row.id, row.id);
+        this.database
+          .prepare("DELETE FROM memory_items WHERE id = ?")
+          .run(row.id);
+      }
+
+      return rows.length;
+    });
+
+    return transaction();
   }
 
   private migrate(): void {
@@ -204,6 +318,10 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
         status TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
+        valid_from TEXT NOT NULL,
+        expires_at TEXT,
+        review_at TEXT,
+        archived_at TEXT,
         FOREIGN KEY (session_id) REFERENCES sessions(id)
       );
 
@@ -231,6 +349,34 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
         subject_key
       );
     `);
+
+    this.ensureColumn(
+      "memory_items",
+      "valid_from",
+      "TEXT NOT NULL DEFAULT '1970-01-01T00:00:00.000Z'",
+    );
+    this.ensureColumn("memory_items", "expires_at", "TEXT");
+    this.ensureColumn("memory_items", "review_at", "TEXT");
+    this.ensureColumn("memory_items", "archived_at", "TEXT");
+    this.database.exec(
+      "CREATE INDEX IF NOT EXISTS memory_items_lifecycle_idx ON memory_items(workspace_id, status, valid_from, expires_at, review_at)",
+    );
+  }
+
+  private ensureColumn(
+    table: string,
+    column: string,
+    definition: string,
+  ): void {
+    const columns = this.database
+      .prepare(`PRAGMA table_info(${table})`)
+      .all() as { name: string }[];
+
+    if (!columns.some((entry) => entry.name === column)) {
+      this.database.exec(
+        `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`,
+      );
+    }
   }
 
   private index(item: MemoryItem): void {
@@ -266,6 +412,10 @@ function toValues(
   MemoryItemStatus,
   string,
   string,
+  string,
+  string | null,
+  string | null,
+  string | null,
 ] {
   return [
     item.id,
@@ -279,6 +429,10 @@ function toValues(
     item.status,
     item.createdAt.toISOString(),
     item.updatedAt.toISOString(),
+    (item.validFrom ?? item.createdAt).toISOString(),
+    item.expiresAt?.toISOString() ?? null,
+    item.reviewAt?.toISOString() ?? null,
+    item.archivedAt?.toISOString() ?? null,
   ];
 }
 
@@ -295,6 +449,10 @@ function toMemoryItem(row: MemoryRow): MemoryItem {
     status: row.status,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
+    validFrom: new Date(row.valid_from),
+    ...(row.expires_at ? { expiresAt: new Date(row.expires_at) } : {}),
+    ...(row.review_at ? { reviewAt: new Date(row.review_at) } : {}),
+    ...(row.archived_at ? { archivedAt: new Date(row.archived_at) } : {}),
   };
 }
 

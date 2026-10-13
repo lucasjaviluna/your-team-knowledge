@@ -33,8 +33,14 @@ export class MemoryService {
     const subjectKey = optionalText(input.subjectKey);
     const now = this.now();
     const existing = subjectKey
-      ? this.repository.findActiveBySubjectKey(workspaceId, subjectKey)
+      ? this.repository.findActiveBySubjectKey(workspaceId, subjectKey, now)
       : undefined;
+    const expiresAt = input.expiresAt ?? existing?.expiresAt;
+    const reviewAt = input.reviewAt ?? existing?.reviewAt;
+    const archivedAt =
+      input.status === "archived" || existing?.status === "archived"
+        ? (existing?.archivedAt ?? now)
+        : undefined;
 
     const item: MemoryItem = {
       id: existing?.id ?? this.idGenerator(),
@@ -50,7 +56,13 @@ export class MemoryService {
       status: input.status ?? "active",
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
+      validFrom: input.validFrom ?? existing?.validFrom ?? now,
+      ...(expiresAt ? { expiresAt } : {}),
+      ...(reviewAt ? { reviewAt } : {}),
+      ...(archivedAt ? { archivedAt } : {}),
     };
+
+    validateLifecycle(item);
 
     if (existing) {
       this.repository.update(item);
@@ -68,7 +80,45 @@ export class MemoryService {
       workspaceId: requireText(input.workspaceId, "workspaceId"),
       query,
       limit: input.limit ?? 20,
+      includeNeedsReview: input.includeNeedsReview ?? false,
+      asOf: input.asOf ?? this.now(),
     });
+  }
+
+  setStatus(memoryId: string, status: MemoryItem["status"]): MemoryItem {
+    const normalizedId = requireText(memoryId, "memoryId");
+    const item = this.repository.findById(normalizedId);
+
+    if (!item) {
+      throw new Error(`Memory '${normalizedId}' was not found.`);
+    }
+
+    const now = this.now();
+    const updated: MemoryItem = {
+      ...item,
+      status,
+      updatedAt: now,
+      ...(status === "archived" ? { archivedAt: now } : {}),
+    };
+    validateLifecycle(updated);
+    this.repository.update(updated);
+    return updated;
+  }
+
+  listDueForReview(workspaceId?: string): readonly MemoryItem[] {
+    return this.repository.listDueForReview(this.now(), workspaceId);
+  }
+
+  archiveExpired(): number {
+    return this.repository.archiveExpired(this.now());
+  }
+
+  purgeArchived(before: Date): number {
+    if (Number.isNaN(before.getTime())) {
+      throw new Error("before must be a valid date.");
+    }
+
+    return this.repository.purgeArchived(before);
   }
 
   startSession(input: StartSessionInput): MemorySession {
@@ -137,4 +187,28 @@ function optionalText(value: string | undefined): string | undefined {
 
 function normalizeTags(tags: readonly string[] | undefined): readonly string[] {
   return [...new Set((tags ?? []).map((tag) => tag.trim()).filter(Boolean))];
+}
+
+function validateLifecycle(item: MemoryItem): void {
+  const validFrom = item.validFrom ?? item.createdAt;
+
+  if (Number.isNaN(validFrom.getTime())) {
+    throw new Error("validFrom must be a valid date.");
+  }
+
+  if (item.expiresAt && Number.isNaN(item.expiresAt.getTime())) {
+    throw new Error("expiresAt must be a valid date.");
+  }
+
+  if (item.reviewAt && Number.isNaN(item.reviewAt.getTime())) {
+    throw new Error("reviewAt must be a valid date.");
+  }
+
+  if (item.expiresAt && item.expiresAt <= validFrom) {
+    throw new Error("expiresAt must be after validFrom.");
+  }
+
+  if (item.reviewAt && item.reviewAt < validFrom) {
+    throw new Error("reviewAt must be on or after validFrom.");
+  }
 }

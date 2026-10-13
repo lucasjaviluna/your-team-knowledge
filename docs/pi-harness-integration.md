@@ -48,6 +48,8 @@ const binding = {
 
 El `projectId` del harness se mapea al `workspaceId` de Agent Memory. `idempotencyKey` se mapea a `subjectKey`, y las búsquedas respetan `limit` y `maxChars` antes de entregar contexto al agente.
 
+El provider hereda las reglas de lifecycle de `MemoryService`: sólo entrega memorias activas y vigentes por defecto. Las memorias futuras, vencidas, archivadas o marcadas para revisión no se exponen en el recall normal; la gestión de revisión y retención permanece en la aplicación propietaria de la base SQLite.
+
 Configuración mínima del consumidor:
 
 ```json

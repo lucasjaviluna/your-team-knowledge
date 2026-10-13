@@ -16,12 +16,17 @@ export interface SaveMemoryInput {
   subjectKey?: string;
   tags?: readonly string[];
   status?: MemoryItemStatus;
+  validFrom?: Date;
+  expiresAt?: Date;
+  reviewAt?: Date;
 }
 
 export interface SearchMemoryInput {
   workspaceId: string;
   query: string;
   limit?: number;
+  includeNeedsReview?: boolean;
+  asOf?: Date;
 }
 
 export interface StartSessionInput {
@@ -48,8 +53,21 @@ export interface MemoryRepository {
   findActiveBySubjectKey(
     workspaceId: string,
     subjectKey: string,
+    asOf?: Date,
   ): MemoryItem | undefined;
+  findById(memoryId: string): MemoryItem | undefined;
   insert(item: MemoryItem): void;
   update(item: MemoryItem): void;
-  search(input: Required<SearchMemoryInput>): readonly MemoryItem[];
+  search(input: ResolvedSearchMemoryInput): readonly MemoryItem[];
+  listDueForReview(asOf: Date, workspaceId?: string): readonly MemoryItem[];
+  archiveExpired(asOf: Date): number;
+  purgeArchived(before: Date): number;
+}
+
+export interface ResolvedSearchMemoryInput {
+  workspaceId: string;
+  query: string;
+  limit: number;
+  includeNeedsReview: boolean;
+  asOf: Date;
 }

@@ -18,7 +18,8 @@ export interface Actor {
 export type MemoryItemType =
   "decision" | "discovery" | "pattern" | "preference" | "summary";
 
-export type MemoryItemStatus = "active" | "superseded" | "needs_review";
+export type MemoryItemStatus =
+  "active" | "superseded" | "needs_review" | "archived";
 
 export interface MemoryItem {
   id: string;
@@ -32,6 +33,10 @@ export interface MemoryItem {
   status: MemoryItemStatus;
   createdAt: Date;
   updatedAt: Date;
+  validFrom?: Date;
+  expiresAt?: Date;
+  reviewAt?: Date;
+  archivedAt?: Date;
 }
 
 export interface MemorySession {

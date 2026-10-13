@@ -2,6 +2,7 @@ export type {
   AddMemoryRelationInput,
   EndSessionInput,
   MemoryRepository,
+  ResolvedSearchMemoryInput,
   SaveMemoryInput,
   SearchMemoryInput,
   StartSessionInput,

@@ -146,16 +146,95 @@ describe("SqliteAgentMemoryRepository", () => {
     expect(ended.endedAt).toBeDefined();
     expect(service.listRelations(first.id)).toEqual([relation]);
   });
+
+  it("filters memories by validity and review lifecycle", () => {
+    const now = new Date("2026-10-13T12:00:00.000Z");
+    const { service } = createMemoryService(() => now);
+
+    service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Future decision",
+      content: "This decision becomes valid later.",
+      validFrom: new Date("2026-10-14T00:00:00.000Z"),
+    });
+    service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Expired decision",
+      content: "This decision is no longer valid.",
+      validFrom: new Date("2026-10-01T00:00:00.000Z"),
+      expiresAt: new Date("2026-10-12T00:00:00.000Z"),
+    });
+    service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Review decision",
+      content: "This decision needs review.",
+      validFrom: new Date("2026-10-01T00:00:00.000Z"),
+      reviewAt: new Date("2026-10-12T00:00:00.000Z"),
+    });
+
+    expect(
+      service.search({
+        workspaceId: "workspace-checkout",
+        query: "decision",
+      }),
+    ).toHaveLength(0);
+    expect(
+      service
+        .search({
+          workspaceId: "workspace-checkout",
+          query: "decision",
+          includeNeedsReview: true,
+        })
+        .map((item) => item.title),
+    ).toEqual(["Review decision"]);
+    expect(service.listDueForReview("workspace-checkout")).toHaveLength(1);
+  });
+
+  it("transitions, archives expired memories and purges archived data", () => {
+    const now = new Date("2026-10-13T12:00:00.000Z");
+    const { repository, service } = createMemoryService(() => now);
+    const expired = service.save({
+      workspaceId: "workspace-checkout",
+      type: "discovery",
+      title: "Expired discovery",
+      content: "This discovery has an expiration date.",
+      validFrom: new Date("2026-10-01T00:00:00.000Z"),
+      expiresAt: new Date("2026-10-13T00:00:00.000Z"),
+    });
+    const retained = service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Retained decision",
+      content: "This decision remains active.",
+    });
+
+    expect(service.archiveExpired()).toBe(1);
+    expect(repository.findById(expired.id)?.status).toBe("archived");
+    expect(service.setStatus(retained.id, "needs_review").status).toBe(
+      "needs_review",
+    );
+    expect(
+      service.search({
+        workspaceId: "workspace-checkout",
+        query: "retained",
+      }),
+    ).toHaveLength(0);
+    expect(service.purgeArchived(new Date("2026-10-14T00:00:00.000Z"))).toBe(1);
+    expect(repository.findById(expired.id)).toBeUndefined();
+  });
 });
 
-function createMemoryService() {
+function createMemoryService(now?: () => Date) {
   const directory = mkdtempSync(join(tmpdir(), "corporate-knowledge-"));
   temporaryDirectories.push(directory);
   const repository = new SqliteAgentMemoryRepository(
     join(directory, "agent-memory.sqlite"),
   );
   resources.push(repository);
-  const service = new MemoryService(repository);
+  const service = new MemoryService(repository, now);
 
   return { repository, service };
 }
