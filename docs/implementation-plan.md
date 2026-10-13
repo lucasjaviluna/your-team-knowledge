@@ -68,6 +68,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Exponer la cola de revisión al consumidor. **Implementado: el demo permite consultar memorias con `reviewAt` vencido mediante `--list-due-for-review true` sin modificar SQLite.**
 - Completar y reprogramar revisiones. **Implementado: `completeReview()` exige una próxima fecha futura, reactiva la memoria y emite `review_completed`; el demo lo expone con `--complete-review` y `--next-review-at`.**
 - Integrar revisiones con el consumidor real. **Implementado: `PiHarnessMemoryProvider.completeReview()` aplica el proyecto actual, completa sólo revisiones vencidas y devuelve un resultado consumible.**
+- Exponer la cola de revisión en pi-harness. **Implementado: `PiHarnessMemoryProvider.listDueForReview()` devuelve entradas acotadas por límite, tamaño y proyecto.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 

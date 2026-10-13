@@ -79,6 +79,22 @@ describe("PiHarnessMemoryProvider", () => {
     });
 
     await expect(
+      provider.listDueForReview(
+        { limit: 5, maxChars: 20 },
+        { projectId: "workspace", area: "backend" },
+      ),
+    ).resolves.toEqual({
+      entries: [
+        expect.objectContaining({
+          id: memory.id,
+          projectId: "workspace",
+          area: "backend",
+          content: "Review this decision…",
+        }),
+      ],
+    });
+
+    await expect(
       provider.completeReview(
         {
           memoryId: memory.id,

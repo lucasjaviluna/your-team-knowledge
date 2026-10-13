@@ -24,6 +24,11 @@ export interface PiHarnessMemorySearchResult {
   warnings?: string[];
 }
 
+export interface PiHarnessMemoryReviewQuery {
+  limit: number;
+  maxChars: number;
+}
+
 export interface PiHarnessMemoryWriteRequest {
   idempotencyKey?: string;
   title: string;
@@ -71,18 +76,24 @@ export class PiHarnessMemoryProvider {
       query: query.query,
       limit: query.limit,
     });
-    const entries = items.map((item) => ({
-      id: item.id,
-      projectId: item.workspaceId,
-      title: item.title,
-      content: limitText(item.content, query.maxChars),
-      source: "agent-memory:sqlite",
-      ...((context.area ?? query.area)
-        ? { area: context.area ?? query.area }
-        : {}),
-      tags: [...item.tags],
-    }));
+    const entries = items.map((item) =>
+      toProviderEntry(item, context, query.maxChars, query.area),
+    );
     return { entries };
+  }
+
+  async listDueForReview(
+    query: PiHarnessMemoryReviewQuery,
+    context: PiHarnessMemoryContext,
+  ): Promise<PiHarnessMemorySearchResult> {
+    const items = this.memory
+      .listDueForReview(context.projectId)
+      .slice(0, query.limit);
+    return {
+      entries: items.map((item) =>
+        toProviderEntry(item, context, query.maxChars),
+      ),
+    };
   }
 
   async store(
@@ -130,6 +141,30 @@ export class PiHarnessMemoryProvider {
       nextReviewAt: completion.reviewAt.toISOString(),
     };
   }
+}
+
+function toProviderEntry(
+  item: {
+    id: string;
+    workspaceId: string;
+    title: string;
+    content: string;
+    tags: readonly string[];
+  },
+  context: PiHarnessMemoryContext,
+  maxChars: number,
+  requestedArea?: string,
+): PiHarnessMemoryEntry {
+  const area = context.area ?? requestedArea;
+  return {
+    id: item.id,
+    projectId: item.workspaceId,
+    title: item.title,
+    content: limitText(item.content, maxChars),
+    source: "agent-memory:sqlite",
+    ...(area ? { area } : {}),
+    tags: [...item.tags],
+  };
 }
 
 function inferMemoryType(tags: readonly string[]): MemoryItemType {
