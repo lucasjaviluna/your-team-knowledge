@@ -9,6 +9,17 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
      → Governance y evaluación → Adaptadores → Conectores y evolución
 ```
 
+## Estado global — 2026-10-13
+
+- **Etapas 0–1:** completadas; arquitectura, base TypeScript, CI, migraciones y contratos de distribución están establecidos.
+- **Etapa 2 — Agent Memory SQLite:** completada para el primer slice operativo. Incluye persistencia, FTS5, `subjectKey`, sesiones, relaciones, compactación, lifecycle, revisión, retención, backup, métricas, detección de secretos, smoke de mantenimiento y provider compatible con pi-harness.
+- **Etapa 3 — RAG/Postgres:** en curso avanzado; ingesta Markdown, embeddings E5 provisional, `vector(384)`, HNSW, recuperación híbrida, ACL, provenance y servicios de consulta están implementados. Queda pendiente cerrar la estrategia de transporte/MCP y la decisión de publicación del proveedor.
+- **Etapa 4 — Context Orchestrator:** primer vertical slice completado; combina memoria SQLite y RAG con límites, selección de fuentes y provenance.
+- **Etapas 5–6:** calidad, evaluación, HTTP, seguridad, auditoría, cliente y distribución están implementados; quedan integraciones corporativas concretas y la extensión nativa en el repositorio de pi-harness.
+- **Etapa 7:** pendiente; conectores, sincronización incremental y evolución operativa.
+
+El proyecto está listo para una prueba manual de Agent Memory sobre SQLite usando un proyecto real, sin requerir PostgreSQL ni un modelo de embeddings.
+
 ## Etapa 0 — Arquitectura v0 y reglas del proyecto
 
 **Objetivo:** convertir las decisiones actuales en contratos verificables.
@@ -40,7 +51,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 **Objetivo:** implementar la memoria operativa del agente sobre SQLite.
 
-**Estado:** núcleo inicial y lifecycle operativo completados. La persistencia, búsqueda, actualización por `subjectKey`, lifecycle de sesiones y relaciones entre memorias están implementados y probados. Las memorias ahora tienen vigencia (`validFrom`/`expiresAt`), revisión (`reviewAt`), estados `active`, `needs_review`, `superseded` y `archived`, archivado automático de vencidas y purga transaccional de archivadas. La búsqueda FTS5 incorpora expansión léxica conservadora para singular/plural y sinónimos configurables. La compactación determinista genera resúmenes acotados por `maxChars`, conserva relaciones con las fuentes y permite archivar fuentes de forma explícita. El demo de consumidor separa escritura de búsqueda para evitar sobrescrituras accidentales.
+**Estado:** núcleo inicial y lifecycle operativo completados. La persistencia, búsqueda, actualización por `subjectKey`, lifecycle de sesiones y relaciones entre memorias están implementados y probados. Las memorias ahora tienen vigencia (`validFrom`/`expiresAt`), revisión (`reviewAt`), estados `active`, `needs_review`, `superseded` y `archived`, archivado automático de vencidas y purga transaccional de archivadas. La búsqueda FTS5 incorpora expansión léxica conservadora para singular/plural y sinónimos configurables. La compactación determinista genera resúmenes acotados por `maxChars`, conserva relaciones con las fuentes y permite archivar fuentes de forma explícita. El demo de consumidor separa escritura de búsqueda para evitar sobrescrituras accidentales. La revisión vencida puede consultarse y completarse desde el CLI y desde `PiHarnessMemoryProvider`, con aislamiento por proyecto y eventos auditables.
 
 - Diseñar el esquema de sesiones, memorias, relaciones y resúmenes.
 - Implementar `MemoryItem` con tipo, contenido, `subjectKey`, tags, estado y fechas.
