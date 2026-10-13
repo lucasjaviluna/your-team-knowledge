@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { MemoryService } from "../../src/application/index.js";
@@ -303,6 +304,48 @@ describe("SqliteAgentMemoryRepository", () => {
         query: "checkout summary",
       }),
     ).toHaveLength(1);
+  });
+
+  it("migrates a legacy SQLite memory table with lifecycle columns", () => {
+    const directory = mkdtempSync(join(tmpdir(), "corporate-knowledge-"));
+    temporaryDirectories.push(directory);
+    const filename = join(directory, "legacy.sqlite");
+    const legacy = new Database(filename);
+    legacy.exec(`
+      CREATE TABLE memory_items (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        session_id TEXT,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        subject_key TEXT,
+        tags_json TEXT NOT NULL,
+        status TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      INSERT INTO memory_items VALUES (
+        'legacy-memory', 'workspace-checkout', NULL, 'decision',
+        'Legacy decision', 'Keep the legacy boundary.',
+        'architecture/legacy', '["legacy"]', 'active',
+        '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z'
+      );
+    `);
+    legacy.close();
+
+    const repository = new SqliteAgentMemoryRepository(filename);
+    resources.push(repository);
+
+    const migrated = repository.findById("legacy-memory");
+    expect(migrated?.validFrom?.toISOString()).toBe("1970-01-01T00:00:00.000Z");
+    expect(migrated?.expiresAt).toBeUndefined();
+    expect(
+      repository.findActiveBySubjectKey(
+        "workspace-checkout",
+        "architecture/legacy",
+      )?.id,
+    ).toBe("legacy-memory");
   });
 
   it("rejects compaction across workspaces and invalid budgets", () => {

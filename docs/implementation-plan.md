@@ -49,6 +49,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Exponer la interfaz `MemoryProvider`.
 - Crear pruebas de persistencia, deduplicación y actualización.
 - Mejorar recall léxico sin perder precisión. **Implementado con variaciones simples singular/plural y expansión configurable de grupos de sinónimos conservadores, manteniendo semántica `AND`; quedan pendientes stemming semántico y retrieval vectorial.**
+- Hacer operativa la compactación desde SQLite. **Implementado con `npm run demo:agent-memory -- --compact-ids ...`, presupuesto configurable, archivado opt-in y regresión de migración desde tablas legacy.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 

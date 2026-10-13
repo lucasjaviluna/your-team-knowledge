@@ -19,6 +19,15 @@ const provider = new PiHarnessMemoryProvider(memory);
 const context = { projectId: options.project, area: options.area };
 
 try {
+  const compacted = options.compactIds
+    ? memory.compact({
+        workspaceId: options.project,
+        memoryIds: options.compactIds,
+        title: options.compactTitle,
+        maxChars: options.compactMaxChars,
+        archiveSources: options.archiveSources,
+      })
+    : undefined;
   const stored = options.shouldStore
     ? await provider.store(
         {
@@ -43,6 +52,7 @@ try {
         database,
         projectId: options.project,
         stored,
+        compacted,
         query: options.query,
         entries: result.entries,
         hint: options.shouldStore
@@ -84,6 +94,17 @@ function parseOptions(args) {
     shouldStore: Boolean(title && content),
     limit: positiveInteger(values.get("limit") ?? "5", "limit"),
     maxChars: positiveInteger(values.get("max-chars") ?? "500", "max-chars"),
+    compactIds: values
+      .get("compact-ids")
+      ?.split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+    compactTitle: values.get("compact-title"),
+    compactMaxChars: positiveInteger(
+      values.get("compact-max-chars") ?? "2000",
+      "compact-max-chars",
+    ),
+    archiveSources: values.get("archive-sources") === "true",
   };
 }
 
