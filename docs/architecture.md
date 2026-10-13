@@ -35,6 +35,8 @@ Las transiciones de lifecycle se validan en la capa de aplicación: `active` pue
 
 `MemoryService.transitionStatus()` devuelve la transición estructurada —estado anterior, nuevo estado, motivo, timestamp e indicador de cambio— y puede notificar un observer con eventos `status_changed`. `setStatus()` se conserva como atajo compatible cuando sólo se necesita la memoria actualizada.
 
+El mismo observer recibe eventos `expired_archived` cuando `archiveExpired()` archiva memorias vencidas y `purged` cuando una purga elimina memorias archivadas. La simulación (`dry-run`) no emite eventos destructivos.
+
 Persistencia local-first con SQLite para:
 
 - sesiones y resúmenes;

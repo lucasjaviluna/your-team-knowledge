@@ -69,10 +69,33 @@ export interface MemoryStatusTransition {
   occurredAt: Date;
 }
 
-export interface MemoryLifecycleEvent {
+export interface MemoryStatusChangedEvent {
   type: "status_changed";
   transition: MemoryStatusTransition;
 }
+
+export interface MemoryExpiredEvent {
+  type: "expired_archived";
+  memoryId: string;
+  workspaceId: string;
+  previousStatus: "active";
+  status: "archived";
+  reason: "expired";
+  occurredAt: Date;
+}
+
+export interface MemoryPurgedEvent {
+  type: "purged";
+  memoryId: string;
+  workspaceId: string;
+  previousStatus: "archived";
+  status: "purged";
+  reason: "retention";
+  occurredAt: Date;
+}
+
+export type MemoryLifecycleEvent =
+  MemoryStatusChangedEvent | MemoryExpiredEvent | MemoryPurgedEvent;
 
 export type MemoryLifecycleObserver = (event: MemoryLifecycleEvent) => void;
 
@@ -120,6 +143,7 @@ export interface MemoryRepository {
   search(input: ResolvedSearchMemoryInput): readonly MemoryItem[];
   listDueForReview(asOf: Date, workspaceId?: string): readonly MemoryItem[];
   archiveExpired(asOf: Date): number;
+  listExpiredIds(asOf: Date): readonly string[];
   purgeArchived(before: Date): number;
   listArchivedIds(before: Date): readonly string[];
   inspectLifecycle(asOf: Date, workspaceId?: string): MemoryLifecycleSnapshot;

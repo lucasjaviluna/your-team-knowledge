@@ -318,6 +318,17 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
     return result.changes;
   }
 
+  listExpiredIds(asOf: Date): readonly string[] {
+    return this.database
+      .prepare<[string], { id: string }>(
+        `SELECT id FROM memory_items
+         WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= ?
+         ORDER BY expires_at, id`,
+      )
+      .all(asOf.toISOString())
+      .map((row) => row.id);
+  }
+
   purgeArchived(before: Date): number {
     const transaction = this.database.transaction(() => {
       const rows = this.database

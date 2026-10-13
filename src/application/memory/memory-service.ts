@@ -225,7 +225,26 @@ export class MemoryService {
   }
 
   archiveExpired(): number {
-    return this.repository.archiveExpired(this.now());
+    const occurredAt = this.now();
+    const candidateIds = this.repository.listExpiredIds(occurredAt);
+    const archivedCount = this.repository.archiveExpired(occurredAt);
+
+    for (const memoryId of candidateIds) {
+      const memory = this.repository.findById(memoryId);
+      if (memory?.status === "archived") {
+        this.lifecycleObserver?.({
+          type: "expired_archived",
+          memoryId,
+          workspaceId: memory.workspaceId,
+          previousStatus: "active",
+          status: "archived",
+          reason: "expired",
+          occurredAt,
+        });
+      }
+    }
+
+    return archivedCount;
   }
 
   purgeArchived(before: Date): number {
@@ -233,7 +252,28 @@ export class MemoryService {
       throw new Error("before must be a valid date.");
     }
 
-    return this.repository.purgeArchived(before);
+    const occurredAt = this.now();
+    const candidateIds = this.repository.listArchivedIds(before);
+    const candidates = candidateIds
+      .map((memoryId) => this.repository.findById(memoryId))
+      .filter((memory): memory is MemoryItem => Boolean(memory));
+    const purgedCount = this.repository.purgeArchived(before);
+
+    for (const memory of candidates) {
+      if (!this.repository.findById(memory.id)) {
+        this.lifecycleObserver?.({
+          type: "purged",
+          memoryId: memory.id,
+          workspaceId: memory.workspaceId,
+          previousStatus: "archived",
+          status: "purged",
+          reason: "retention",
+          occurredAt,
+        });
+      }
+    }
+
+    return purgedCount;
   }
 
   purgeArchivedWithPlan(input: PurgeArchivedInput): PurgeArchivedResult {
@@ -243,9 +283,7 @@ export class MemoryService {
 
     const candidateIds = this.repository.listArchivedIds(input.before);
     const dryRun = input.dryRun ?? true;
-    const purgedCount = dryRun
-      ? 0
-      : this.repository.purgeArchived(input.before);
+    const purgedCount = dryRun ? 0 : this.purgeArchived(input.before);
 
     return { before: input.before, dryRun, candidateIds, purgedCount };
   }

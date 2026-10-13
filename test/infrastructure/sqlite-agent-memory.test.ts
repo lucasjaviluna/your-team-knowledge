@@ -348,14 +348,46 @@ describe("SqliteAgentMemoryRepository", () => {
     expect(service.listRelations(retained.id)).toHaveLength(0);
   });
 
+  it("observes automatic expiry and retention purge events", () => {
+    const events: string[] = [];
+    const now = new Date("2026-10-13T12:00:00.000Z");
+    const { service } = createMemoryService(
+      () => now,
+      (event) => {
+        const memoryId =
+          event.type === "status_changed"
+            ? event.transition.memory.id
+            : event.memoryId;
+        events.push(`${event.type}:${memoryId}`);
+      },
+    );
+    const expired = service.save({
+      workspaceId: "workspace-checkout",
+      type: "discovery",
+      title: "Expired discovery",
+      content: "This discovery is expired.",
+      validFrom: new Date("2026-10-01T00:00:00.000Z"),
+      expiresAt: new Date("2026-10-13T00:00:00.000Z"),
+    });
+
+    expect(service.archiveExpired()).toBe(1);
+    expect(service.purgeArchived(new Date("2026-10-14T00:00:00.000Z"))).toBe(1);
+    expect(events).toEqual([
+      `expired_archived:${expired.id}`,
+      `purged:${expired.id}`,
+    ]);
+  });
+
   it("returns and observes lifecycle transition reasons", () => {
     const events: Array<{ type: string; status: string; reason: string }> = [];
     const { service } = createMemoryService(undefined, (event) => {
-      events.push({
-        type: event.type,
-        status: event.transition.status,
-        reason: event.transition.reason,
-      });
+      if (event.type === "status_changed") {
+        events.push({
+          type: event.type,
+          status: event.transition.status,
+          reason: event.transition.reason,
+        });
+      }
     });
     const memory = service.save({
       workspaceId: "workspace-checkout",
