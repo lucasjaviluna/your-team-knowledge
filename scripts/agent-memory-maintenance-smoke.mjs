@@ -37,6 +37,12 @@ try {
   assert.equal(preview.retention.dryRun, true);
   assert.deepEqual(preview.retention.expiredCandidateIds, [memory.id]);
   assert.deepEqual(preview.retention.purgeCandidateIds, [memory.id]);
+  assert.deepEqual(preview.retention.metrics, {
+    expiredCandidates: 1,
+    archived: 0,
+    purgeCandidates: 1,
+    purged: 0,
+  });
 
   const executed = runDemo({
     database,
@@ -48,6 +54,12 @@ try {
   assert.equal(executed.retention.dryRun, false);
   assert.equal(executed.retention.archivedCount, 1);
   assert.equal(executed.retention.purgedCount, 1);
+  assert.deepEqual(executed.retention.metrics, {
+    expiredCandidates: 1,
+    archived: 1,
+    purgeCandidates: 1,
+    purged: 1,
+  });
 
   const restored = new SqliteAgentMemoryRepository(backup);
   assert.equal(restored.findById(memory.id)?.status, "active");

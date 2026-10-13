@@ -13,6 +13,7 @@ export type {
   PurgeArchivedResult,
   RunMemoryRetentionInput,
   RunMemoryRetentionResult,
+  MemoryRetentionMetrics,
   EndSessionInput,
   MemoryRepository,
   ResolvedSearchMemoryInput,

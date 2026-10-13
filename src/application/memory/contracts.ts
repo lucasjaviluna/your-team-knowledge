@@ -118,6 +118,13 @@ export interface RunMemoryRetentionInput {
   dryRun?: boolean;
 }
 
+export interface MemoryRetentionMetrics {
+  expiredCandidates: number;
+  archived: number;
+  purgeCandidates: number;
+  purged: number;
+}
+
 export interface RunMemoryRetentionResult {
   dryRun: boolean;
   workspaceId?: string;
@@ -126,6 +133,7 @@ export interface RunMemoryRetentionResult {
   archivedCount: number;
   purgeCandidateIds: readonly string[];
   purgedCount: number;
+  metrics: MemoryRetentionMetrics;
 }
 
 export interface StartSessionInput {

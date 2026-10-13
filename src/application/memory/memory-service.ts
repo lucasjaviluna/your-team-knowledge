@@ -23,6 +23,7 @@ import type {
   PurgeArchivedResult,
   RunMemoryRetentionInput,
   RunMemoryRetentionResult,
+  MemoryRetentionMetrics,
   TransitionMemoryStatusInput,
 } from "./contracts.js";
 import { detectSensitiveContent } from "../governance.js";
@@ -324,6 +325,12 @@ export class MemoryService {
       ...(input.purgeBefore > asOf ? expiredCandidateIds : []),
     ].filter((id, index, ids) => ids.indexOf(id) === index);
     if (dryRun) {
+      const metrics: MemoryRetentionMetrics = {
+        expiredCandidates: expiredCandidateIds.length,
+        archived: 0,
+        purgeCandidates: projectedPurgeCandidateIds.length,
+        purged: 0,
+      };
       return {
         dryRun: true,
         ...(workspaceId ? { workspaceId } : {}),
@@ -332,6 +339,7 @@ export class MemoryService {
         archivedCount: 0,
         purgeCandidateIds: projectedPurgeCandidateIds,
         purgedCount: 0,
+        metrics,
       };
     }
 
@@ -341,6 +349,12 @@ export class MemoryService {
       workspaceId,
     );
     const purgedCount = this.purgeArchived(input.purgeBefore, workspaceId);
+    const metrics: MemoryRetentionMetrics = {
+      expiredCandidates: expiredCandidateIds.length,
+      archived: archivedCount,
+      purgeCandidates: purgeCandidateIds.length,
+      purged: purgedCount,
+    };
 
     return {
       dryRun: false,
@@ -350,6 +364,7 @@ export class MemoryService {
       archivedCount,
       purgeCandidateIds,
       purgedCount,
+      metrics,
     };
   }
 

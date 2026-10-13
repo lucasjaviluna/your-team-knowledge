@@ -410,6 +410,12 @@ describe("SqliteAgentMemoryRepository", () => {
       archivedCount: 0,
       purgeCandidateIds: [archived.id, expired.id],
       purgedCount: 0,
+      metrics: {
+        expiredCandidates: 1,
+        archived: 0,
+        purgeCandidates: 2,
+        purged: 0,
+      },
     });
     expect(repository.findById(expired.id)?.status).toBe("active");
     expect(repository.findById(archived.id)).toBeDefined();
@@ -426,6 +432,12 @@ describe("SqliteAgentMemoryRepository", () => {
     );
     expect(executed.purgeCandidateIds).toHaveLength(2);
     expect(executed.purgedCount).toBe(2);
+    expect(executed.metrics).toEqual({
+      expiredCandidates: 1,
+      archived: 1,
+      purgeCandidates: 2,
+      purged: 2,
+    });
     expect(repository.findById(expired.id)).toBeUndefined();
     expect(repository.findById(archived.id)).toBeUndefined();
   });

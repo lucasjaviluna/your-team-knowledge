@@ -64,6 +64,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Hacer predictivo el preview de retención. **Implementado: el plan incluye también vencidas que quedarían purgables después del archivado proyectado.**
 - Verificar mantenimiento desde el consumidor real. **Implementado con `npm run test:maintenance-smoke`: ejerce backup, preview, ejecución y comprobación de restauración/purga mediante el comando CLI.**
 - Evitar sobrescritura accidental de backups. **Implementado: los destinos existentes se rechazan por defecto y requieren overwrite explícito.**
+- Exponer métricas resumidas de mantenimiento. **Implementado: `runRetention()` devuelve contadores de candidatos, archivado y purga junto con los IDs detallados.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 

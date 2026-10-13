@@ -39,6 +39,8 @@ El mismo observer recibe eventos `expired_archived` cuando `archiveExpired()` ar
 
 `MemoryService.runRetention()` coordina ambos pasos: en modo simulación devuelve candidatos de expiración y el conjunto de memorias que quedarían purgadas después del archivado proyectado, sin modificar SQLite; con `dryRun: false` archiva vencidas, purga según `purgeBefore` y conserva la observabilidad de cada operación. La retención exige `workspaceId` para aislar una base compartida; el alcance global sólo se habilita con `allWorkspaces: true` de forma explícita.
 
+El resultado de `runRetention()` también incluye `metrics` con cantidades resumidas de candidatos vencidos, archivados, candidatos de purga y elementos purgados. Los IDs detallados se mantienen para auditoría y los contadores permiten a automatizadores consumir el resultado sin recalcularlo.
+
 Persistencia local-first con SQLite para:
 
 - sesiones y resúmenes;
