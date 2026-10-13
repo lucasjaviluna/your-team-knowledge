@@ -29,6 +29,21 @@ export interface SearchMemoryInput {
   asOf?: Date;
 }
 
+export interface CompactMemoryInput {
+  workspaceId: string;
+  memoryIds: readonly string[];
+  title?: string;
+  maxChars?: number;
+  archiveSources?: boolean;
+  tags?: readonly string[];
+}
+
+export interface CompactMemoryResult {
+  summary: MemoryItem;
+  sources: readonly MemoryItem[];
+  archivedSourceIds: readonly string[];
+}
+
 export interface StartSessionInput {
   workspaceId: string;
 }

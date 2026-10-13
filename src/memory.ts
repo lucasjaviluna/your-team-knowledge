@@ -16,6 +16,8 @@ export {
 
 export type {
   AddMemoryRelationInput,
+  CompactMemoryInput,
+  CompactMemoryResult,
   EndSessionInput,
   MemoryRepository,
   ResolvedSearchMemoryInput,

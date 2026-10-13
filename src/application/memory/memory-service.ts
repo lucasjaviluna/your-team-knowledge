@@ -9,6 +9,8 @@ import type {
 import type {
   MemoryRepository,
   AddMemoryRelationInput,
+  CompactMemoryInput,
+  CompactMemoryResult,
   EndSessionInput,
   SaveMemoryInput,
   SearchMemoryInput,
@@ -83,6 +85,69 @@ export class MemoryService {
       includeNeedsReview: input.includeNeedsReview ?? false,
       asOf: input.asOf ?? this.now(),
     });
+  }
+
+  compact(input: CompactMemoryInput): CompactMemoryResult {
+    const workspaceId = requireText(input.workspaceId, "workspaceId");
+    const memoryIds = [
+      ...new Set(input.memoryIds.map((id) => id.trim())),
+    ].filter(Boolean);
+    const maxChars = input.maxChars ?? 2_000;
+
+    if (memoryIds.length === 0) {
+      throw new Error("memoryIds must contain at least one memory id.");
+    }
+    if (!Number.isInteger(maxChars) || maxChars < 200 || maxChars > 20_000) {
+      throw new Error("maxChars must be an integer between 200 and 20000.");
+    }
+
+    const sources = memoryIds.map((memoryId) => {
+      const item = this.repository.findById(requireText(memoryId, "memoryId"));
+      if (!item) {
+        throw new Error(`Memory '${memoryId}' was not found.`);
+      }
+      if (item.workspaceId !== workspaceId) {
+        throw new Error(`Memory '${memoryId}' belongs to another workspace.`);
+      }
+      if (item.status === "archived") {
+        throw new Error(
+          `Memory '${memoryId}' is archived and cannot be compacted.`,
+        );
+      }
+      return item;
+    });
+
+    const content = buildCompactContent(sources, maxChars);
+    const summary = this.save({
+      workspaceId,
+      type: "summary",
+      title:
+        input.title?.trim() || `Resumen compacto (${sources.length} memorias)`,
+      content,
+      tags: [
+        "compacted",
+        ...sources.flatMap((source) => source.tags),
+        ...(input.tags ?? []),
+      ],
+    });
+
+    for (const source of sources) {
+      this.addRelation({
+        sourceMemoryId: summary.id,
+        targetMemoryId: source.id,
+        relation: "related",
+      });
+    }
+
+    const archivedSourceIds: string[] = [];
+    if (input.archiveSources ?? false) {
+      for (const source of sources) {
+        this.setStatus(source.id, "archived");
+        archivedSourceIds.push(source.id);
+      }
+    }
+
+    return { summary, sources, archivedSourceIds };
   }
 
   setStatus(memoryId: string, status: MemoryItem["status"]): MemoryItem {
@@ -211,4 +276,29 @@ function validateLifecycle(item: MemoryItem): void {
   if (item.reviewAt && item.reviewAt < validFrom) {
     throw new Error("reviewAt must be on or after validFrom.");
   }
+}
+
+function buildCompactContent(
+  sources: readonly MemoryItem[],
+  maxChars: number,
+): string {
+  const header = `Resumen automático de ${sources.length} memorias. Fuentes: ${sources.map((source) => source.id).join(", ")}.`;
+  const lines = [header];
+
+  for (const source of sources) {
+    const line = `- ${source.title}: ${source.content}`;
+    const candidate = `${lines.join("\n")}\n${line}`;
+    if (candidate.length <= maxChars) {
+      lines.push(line);
+      continue;
+    }
+
+    const remaining = maxChars - lines.join("\n").length - 5;
+    if (remaining > 20) {
+      lines.push(`${line.slice(0, remaining)}…`);
+    }
+    break;
+  }
+
+  return lines.join("\n").slice(0, maxChars);
 }

@@ -265,6 +265,69 @@ describe("SqliteAgentMemoryRepository", () => {
     expect(service.purgeArchived(new Date("2026-10-14T00:00:00.000Z"))).toBe(1);
     expect(repository.findById(expired.id)).toBeUndefined();
   });
+
+  it("creates a bounded summary with source relations and optional archival", () => {
+    const { repository, service } = createMemoryService();
+    const first = service.save({
+      workspaceId: "workspace-checkout",
+      type: "discovery",
+      title: "BFF boundary",
+      content: "The checkout frontend calls the BFF.",
+      tags: ["checkout"],
+    });
+    const second = service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Keep the boundary",
+      content: "The BFF remains the integration boundary.",
+      tags: ["architecture"],
+    });
+
+    const result = service.compact({
+      workspaceId: "workspace-checkout",
+      memoryIds: [first.id, second.id],
+      title: "Checkout summary",
+      maxChars: 200,
+      archiveSources: true,
+    });
+
+    expect(result.summary.type).toBe("summary");
+    expect(result.summary.content.length).toBeLessThanOrEqual(200);
+    expect(result.archivedSourceIds).toEqual([first.id, second.id]);
+    expect(repository.findById(first.id)?.status).toBe("archived");
+    expect(repository.findById(second.id)?.status).toBe("archived");
+    expect(service.listRelations(result.summary.id)).toHaveLength(2);
+    expect(
+      service.search({
+        workspaceId: "workspace-checkout",
+        query: "checkout summary",
+      }),
+    ).toHaveLength(1);
+  });
+
+  it("rejects compaction across workspaces and invalid budgets", () => {
+    const { service } = createMemoryService();
+    const memory = service.save({
+      workspaceId: "workspace-checkout",
+      type: "discovery",
+      title: "Checkout discovery",
+      content: "A local discovery.",
+    });
+
+    expect(() =>
+      service.compact({
+        workspaceId: "workspace-other",
+        memoryIds: [memory.id],
+      }),
+    ).toThrow("belongs to another workspace");
+    expect(() =>
+      service.compact({
+        workspaceId: "workspace-checkout",
+        memoryIds: [memory.id],
+        maxChars: 100,
+      }),
+    ).toThrow("between 200 and 20000");
+  });
 });
 
 function createMemoryService(now?: () => Date) {
