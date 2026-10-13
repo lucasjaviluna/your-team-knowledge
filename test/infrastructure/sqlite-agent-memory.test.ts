@@ -400,9 +400,12 @@ describe("SqliteAgentMemoryRepository", () => {
 
     const preview = service.runRetention({
       purgeBefore: new Date("2026-10-14T00:00:00.000Z"),
+      workspaceId: "workspace-checkout",
     });
     expect(preview).toEqual({
       dryRun: true,
+      workspaceId: "workspace-checkout",
+      allWorkspaces: false,
       expiredCandidateIds: [expired.id],
       archivedCount: 0,
       purgeCandidateIds: [archived.id],
@@ -413,6 +416,7 @@ describe("SqliteAgentMemoryRepository", () => {
 
     const executed = service.runRetention({
       purgeBefore: new Date("2026-10-14T00:00:00.000Z"),
+      workspaceId: "workspace-checkout",
       dryRun: false,
     });
     expect(executed.expiredCandidateIds).toEqual([expired.id]);
@@ -424,6 +428,49 @@ describe("SqliteAgentMemoryRepository", () => {
     expect(executed.purgedCount).toBe(2);
     expect(repository.findById(expired.id)).toBeUndefined();
     expect(repository.findById(archived.id)).toBeUndefined();
+  });
+
+  it("isolates coordinated retention by workspace and requires explicit global scope", () => {
+    const now = new Date("2026-10-13T12:00:00.000Z");
+    const { repository, service } = createMemoryService(() => now);
+    const workspaceA = service.save({
+      workspaceId: "workspace-a",
+      type: "discovery",
+      title: "A expired",
+      content: "Workspace A memory.",
+      validFrom: new Date("2026-10-01T00:00:00.000Z"),
+      expiresAt: new Date("2026-10-13T00:00:00.000Z"),
+    });
+    const workspaceB = service.save({
+      workspaceId: "workspace-b",
+      type: "discovery",
+      title: "B expired",
+      content: "Workspace B memory.",
+      validFrom: new Date("2026-10-01T00:00:00.000Z"),
+      expiresAt: new Date("2026-10-13T00:00:00.000Z"),
+    });
+
+    expect(() =>
+      service.runRetention({
+        purgeBefore: new Date("2026-10-14T00:00:00.000Z"),
+      }),
+    ).toThrow("workspaceId or an explicit allWorkspaces");
+
+    const scoped = service.runRetention({
+      workspaceId: "workspace-a",
+      purgeBefore: new Date("2026-10-14T00:00:00.000Z"),
+      dryRun: false,
+    });
+    expect(scoped.expiredCandidateIds).toEqual([workspaceA.id]);
+    expect(repository.findById(workspaceA.id)).toBeUndefined();
+    expect(repository.findById(workspaceB.id)?.status).toBe("active");
+
+    const globalPreview = service.runRetention({
+      allWorkspaces: true,
+      purgeBefore: new Date("2026-10-14T00:00:00.000Z"),
+    });
+    expect(globalPreview.allWorkspaces).toBe(true);
+    expect(globalPreview.expiredCandidateIds).toEqual([workspaceB.id]);
   });
 
   it("creates a restorable SQLite backup without changing the source", async () => {

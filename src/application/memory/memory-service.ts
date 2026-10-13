@@ -226,10 +226,16 @@ export class MemoryService {
     return this.repository.listDueForReview(this.now(), workspaceId);
   }
 
-  archiveExpired(): number {
+  archiveExpired(workspaceId?: string): number {
     const occurredAt = this.now();
-    const candidateIds = this.repository.listExpiredIds(occurredAt);
-    const archivedCount = this.repository.archiveExpired(occurredAt);
+    const candidateIds = this.repository.listExpiredIds(
+      occurredAt,
+      workspaceId,
+    );
+    const archivedCount = this.repository.archiveExpired(
+      occurredAt,
+      workspaceId,
+    );
 
     for (const memoryId of candidateIds) {
       const memory = this.repository.findById(memoryId);
@@ -249,17 +255,17 @@ export class MemoryService {
     return archivedCount;
   }
 
-  purgeArchived(before: Date): number {
+  purgeArchived(before: Date, workspaceId?: string): number {
     if (Number.isNaN(before.getTime())) {
       throw new Error("before must be a valid date.");
     }
 
     const occurredAt = this.now();
-    const candidateIds = this.repository.listArchivedIds(before);
+    const candidateIds = this.repository.listArchivedIds(before, workspaceId);
     const candidates = candidateIds
       .map((memoryId) => this.repository.findById(memoryId))
       .filter((memory): memory is MemoryItem => Boolean(memory));
-    const purgedCount = this.repository.purgeArchived(before);
+    const purgedCount = this.repository.purgeArchived(before, workspaceId);
 
     for (const memory of candidates) {
       if (!this.repository.findById(memory.id)) {
@@ -295,26 +301,45 @@ export class MemoryService {
       throw new Error("purgeBefore must be a valid date.");
     }
 
+    const workspaceId = optionalText(input.workspaceId);
+    const allWorkspaces = input.allWorkspaces === true;
+    if ((workspaceId ? 1 : 0) + (allWorkspaces ? 1 : 0) !== 1) {
+      throw new Error(
+        "Retention requires workspaceId or an explicit allWorkspaces: true.",
+      );
+    }
+
     const dryRun = input.dryRun ?? true;
-    const expiredCandidateIds = this.repository.listExpiredIds(this.now());
+    const expiredCandidateIds = this.repository.listExpiredIds(
+      this.now(),
+      workspaceId,
+    );
     if (dryRun) {
       return {
         dryRun: true,
+        ...(workspaceId ? { workspaceId } : {}),
+        allWorkspaces,
         expiredCandidateIds,
         archivedCount: 0,
-        purgeCandidateIds: this.repository.listArchivedIds(input.purgeBefore),
+        purgeCandidateIds: this.repository.listArchivedIds(
+          input.purgeBefore,
+          workspaceId,
+        ),
         purgedCount: 0,
       };
     }
 
-    const archivedCount = this.archiveExpired();
+    const archivedCount = this.archiveExpired(workspaceId);
     const purgeCandidateIds = this.repository.listArchivedIds(
       input.purgeBefore,
+      workspaceId,
     );
-    const purgedCount = this.purgeArchived(input.purgeBefore);
+    const purgedCount = this.purgeArchived(input.purgeBefore, workspaceId);
 
     return {
       dryRun: false,
+      ...(workspaceId ? { workspaceId } : {}),
+      allWorkspaces,
       expiredCandidateIds,
       archivedCount,
       purgeCandidateIds,

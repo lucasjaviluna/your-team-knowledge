@@ -59,6 +59,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Observar archivado automático y purga. **Implementado con eventos `expired_archived` y `purged`; los dry-runs no generan eventos destructivos.**
 - Coordinar la retención desde Agent Memory. **Implementado con `runRetention()`, preview conjunto de candidatos y ejecución explícita mediante `dryRun: false`.**
 - Añadir recuperación operativa de Agent Memory. **Implementado con backup nativo SQLite, validación de destino y prueba de restauración desde la copia.**
+- Aislar la retención por workspace. **Implementado: `runRetention()` exige `workspaceId` o `allWorkspaces: true` y aplica el filtro en archivado, candidatos y purga.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 

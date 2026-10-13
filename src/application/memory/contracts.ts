@@ -113,11 +113,15 @@ export interface PurgeArchivedResult {
 
 export interface RunMemoryRetentionInput {
   purgeBefore: Date;
+  workspaceId?: string;
+  allWorkspaces?: boolean;
   dryRun?: boolean;
 }
 
 export interface RunMemoryRetentionResult {
   dryRun: boolean;
+  workspaceId?: string;
+  allWorkspaces: boolean;
   expiredCandidateIds: readonly string[];
   archivedCount: number;
   purgeCandidateIds: readonly string[];
@@ -155,10 +159,10 @@ export interface MemoryRepository {
   update(item: MemoryItem): void;
   search(input: ResolvedSearchMemoryInput): readonly MemoryItem[];
   listDueForReview(asOf: Date, workspaceId?: string): readonly MemoryItem[];
-  archiveExpired(asOf: Date): number;
-  listExpiredIds(asOf: Date): readonly string[];
-  purgeArchived(before: Date): number;
-  listArchivedIds(before: Date): readonly string[];
+  archiveExpired(asOf: Date, workspaceId?: string): number;
+  listExpiredIds(asOf: Date, workspaceId?: string): readonly string[];
+  purgeArchived(before: Date, workspaceId?: string): number;
+  listArchivedIds(before: Date, workspaceId?: string): readonly string[];
   inspectLifecycle(asOf: Date, workspaceId?: string): MemoryLifecycleSnapshot;
 }
 

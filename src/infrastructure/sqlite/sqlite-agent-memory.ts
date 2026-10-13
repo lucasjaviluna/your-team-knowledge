@@ -336,37 +336,52 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
     return rows.map(toMemoryItem);
   }
 
-  archiveExpired(asOf: Date): number {
-    const result = this.database
-      .prepare(
-        `UPDATE memory_items
-         SET status = 'archived', archived_at = ?, updated_at = ?
-         WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= ?`,
-      )
-      .run(asOf.toISOString(), asOf.toISOString(), asOf.toISOString());
+  archiveExpired(asOf: Date, workspaceId?: string): number {
+    const workspaceFilter = workspaceId ? " AND workspace_id = ?" : "";
+    const statement = this.database.prepare(
+      `UPDATE memory_items
+       SET status = 'archived', archived_at = ?, updated_at = ?
+       WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= ?${workspaceFilter}`,
+    );
+    const result = workspaceId
+      ? statement.run(
+          asOf.toISOString(),
+          asOf.toISOString(),
+          asOf.toISOString(),
+          workspaceId,
+        )
+      : statement.run(
+          asOf.toISOString(),
+          asOf.toISOString(),
+          asOf.toISOString(),
+        );
 
     return result.changes;
   }
 
-  listExpiredIds(asOf: Date): readonly string[] {
-    return this.database
-      .prepare<[string], { id: string }>(
-        `SELECT id FROM memory_items
-         WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= ?
-         ORDER BY expires_at, id`,
-      )
-      .all(asOf.toISOString())
-      .map((row) => row.id);
+  listExpiredIds(asOf: Date, workspaceId?: string): readonly string[] {
+    const workspaceFilter = workspaceId ? " AND workspace_id = ?" : "";
+    const statement = this.database.prepare<unknown[], { id: string }>(
+      `SELECT id FROM memory_items
+       WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= ?${workspaceFilter}
+       ORDER BY expires_at, id`,
+    );
+    const rows = workspaceId
+      ? statement.all(asOf.toISOString(), workspaceId)
+      : statement.all(asOf.toISOString());
+    return rows.map((row) => row.id);
   }
 
-  purgeArchived(before: Date): number {
+  purgeArchived(before: Date, workspaceId?: string): number {
+    const workspaceFilter = workspaceId ? " AND workspace_id = ?" : "";
     const transaction = this.database.transaction(() => {
-      const rows = this.database
-        .prepare<[string], { id: string }>(
-          `SELECT id FROM memory_items
-           WHERE status = 'archived' AND COALESCE(archived_at, updated_at) < ?`,
-        )
-        .all(before.toISOString());
+      const statement = this.database.prepare<unknown[], { id: string }>(
+        `SELECT id FROM memory_items
+         WHERE status = 'archived' AND COALESCE(archived_at, updated_at) < ?${workspaceFilter}`,
+      );
+      const rows = workspaceId
+        ? statement.all(before.toISOString(), workspaceId)
+        : statement.all(before.toISOString());
 
       for (const row of rows) {
         this.database
@@ -388,15 +403,17 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
     return transaction();
   }
 
-  listArchivedIds(before: Date): readonly string[] {
-    return this.database
-      .prepare<[string], { id: string }>(
-        `SELECT id FROM memory_items
-         WHERE status = 'archived' AND COALESCE(archived_at, updated_at) < ?
-         ORDER BY COALESCE(archived_at, updated_at), id`,
-      )
-      .all(before.toISOString())
-      .map((row) => row.id);
+  listArchivedIds(before: Date, workspaceId?: string): readonly string[] {
+    const workspaceFilter = workspaceId ? " AND workspace_id = ?" : "";
+    const statement = this.database.prepare<unknown[], { id: string }>(
+      `SELECT id FROM memory_items
+       WHERE status = 'archived' AND COALESCE(archived_at, updated_at) < ?${workspaceFilter}
+       ORDER BY COALESCE(archived_at, updated_at), id`,
+    );
+    const rows = workspaceId
+      ? statement.all(before.toISOString(), workspaceId)
+      : statement.all(before.toISOString());
+    return rows.map((row) => row.id);
   }
 
   inspectLifecycle(asOf: Date, workspaceId?: string): MemoryLifecycleSnapshot {
