@@ -46,10 +46,60 @@ interface RelationRow {
   created_at: string;
 }
 
+export interface SqliteAgentMemoryOptions {
+  synonyms?: Readonly<Record<string, readonly string[]>>;
+}
+
+const defaultSynonyms: Readonly<Record<string, readonly string[]>> = {
+  autenticacion: [
+    "autenticación",
+    "autenticacion",
+    "authentication",
+    "auth",
+    "autenticada",
+    "autenticadas",
+  ],
+  autenticación: [
+    "autenticación",
+    "autenticacion",
+    "authentication",
+    "auth",
+    "autenticada",
+    "autenticadas",
+  ],
+  proteccion: [
+    "protección",
+    "proteccion",
+    "proteger",
+    "protege",
+    "protegen",
+    "protegida",
+    "protegidas",
+  ],
+  protección: [
+    "protección",
+    "proteccion",
+    "proteger",
+    "protege",
+    "protegen",
+    "protegida",
+    "protegidas",
+  ],
+  despliegue: ["despliegue", "despliegues", "deployment", "deploy"],
+  deployment: ["despliegue", "despliegues", "deployment", "deploy"],
+  rollback: ["rollback", "reversion", "reversión", "revertir"],
+};
+
 export class SqliteAgentMemoryRepository implements MemoryRepository {
   private readonly database: Database.Database;
 
-  constructor(filename: string) {
+  private readonly synonyms: Readonly<Record<string, readonly string[]>>;
+
+  constructor(filename: string, options: SqliteAgentMemoryOptions = {}) {
+    this.synonyms = buildSynonymIndex({
+      ...defaultSynonyms,
+      ...(options.synonyms ?? {}),
+    });
     this.database = new Database(filename);
     this.database.pragma("foreign_keys = ON");
     this.database.pragma("journal_mode = WAL");
@@ -190,7 +240,7 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
   }
 
   search(input: ResolvedSearchMemoryInput): readonly MemoryItem[] {
-    const ftsQuery = toFtsQuery(input.query);
+    const ftsQuery = toFtsQuery(input.query, this.synonyms);
 
     if (!ftsQuery) {
       return [];
@@ -475,19 +525,46 @@ function toMemoryRelation(row: RelationRow): MemoryRelation {
   };
 }
 
-function toFtsQuery(query: string): string {
+function toFtsQuery(
+  query: string,
+  synonyms: Readonly<Record<string, readonly string[]>> = {},
+): string {
   return query
     .split(/[^\p{L}\p{N}_/-]+/u)
     .filter(Boolean)
     .map((term) => {
-      const variants = [term, singularize(term)].filter(
-        (value, index, values) => values.indexOf(value) === index,
-      );
+      const synonymVariants = synonyms[term.toLocaleLowerCase()] ?? [];
+      const variants = [
+        term,
+        singularize(term),
+        ...synonymVariants,
+        ...synonymVariants.map(singularize),
+      ].filter((value, index, values) => values.indexOf(value) === index);
       return variants.length === 1
         ? quoteFtsTerm(variants[0] as string)
         : `(${variants.map(quoteFtsTerm).join(" OR ")})`;
     })
     .join(" AND ");
+}
+
+function buildSynonymIndex(
+  groups: Readonly<Record<string, readonly string[]>>,
+): Readonly<Record<string, readonly string[]>> {
+  const index = new Map<string, Set<string>>();
+
+  for (const [term, variants] of Object.entries(groups)) {
+    const group = new Set([term, ...variants]);
+    for (const variant of group) {
+      const key = variant.toLocaleLowerCase();
+      const existing = index.get(key) ?? new Set<string>();
+      for (const member of group) existing.add(member);
+      index.set(key, existing);
+    }
+  }
+
+  return Object.fromEntries(
+    [...index.entries()].map(([term, variants]) => [term, [...variants]]),
+  );
 }
 
 function quoteFtsTerm(term: string): string {

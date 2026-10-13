@@ -48,7 +48,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Crear resúmenes de sesión y lifecycle: activa, reemplazada, pendiente de revisión y archivada. **Implementado con fechas de vigencia/revisión, transiciones explícitas, archivado de vencidas y purga controlada.**
 - Exponer la interfaz `MemoryProvider`.
 - Crear pruebas de persistencia, deduplicación y actualización.
-- Mejorar recall léxico sin perder precisión. **Implementado inicialmente para variaciones simples singular/plural; quedan pendientes stemming semántico, sinónimos y retrieval vectorial.**
+- Mejorar recall léxico sin perder precisión. **Implementado con variaciones simples singular/plural y expansión configurable de grupos de sinónimos conservadores, manteniendo semántica `AND`; quedan pendientes stemming semántico y retrieval vectorial.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 

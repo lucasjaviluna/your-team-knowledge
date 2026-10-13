@@ -114,6 +114,46 @@ describe("SqliteAgentMemoryRepository", () => {
     expect(results[0]?.title).toBe("Guard de ruta");
   });
 
+  it("expands conservative domain synonyms without dropping AND semantics", () => {
+    const { service } = createMemoryService();
+
+    service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Guards de rutas",
+      content: "Las rutas se protegen con guards de autenticación.",
+    });
+    service.save({
+      workspaceId: "workspace-checkout",
+      type: "decision",
+      title: "Despliegues graduales",
+      content: "Los despliegues graduales permiten rollback.",
+    });
+
+    expect(
+      service
+        .search({
+          workspaceId: "workspace-checkout",
+          query: "proteccion rutas autenticadas",
+        })
+        .map((item) => item.title),
+    ).toEqual(["Guards de rutas"]);
+    expect(
+      service
+        .search({
+          workspaceId: "workspace-checkout",
+          query: "deployment rollback",
+        })
+        .map((item) => item.title),
+    ).toEqual(["Despliegues graduales"]);
+    expect(
+      service.search({
+        workspaceId: "workspace-checkout",
+        query: "proteccion rollback",
+      }),
+    ).toHaveLength(0);
+  });
+
   it("tracks session lifecycle and memory relations", () => {
     const { service } = createMemoryService();
     const session = service.startSession({ workspaceId: "workspace-checkout" });
