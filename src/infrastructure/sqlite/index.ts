@@ -1,1 +1,4 @@
-export { SqliteAgentMemoryRepository } from "./sqlite-agent-memory.js";
+export {
+  SqliteAgentMemoryRepository,
+  type SqliteBackupResult,
+} from "./sqlite-agent-memory.js";

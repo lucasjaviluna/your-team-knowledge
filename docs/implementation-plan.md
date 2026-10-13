@@ -58,6 +58,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Hacer observable el lifecycle para consumidores. **Implementado con `transitionStatus()`, motivos explícitos y observer tipado para eventos `status_changed`; `setStatus()` mantiene compatibilidad.**
 - Observar archivado automático y purga. **Implementado con eventos `expired_archived` y `purged`; los dry-runs no generan eventos destructivos.**
 - Coordinar la retención desde Agent Memory. **Implementado con `runRetention()`, preview conjunto de candidatos y ejecución explícita mediante `dryRun: false`.**
+- Añadir recuperación operativa de Agent Memory. **Implementado con backup nativo SQLite, validación de destino y prueba de restauración desde la copia.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 

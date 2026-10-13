@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import { resolve } from "node:path";
 
 import type {
   MemoryRepository,
@@ -51,6 +52,12 @@ export interface SqliteAgentMemoryOptions {
   synonyms?: Readonly<Record<string, readonly string[]>>;
 }
 
+export interface SqliteBackupResult {
+  destinationFile: string;
+  totalPages: number;
+  remainingPages: number;
+}
+
 const defaultSynonyms: Readonly<Record<string, readonly string[]>> = {
   autenticacion: [
     "autenticación",
@@ -94,9 +101,12 @@ const defaultSynonyms: Readonly<Record<string, readonly string[]>> = {
 export class SqliteAgentMemoryRepository implements MemoryRepository {
   private readonly database: Database.Database;
 
+  private readonly filename: string;
+
   private readonly synonyms: Readonly<Record<string, readonly string[]>>;
 
   constructor(filename: string, options: SqliteAgentMemoryOptions = {}) {
+    this.filename = filename;
     this.synonyms = buildSynonymIndex({
       ...defaultSynonyms,
       ...(options.synonyms ?? {}),
@@ -105,6 +115,26 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
     this.database.pragma("foreign_keys = ON");
     this.database.pragma("journal_mode = WAL");
     this.migrate();
+  }
+
+  async backup(destinationFile: string): Promise<SqliteBackupResult> {
+    const destination = destinationFile.trim();
+    if (!destination) {
+      throw new Error("destinationFile is required.");
+    }
+    if (
+      this.filename !== ":memory:" &&
+      resolve(this.filename) === resolve(destination)
+    ) {
+      throw new Error("destinationFile must differ from the source database.");
+    }
+
+    const metadata = await this.database.backup(destination);
+    return {
+      destinationFile: destination,
+      totalPages: metadata.totalPages,
+      remainingPages: metadata.remainingPages,
+    };
   }
 
   close(): void {

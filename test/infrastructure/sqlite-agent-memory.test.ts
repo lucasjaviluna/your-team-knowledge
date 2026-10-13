@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -424,6 +424,51 @@ describe("SqliteAgentMemoryRepository", () => {
     expect(executed.purgedCount).toBe(2);
     expect(repository.findById(expired.id)).toBeUndefined();
     expect(repository.findById(archived.id)).toBeUndefined();
+  });
+
+  it("creates a restorable SQLite backup without changing the source", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "agent-memory-backup-"));
+    const sourceFile = join(directory, "source.sqlite");
+    const backupFile = join(directory, "backup.sqlite");
+    const source = new SqliteAgentMemoryRepository(sourceFile);
+    const service = new MemoryService(source);
+    const saved = service.save({
+      workspaceId: "workspace-a",
+      type: "decision",
+      title: "Backup operativo",
+      content: "La base local debe poder restaurarse.",
+    });
+
+    const result = await source.backup(backupFile);
+    expect(result.destinationFile).toBe(backupFile);
+    expect(result.totalPages).toBeGreaterThan(0);
+    expect(result.remainingPages).toBe(0);
+    expect(existsSync(backupFile)).toBe(true);
+    expect(
+      service.search({ workspaceId: "workspace-a", query: "restaurarse" }),
+    ).toHaveLength(1);
+    source.close();
+
+    const restored = new SqliteAgentMemoryRepository(backupFile);
+    expect(restored.findById(saved.id)?.content).toBe(
+      "La base local debe poder restaurarse.",
+    );
+    restored.close();
+  });
+
+  it("rejects an empty or same-file backup destination", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "agent-memory-backup-"));
+    temporaryDirectories.push(directory);
+    const filename = join(directory, "source.sqlite");
+    const repository = new SqliteAgentMemoryRepository(filename);
+    resources.push(repository);
+
+    await expect(repository.backup(" ")).rejects.toThrow(
+      "destinationFile is required",
+    );
+    await expect(repository.backup(filename)).rejects.toThrow(
+      "destinationFile must differ",
+    );
   });
 
   it("returns and observes lifecycle transition reasons", () => {

@@ -3,8 +3,11 @@
  * Keep this module free of RAG, PostgreSQL and embedding imports.
  */
 export { MemoryService } from "./application/memory/memory-service.js";
-export { SqliteAgentMemoryRepository } from "./infrastructure/sqlite/sqlite-agent-memory.js";
-export type { SqliteAgentMemoryOptions } from "./infrastructure/sqlite/sqlite-agent-memory.js";
+export {
+  SqliteAgentMemoryRepository,
+  type SqliteAgentMemoryOptions,
+  type SqliteBackupResult,
+} from "./infrastructure/sqlite/sqlite-agent-memory.js";
 export {
   PiHarnessMemoryProvider,
   type PiHarnessMemoryContext,
