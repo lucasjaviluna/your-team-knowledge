@@ -378,6 +378,54 @@ describe("SqliteAgentMemoryRepository", () => {
     ]);
   });
 
+  it("previews and executes coordinated retention safely", () => {
+    const now = new Date("2026-10-13T12:00:00.000Z");
+    const { repository, service } = createMemoryService(() => now);
+    const expired = service.save({
+      workspaceId: "workspace-checkout",
+      type: "discovery",
+      title: "Expired discovery",
+      content: "This discovery is expired.",
+      validFrom: new Date("2026-10-01T00:00:00.000Z"),
+      expiresAt: new Date("2026-10-13T00:00:00.000Z"),
+    });
+    const archived = service.save({
+      workspaceId: "workspace-checkout",
+      type: "discovery",
+      title: "Archived discovery",
+      content: "This discovery is archived.",
+      validFrom: new Date("2026-10-01T00:00:00.000Z"),
+    });
+    service.setStatus(archived.id, "archived");
+
+    const preview = service.runRetention({
+      purgeBefore: new Date("2026-10-14T00:00:00.000Z"),
+    });
+    expect(preview).toEqual({
+      dryRun: true,
+      expiredCandidateIds: [expired.id],
+      archivedCount: 0,
+      purgeCandidateIds: [archived.id],
+      purgedCount: 0,
+    });
+    expect(repository.findById(expired.id)?.status).toBe("active");
+    expect(repository.findById(archived.id)).toBeDefined();
+
+    const executed = service.runRetention({
+      purgeBefore: new Date("2026-10-14T00:00:00.000Z"),
+      dryRun: false,
+    });
+    expect(executed.expiredCandidateIds).toEqual([expired.id]);
+    expect(executed.archivedCount).toBe(1);
+    expect(executed.purgeCandidateIds).toEqual(
+      expect.arrayContaining([archived.id, expired.id]),
+    );
+    expect(executed.purgeCandidateIds).toHaveLength(2);
+    expect(executed.purgedCount).toBe(2);
+    expect(repository.findById(expired.id)).toBeUndefined();
+    expect(repository.findById(archived.id)).toBeUndefined();
+  });
+
   it("returns and observes lifecycle transition reasons", () => {
     const events: Array<{ type: string; status: string; reason: string }> = [];
     const { service } = createMemoryService(undefined, (event) => {

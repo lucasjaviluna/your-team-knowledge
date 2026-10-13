@@ -111,6 +111,19 @@ export interface PurgeArchivedResult {
   purgedCount: number;
 }
 
+export interface RunMemoryRetentionInput {
+  purgeBefore: Date;
+  dryRun?: boolean;
+}
+
+export interface RunMemoryRetentionResult {
+  dryRun: boolean;
+  expiredCandidateIds: readonly string[];
+  archivedCount: number;
+  purgeCandidateIds: readonly string[];
+  purgedCount: number;
+}
+
 export interface StartSessionInput {
   workspaceId: string;
 }

@@ -21,6 +21,8 @@ import type {
   MemoryStatusTransition,
   PurgeArchivedInput,
   PurgeArchivedResult,
+  RunMemoryRetentionInput,
+  RunMemoryRetentionResult,
   TransitionMemoryStatusInput,
 } from "./contracts.js";
 import { detectSensitiveContent } from "../governance.js";
@@ -286,6 +288,38 @@ export class MemoryService {
     const purgedCount = dryRun ? 0 : this.purgeArchived(input.before);
 
     return { before: input.before, dryRun, candidateIds, purgedCount };
+  }
+
+  runRetention(input: RunMemoryRetentionInput): RunMemoryRetentionResult {
+    if (Number.isNaN(input.purgeBefore.getTime())) {
+      throw new Error("purgeBefore must be a valid date.");
+    }
+
+    const dryRun = input.dryRun ?? true;
+    const expiredCandidateIds = this.repository.listExpiredIds(this.now());
+    if (dryRun) {
+      return {
+        dryRun: true,
+        expiredCandidateIds,
+        archivedCount: 0,
+        purgeCandidateIds: this.repository.listArchivedIds(input.purgeBefore),
+        purgedCount: 0,
+      };
+    }
+
+    const archivedCount = this.archiveExpired();
+    const purgeCandidateIds = this.repository.listArchivedIds(
+      input.purgeBefore,
+    );
+    const purgedCount = this.purgeArchived(input.purgeBefore);
+
+    return {
+      dryRun: false,
+      expiredCandidateIds,
+      archivedCount,
+      purgeCandidateIds,
+      purgedCount,
+    };
   }
 
   startSession(input: StartSessionInput): MemorySession {

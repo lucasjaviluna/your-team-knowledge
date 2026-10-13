@@ -11,6 +11,8 @@ export type {
   MemoryStatusTransition,
   PurgeArchivedInput,
   PurgeArchivedResult,
+  RunMemoryRetentionInput,
+  RunMemoryRetentionResult,
   EndSessionInput,
   MemoryRepository,
   ResolvedSearchMemoryInput,
