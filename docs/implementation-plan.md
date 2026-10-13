@@ -65,6 +65,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Verificar mantenimiento desde el consumidor real. **Implementado con `npm run test:maintenance-smoke`: ejerce backup, preview, ejecución y comprobación de restauración/purga mediante el comando CLI.**
 - Evitar sobrescritura accidental de backups. **Implementado: los destinos existentes se rechazan por defecto y requieren overwrite explícito.**
 - Exponer métricas resumidas de mantenimiento. **Implementado: `runRetention()` devuelve contadores de candidatos, archivado y purga junto con los IDs detallados.**
+- Exponer la cola de revisión al consumidor. **Implementado: el demo permite consultar memorias con `reviewAt` vencido mediante `--list-due-for-review true` sin modificar SQLite.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 

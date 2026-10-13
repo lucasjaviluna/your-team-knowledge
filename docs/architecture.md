@@ -41,6 +41,8 @@ El mismo observer recibe eventos `expired_archived` cuando `archiveExpired()` ar
 
 El resultado de `runRetention()` también incluye `metrics` con cantidades resumidas de candidatos vencidos, archivados, candidatos de purga y elementos purgados. Los IDs detallados se mantienen para auditoría y los contadores permiten a automatizadores consumir el resultado sin recalcularlo.
 
+La cola de revisión se puede consultar sin modificar SQLite mediante `MemoryService.listDueForReview(workspaceId)`; el demo la expone con `--list-due-for-review true`.
+
 Persistencia local-first con SQLite para:
 
 - sesiones y resúmenes;

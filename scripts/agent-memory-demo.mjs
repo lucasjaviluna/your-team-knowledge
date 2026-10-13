@@ -45,6 +45,9 @@ try {
   const lifecycle = options.inspectLifecycle
     ? memory.inspectLifecycle(options.project)
     : undefined;
+  const dueForReview = options.listDueForReview
+    ? memory.listDueForReview(options.project)
+    : undefined;
   const purge = options.purgeArchivedBefore
     ? memory.purgeArchivedWithPlan({
         before: new Date(options.purgeArchivedBefore),
@@ -79,6 +82,7 @@ try {
         retention,
         compacted,
         lifecycle,
+        dueForReview,
         purge,
         query: options.query,
         entries: result.entries,
@@ -133,6 +137,7 @@ function parseOptions(args) {
     ),
     archiveSources: values.get("archive-sources") === "true",
     inspectLifecycle: values.get("inspect-lifecycle") === "true",
+    listDueForReview: values.get("list-due-for-review") === "true",
     backupTo: values.get("backup-to"),
     backupOverwrite: values.get("backup-overwrite") === "true",
     retentionPurgeBefore: values.get("retention-purge-before"),
