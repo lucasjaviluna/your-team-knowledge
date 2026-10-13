@@ -374,6 +374,33 @@ describe("SqliteAgentMemoryRepository", () => {
     });
   });
 
+  it("previews archived retention before purging and requires explicit execution", () => {
+    const now = new Date("2026-10-13T12:00:00.000Z");
+    const { repository, service } = createMemoryService(() => now);
+    const archived = service.save({
+      workspaceId: "workspace-checkout",
+      type: "discovery",
+      title: "Old discovery",
+      content: "This discovery is retained temporarily.",
+    });
+    service.setStatus(archived.id, "archived");
+
+    const preview = service.purgeArchivedWithPlan({
+      before: new Date("2026-10-14T00:00:00.000Z"),
+    });
+    expect(preview.dryRun).toBe(true);
+    expect(preview.candidateIds).toEqual([archived.id]);
+    expect(preview.purgedCount).toBe(0);
+    expect(repository.findById(archived.id)).toBeDefined();
+
+    const executed = service.purgeArchivedWithPlan({
+      before: new Date("2026-10-14T00:00:00.000Z"),
+      dryRun: false,
+    });
+    expect(executed.purgedCount).toBe(1);
+    expect(repository.findById(archived.id)).toBeUndefined();
+  });
+
   it("migrates a legacy SQLite memory table with lifecycle columns", () => {
     const directory = mkdtempSync(join(tmpdir(), "corporate-knowledge-"));
     temporaryDirectories.push(directory);

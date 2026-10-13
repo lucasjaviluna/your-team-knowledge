@@ -19,6 +19,8 @@ export type {
   CompactMemoryInput,
   CompactMemoryResult,
   MemoryLifecycleSnapshot,
+  PurgeArchivedInput,
+  PurgeArchivedResult,
   EndSessionInput,
   MemoryRepository,
   ResolvedSearchMemoryInput,

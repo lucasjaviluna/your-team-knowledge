@@ -16,6 +16,8 @@ import type {
   SearchMemoryInput,
   StartSessionInput,
   MemoryLifecycleSnapshot,
+  PurgeArchivedInput,
+  PurgeArchivedResult,
 } from "./contracts.js";
 import { detectSensitiveContent } from "../governance.js";
 
@@ -207,6 +209,20 @@ export class MemoryService {
     }
 
     return this.repository.purgeArchived(before);
+  }
+
+  purgeArchivedWithPlan(input: PurgeArchivedInput): PurgeArchivedResult {
+    if (Number.isNaN(input.before.getTime())) {
+      throw new Error("before must be a valid date.");
+    }
+
+    const candidateIds = this.repository.listArchivedIds(input.before);
+    const dryRun = input.dryRun ?? true;
+    const purgedCount = dryRun
+      ? 0
+      : this.repository.purgeArchived(input.before);
+
+    return { before: input.before, dryRun, candidateIds, purgedCount };
   }
 
   startSession(input: StartSessionInput): MemorySession {

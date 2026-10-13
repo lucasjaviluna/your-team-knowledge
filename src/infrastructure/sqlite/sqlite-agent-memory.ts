@@ -347,6 +347,17 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
     return transaction();
   }
 
+  listArchivedIds(before: Date): readonly string[] {
+    return this.database
+      .prepare<[string], { id: string }>(
+        `SELECT id FROM memory_items
+         WHERE status = 'archived' AND COALESCE(archived_at, updated_at) < ?
+         ORDER BY COALESCE(archived_at, updated_at), id`,
+      )
+      .all(before.toISOString())
+      .map((row) => row.id);
+  }
+
   inspectLifecycle(asOf: Date, workspaceId?: string): MemoryLifecycleSnapshot {
     const rows = workspaceId
       ? this.database

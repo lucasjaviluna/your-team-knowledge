@@ -31,6 +31,12 @@ try {
   const lifecycle = options.inspectLifecycle
     ? memory.inspectLifecycle(options.project)
     : undefined;
+  const purge = options.purgeArchivedBefore
+    ? memory.purgeArchivedWithPlan({
+        before: new Date(options.purgeArchivedBefore),
+        dryRun: options.purgeDryRun,
+      })
+    : undefined;
   const stored = options.shouldStore
     ? await provider.store(
         {
@@ -57,6 +63,7 @@ try {
         stored,
         compacted,
         lifecycle,
+        purge,
         query: options.query,
         entries: result.entries,
         hint: options.shouldStore
@@ -110,6 +117,8 @@ function parseOptions(args) {
     ),
     archiveSources: values.get("archive-sources") === "true",
     inspectLifecycle: values.get("inspect-lifecycle") === "true",
+    purgeArchivedBefore: values.get("purge-archived-before"),
+    purgeDryRun: values.get("purge-dry-run") !== "false",
   };
 }
 

@@ -54,6 +54,18 @@ export interface MemoryLifecycleSnapshot {
   dueForReview: number;
 }
 
+export interface PurgeArchivedInput {
+  before: Date;
+  dryRun?: boolean;
+}
+
+export interface PurgeArchivedResult {
+  before: Date;
+  dryRun: boolean;
+  candidateIds: readonly string[];
+  purgedCount: number;
+}
+
 export interface StartSessionInput {
   workspaceId: string;
 }
@@ -87,6 +99,7 @@ export interface MemoryRepository {
   listDueForReview(asOf: Date, workspaceId?: string): readonly MemoryItem[];
   archiveExpired(asOf: Date): number;
   purgeArchived(before: Date): number;
+  listArchivedIds(before: Date): readonly string[];
   inspectLifecycle(asOf: Date, workspaceId?: string): MemoryLifecycleSnapshot;
 }
 

@@ -51,6 +51,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Mejorar recall léxico sin perder precisión. **Implementado con variaciones simples singular/plural y expansión configurable de grupos de sinónimos conservadores, manteniendo semántica `AND`; quedan pendientes stemming semántico y retrieval vectorial.**
 - Hacer operativa la compactación desde SQLite. **Implementado con `npm run demo:agent-memory -- --compact-ids ...`, presupuesto configurable, archivado opt-in y regresión de migración desde tablas legacy.**
 - Endurecer idempotencia e inspección del lifecycle. **Implementado con clave estable para reutilizar resúmenes y `--inspect-lifecycle true` para consultar conteos por estado y vigencia.**
+- Hacer segura la retención de archivadas. **Implementado con plan de purga, lista de candidatos y `dry-run` predeterminado; la eliminación requiere `--purge-dry-run false`.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 
