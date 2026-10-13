@@ -38,6 +38,7 @@ export class MemoryService {
     }
     const subjectKey = optionalText(input.subjectKey);
     const now = this.now();
+    const requestedStatus = requireMemoryStatus(input.status ?? "active");
     const existing = subjectKey
       ? this.repository.findActiveBySubjectKey(workspaceId, subjectKey, now)
       : undefined;
@@ -59,7 +60,7 @@ export class MemoryService {
       content,
       ...(subjectKey ? { subjectKey } : {}),
       tags: normalizeTags(input.tags),
-      status: input.status ?? "active",
+      status: requestedStatus,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
       validFrom: input.validFrom ?? existing?.validFrom ?? now,
@@ -184,12 +185,16 @@ export class MemoryService {
       throw new Error(`Memory '${normalizedId}' was not found.`);
     }
 
+    const nextStatus = requireMemoryStatus(status);
+    assertStatusTransition(item.status, nextStatus);
     const now = this.now();
     const updated: MemoryItem = {
       ...item,
-      status,
+      status: nextStatus,
       updatedAt: now,
-      ...(status === "archived" ? { archivedAt: now } : {}),
+      ...(nextStatus === "archived"
+        ? { archivedAt: item.archivedAt ?? now }
+        : {}),
     };
     validateLifecycle(updated);
     this.repository.update(updated);
@@ -322,6 +327,38 @@ function requireRelationType(value: unknown): MemoryRelationType {
   }
 
   return value;
+}
+
+function requireMemoryStatus(value: unknown): MemoryItem["status"] {
+  if (
+    value !== "active" &&
+    value !== "needs_review" &&
+    value !== "superseded" &&
+    value !== "archived"
+  ) {
+    throw new Error(`Unsupported memory status: '${String(value)}'.`);
+  }
+
+  return value;
+}
+
+function assertStatusTransition(
+  current: MemoryItem["status"],
+  next: MemoryItem["status"],
+): void {
+  const allowed: Record<MemoryItem["status"], readonly MemoryItem["status"][]> =
+    {
+      active: ["active", "needs_review", "superseded", "archived"],
+      needs_review: ["needs_review", "active", "superseded", "archived"],
+      superseded: ["superseded", "archived"],
+      archived: ["archived"],
+    };
+
+  if (!allowed[current].includes(next)) {
+    throw new Error(
+      `Memory status cannot transition from '${current}' to '${next}'.`,
+    );
+  }
 }
 
 function optionalText(value: string | undefined): string | undefined {

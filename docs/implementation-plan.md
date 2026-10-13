@@ -54,6 +54,7 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Hacer segura la retención de archivadas. **Implementado con plan de purga, lista de candidatos y `dry-run` predeterminado; la eliminación requiere `--purge-dry-run false`.**
 - Reforzar la consistencia referencial de relaciones. **Implementado: ambas memorias deben existir, pertenecer al mismo workspace y no estar archivadas; la purga elimina los vínculos de las memorias eliminadas.**
 - Validar semántica runtime de relaciones. **Implementado: se rechazan tipos desconocidos y la creación repetida del mismo vínculo es idempotente.**
+- Formalizar transiciones de lifecycle. **Implementado: se validan estados runtime, se restringen transiciones inválidas y `archived` queda como estado terminal.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 

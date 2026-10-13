@@ -327,6 +327,12 @@ describe("SqliteAgentMemoryRepository", () => {
 
     expect(service.archiveExpired()).toBe(1);
     expect(repository.findById(expired.id)?.status).toBe("archived");
+    expect(() => service.setStatus(expired.id, "active")).toThrow(
+      "cannot transition",
+    );
+    expect(() => service.setStatus(expired.id, "unknown" as never)).toThrow(
+      "Unsupported memory status",
+    );
     expect(service.setStatus(retained.id, "needs_review").status).toBe(
       "needs_review",
     );

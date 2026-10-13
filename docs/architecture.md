@@ -31,6 +31,8 @@ SQLite local    PostgreSQL + pgvector
 
 Las relaciones entre memorias requieren extremos existentes, del mismo workspace y no archivados. Sus tipos válidos son `related`, `supports`, `conflicts_with` y `supersedes`; repetir el mismo vínculo es idempotente. La purga de memorias archivadas elimina también sus relaciones para evitar vínculos huérfanos.
 
+Las transiciones de lifecycle se validan en la capa de aplicación: `active` puede pasar a revisión, reemplazada o archivada; `needs_review` puede volver a activa, reemplazada o archivada; `superseded` sólo puede permanecer así o archivarse; `archived` es terminal.
+
 Persistencia local-first con SQLite para:
 
 - sesiones y resúmenes;
