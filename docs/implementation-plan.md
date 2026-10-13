@@ -62,6 +62,8 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 - Aislar la retención por workspace. **Implementado: `runRetention()` exige `workspaceId` o `allWorkspaces: true` y aplica el filtro en archivado, candidatos y purga.**
 - Preparar mantenimiento automatizable. **Implementado en el demo: backup previo opcional y retención coordinada con preview por defecto y scope explícito.**
 - Hacer predictivo el preview de retención. **Implementado: el plan incluye también vencidas que quedarían purgables después del archivado proyectado.**
+- Verificar mantenimiento desde el consumidor real. **Implementado con `npm run test:maintenance-smoke`: ejerce backup, preview, ejecución y comprobación de restauración/purga mediante el comando CLI.**
+- Evitar sobrescritura accidental de backups. **Implementado: los destinos existentes se rechazan por defecto y requieren overwrite explícito.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 

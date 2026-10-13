@@ -6,6 +6,7 @@ export { MemoryService } from "./application/memory/memory-service.js";
 export {
   SqliteAgentMemoryRepository,
   type SqliteAgentMemoryOptions,
+  type SqliteBackupOptions,
   type SqliteBackupResult,
 } from "./infrastructure/sqlite/sqlite-agent-memory.js";
 export {

@@ -34,6 +34,7 @@
     "release:check": "node scripts/release-contract-check.mjs",
     "migrations:check": "node scripts/migration-contract-check.mjs",
     "test:consumer": "npm run build && node scripts/consumer-smoke.mjs",
+    "test:maintenance-smoke": "npm run build && node scripts/agent-memory-maintenance-smoke.mjs",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "eslint .",
     "format": "prettier --check .",

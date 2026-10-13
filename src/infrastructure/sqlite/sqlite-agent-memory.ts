@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 import type {
@@ -56,6 +57,10 @@ export interface SqliteBackupResult {
   destinationFile: string;
   totalPages: number;
   remainingPages: number;
+}
+
+export interface SqliteBackupOptions {
+  overwrite?: boolean;
 }
 
 const defaultSynonyms: Readonly<Record<string, readonly string[]>> = {
@@ -117,7 +122,10 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
     this.migrate();
   }
 
-  async backup(destinationFile: string): Promise<SqliteBackupResult> {
+  async backup(
+    destinationFile: string,
+    options: SqliteBackupOptions = {},
+  ): Promise<SqliteBackupResult> {
     const destination = destinationFile.trim();
     if (!destination) {
       throw new Error("destinationFile is required.");
@@ -127,6 +135,11 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
       resolve(this.filename) === resolve(destination)
     ) {
       throw new Error("destinationFile must differ from the source database.");
+    }
+    if (existsSync(destination) && !options.overwrite) {
+      throw new Error(
+        "destinationFile already exists; pass overwrite: true to replace it.",
+      );
     }
 
     const metadata = await this.database.backup(destination);

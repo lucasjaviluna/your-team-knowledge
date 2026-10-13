@@ -20,7 +20,9 @@ const context = { projectId: options.project, area: options.area };
 
 try {
   const backup = options.backupTo
-    ? await repository.backup(resolve(options.backupTo))
+    ? await repository.backup(resolve(options.backupTo), {
+        overwrite: options.backupOverwrite,
+      })
     : undefined;
   const retention = options.retentionPurgeBefore
     ? memory.runRetention({
@@ -132,6 +134,7 @@ function parseOptions(args) {
     archiveSources: values.get("archive-sources") === "true",
     inspectLifecycle: values.get("inspect-lifecycle") === "true",
     backupTo: values.get("backup-to"),
+    backupOverwrite: values.get("backup-overwrite") === "true",
     retentionPurgeBefore: values.get("retention-purge-before"),
     retentionDryRun: values.get("retention-dry-run") !== "false",
     retentionAllWorkspaces: values.get("retention-all-workspaces") === "true",

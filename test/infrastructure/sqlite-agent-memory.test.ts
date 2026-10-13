@@ -491,6 +491,12 @@ describe("SqliteAgentMemoryRepository", () => {
     expect(result.totalPages).toBeGreaterThan(0);
     expect(result.remainingPages).toBe(0);
     expect(existsSync(backupFile)).toBe(true);
+    await expect(source.backup(backupFile)).rejects.toThrow(
+      "destinationFile already exists",
+    );
+    await expect(
+      source.backup(backupFile, { overwrite: true }),
+    ).resolves.toMatchObject({ destinationFile: backupFile });
     expect(
       service.search({ workspaceId: "workspace-a", query: "restaurarse" }),
     ).toHaveLength(1);
