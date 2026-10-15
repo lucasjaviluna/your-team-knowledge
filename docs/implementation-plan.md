@@ -81,7 +81,7 @@ El núcleo y el protocolo reusable están listos para una prueba manual de persi
 - Integrar revisiones con el consumidor real. **Implementado: `PiHarnessMemoryProvider.completeReview()` aplica el proyecto actual, completa sólo revisiones vencidas y devuelve un resultado consumible.**
 - Exponer la cola de revisión en pi-harness. **Implementado: `PiHarnessMemoryProvider.listDueForReview()` devuelve entradas acotadas por límite, tamaño y proyecto.**
 - Definir el protocolo reusable para agentes consumidores: bootstrap de contexto, búsqueda antes de decisiones, guardado de decisiones/bugs/fixes/patrones, actualización por duplicados, resumen de sesión y exclusión de secretos/trivialidades. **Implementado en `PiHarnessMemoryProtocol` y documentado en `docs/agent-memory-protocol.md`.**
-- Conectar el protocolo a hooks/tools reales del runtime de pi-harness para que el agente invoque SQLite automáticamente, sin comandos manuales por cada memoria. **Pendiente en `your-harness-v0`.**
+- Conectar el protocolo a las capacidades de memoria del runtime consumidor para que el agente invoque almacenamiento y recuperación automáticamente, sin comandos manuales por cada memoria. **Pendiente en el adaptador del runtime consumidor.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 
@@ -148,7 +148,7 @@ El núcleo y el protocolo reusable están listos para una prueba manual de persi
 - Exponer API interna para memoria, conocimiento y contexto. **`POST /v1/context` y `KnowledgeHttpClient.context()` implementados; el servidor compone Agent Memory SQLite y Knowledge RAG.**
 - Publicar contratos de red independientes del lenguaje.
 - En pi-harness: crear la extensión nativa que mapee `PiHarnessKnowledgeAdapter.toolDefinitions()` a `pi.registerTool`.
-- En pi-harness: crear la extensión nativa que mapee el provider de Agent Memory y el protocolo agentico a tools/hooks del runtime. **Pendiente en `your-harness-v0`.**
+- En cada runtime consumidor: crear el adaptador nativo que mapee el provider de Agent Memory y el protocolo agéntico a sus tools/hooks. **Pendiente.**
 - Mantener el Agent Memory como paquete local con SQLite.
 - Exponer un `MemoryProvider` compatible con pi-harness sobre el repositorio SQLite.
 - Exponer MCP cuando el núcleo y la API estén estabilizados.

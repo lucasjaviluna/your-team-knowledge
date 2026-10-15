@@ -1,50 +1,56 @@
-# Protocolo reusable de Agent Memory
+# Protocolo general de Agent Memory para `AGENTS.md`
 
-Este documento define el contrato que debe ejecutar un consumidor de la plataforma durante el trabajo normal de un agente. La extensión nativa de Pi sigue viviendo en `your-harness-v0`; este repositorio publica la fachada runtime-neutral `PiHarnessMemoryProtocol`.
+Este bloque está pensado para incorporarse a las instrucciones de un repositorio y ser entendido por agentes que funcionen con cualquier proveedor o runtime. No presupone SDKs, herramientas, nombres de productos ni mecanismos concretos de integración.
 
-## Flujo obligatorio
+## Instrucciones para el agente
 
-1. Al iniciar una tarea, el consumidor llama `bootstrap()` con `projectId` y, cuando existe una pregunta o decisión activa, una consulta de contexto. El método abre una sesión y devuelve memorias relevantes acotadas por `limit` y `maxChars`.
-2. Antes de una decisión técnica o de producto, el consumidor recupera memoria con `bootstrap()`/`provider.search()` y usa esa evidencia junto con el estado actual del proyecto.
-3. Cuando se confirma una decisión, bug, fix, patrón, preferencia o descubrimiento reutilizable, llama `remember()`. `subjectKey` habilita actualización idempotente; no se deben emitir comandos manuales por cada memoria.
-4. El consumidor no guarda secretos, tokens, credenciales, contenido trivial ni output crudo de herramientas. El servicio rechaza contenido sensible y el hook debe tratar ese rechazo como una operación no persistida.
-5. Al terminar la sesión, llama `finish()` con el resumen y el `sessionId` devuelto por `bootstrap()`. El resumen se conserva tanto en la sesión como en una memoria de tipo `summary`.
-6. El consumidor conecta `observe` a su logger/métricas. Sólo debe registrar operación, proyecto, resultado, cantidad y duración; nunca contenido de memoria.
+### Inicio de una sesión
 
-## Integración mínima
+Al comenzar una tarea:
 
-```ts
-import {
-  MemoryService,
-  PiHarnessMemoryProtocol,
-  SqliteAgentMemoryRepository,
-} from "@corporate-knowledge/platform/memory";
+1. Identificá el proyecto, área de trabajo y objetivo actual.
+2. Recuperá memoria relevante antes de tomar decisiones técnicas o de producto.
+3. Usá sólo el contexto necesario para la tarea; no vuelques memoria completa sin motivo.
+4. Si la memoria no está disponible, continuá con la tarea y declaralo cuando afecte una decisión.
 
-const memory = new MemoryService(
-  new SqliteAgentMemoryRepository(".harness/team-knowledge.sqlite"),
-);
-const protocol = new PiHarnessMemoryProtocol(memory, undefined, {
-  observe: (event) => logger.info("agent_memory", event),
-});
+### Durante el trabajo
 
-const context = { projectId: workspaceId, area: "backend" };
-const session = await protocol.bootstrap(context, {
-  query: taskDescription,
-});
+Recuperá memoria antes de decidir sobre arquitectura, convenciones, bugs conocidos, patrones o restricciones del proyecto.
 
-// El runtime del consumidor ejecuta el trabajo del agente aquí.
-await protocol.remember(context, {
-  type: "decision",
-  subjectKey: "deployment/strategy",
-  title: "Estrategia de despliegue",
-  content: "Usar despliegues graduales con rollback validado.",
-  tags: ["deployment", "rollback"],
-});
+Guardá una memoria cuando ocurra algo reutilizable:
 
-await protocol.finish(context, {
-  sessionId: session.sessionId,
-  summary: "Se confirmó la estrategia de despliegue y su rollback.",
-});
+- una decisión técnica o de producto, junto con su motivo;
+- un bug y su causa o solución;
+- un patrón confirmado o un anti-patrón descubierto;
+- un aprendizaje no obvio sobre el código, runtime o infraestructura;
+- una preferencia o restricción durable del equipo.
+
+Cuando una memoria existente describe el mismo tema, actualizala en vez de crear una entrada competidora. Usá una clave estable del tema cuando el sistema la soporte para que la operación sea idempotente.
+
+No guardes secretos, tokens, credenciales, datos personales innecesarios, contenido trivial, conversaciones completas ni output crudo de herramientas. No inventes contexto ausente y distinguí entre evidencia recuperada, inferencia propia y dato todavía no verificado.
+
+### Cierre de una sesión
+
+Al finalizar o pausar una tarea:
+
+1. Guardá un resumen breve con objetivo, restricciones, hallazgos, trabajo completado, próximos pasos y archivos relevantes.
+2. Si queda trabajo incompleto, registrá también el estado pendiente.
+3. No conviertas cada mensaje en una memoria; priorizá conocimiento durable y reutilizable.
+
+### Seguridad y alcance
+
+La memoria debe respetar el proyecto, workspace, permisos y área de la tarea actual. No mezcles contexto entre proyectos ni persistas información fuera del alcance autorizado. Las operaciones destructivas o de eliminación requieren confirmación explícita.
+
+## Contrato abstracto esperado
+
+El runtime que ejecute estas instrucciones debería ofrecer capacidades equivalentes a:
+
+```text
+memory.context(project, area?)
+memory.search(query, project, area?, limit?, maxChars?)
+memory.save(type, title, content, project, area?, tags?, topicKey?)
+memory.update(existingId, content/title/tags/topicKey)
+memory.sessionSummary(goal, discoveries, completed, nextSteps, files)
 ```
 
-La extensión de `your-harness-v0` debe mapear sus hooks de inicio/cierre y sus tools de memoria a estos métodos, respetando la aprobación configurada para escrituras. La plataforma no registra `pi.registerTool` ni importa `ExtensionAPI`.
+El agente debe trabajar con ese contrato abstracto y no depender de la forma concreta en que el proveedor implemente almacenamiento, búsqueda, herramientas, hooks o transporte.
