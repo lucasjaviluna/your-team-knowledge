@@ -21,3 +21,13 @@ export {
   type PiHarnessMemoryReviewResult,
   type PiHarnessMemoryWriteRequest,
 } from "./pi-harness-memory-provider.js";
+export {
+  PiHarnessMemoryProtocol,
+  type PiHarnessMemoryBootstrapRequest,
+  type PiHarnessMemoryBootstrapResult,
+  type PiHarnessMemoryFinishRequest,
+  type PiHarnessMemoryProtocolEvent,
+  type PiHarnessMemoryProtocolOptions,
+  type PiHarnessMemoryRememberRequest,
+  type PiHarnessMemoryRememberResult,
+} from "./pi-harness-memory-protocol.js";

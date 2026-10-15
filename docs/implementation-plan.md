@@ -12,13 +12,13 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 ## Estado global — 2026-10-13
 
 - **Etapas 0–1:** completadas; arquitectura, base TypeScript, CI, migraciones y contratos de distribución están establecidos.
-- **Etapa 2 — Agent Memory SQLite:** completada para el primer slice operativo. Incluye persistencia, FTS5, `subjectKey`, sesiones, relaciones, compactación, lifecycle, revisión, retención, backup, métricas, detección de secretos, smoke de mantenimiento y provider compatible con pi-harness.
+- **Etapa 2 — Agent Memory SQLite:** completada para el primer slice operativo de almacenamiento y lifecycle. Incluye persistencia, FTS5, `subjectKey`, sesiones, relaciones, compactación, lifecycle, revisión, retención, backup, métricas, detección de secretos, smoke de mantenimiento y provider compatible con pi-harness. La integración agentica automática mediante protocolo `AGENTS.md` y hooks/tools del harness queda pendiente.
 - **Etapa 3 — RAG/Postgres:** en curso avanzado; ingesta Markdown, embeddings E5 provisional, `vector(384)`, HNSW, recuperación híbrida, ACL, provenance y servicios de consulta están implementados. Queda pendiente cerrar la estrategia de transporte/MCP y la decisión de publicación del proveedor.
 - **Etapa 4 — Context Orchestrator:** primer vertical slice completado; combina memoria SQLite y RAG con límites, selección de fuentes y provenance.
 - **Etapas 5–6:** calidad, evaluación, HTTP, seguridad, auditoría, cliente y distribución están implementados; quedan integraciones corporativas concretas y la extensión nativa en el repositorio de pi-harness.
 - **Etapa 7:** pendiente; conectores, sincronización incremental y evolución operativa.
 
-El proyecto está listo para una prueba manual de Agent Memory sobre SQLite usando un proyecto real, sin requerir PostgreSQL ni un modelo de embeddings.
+El núcleo y el protocolo reusable están listos para una prueba manual de persistencia sobre SQLite usando un proyecto real, sin requerir PostgreSQL ni un modelo de embeddings. La prueba objetivo —un agente que recupera y guarda memoria automáticamente durante cambios— requiere conectar el protocolo al runtime del harness.
 
 ## Etapa 0 — Arquitectura v0 y reglas del proyecto
 
@@ -51,7 +51,7 @@ El proyecto está listo para una prueba manual de Agent Memory sobre SQLite usan
 
 **Objetivo:** implementar la memoria operativa del agente sobre SQLite.
 
-**Estado:** núcleo inicial y lifecycle operativo completados. La persistencia, búsqueda, actualización por `subjectKey`, lifecycle de sesiones y relaciones entre memorias están implementados y probados. Las memorias ahora tienen vigencia (`validFrom`/`expiresAt`), revisión (`reviewAt`), estados `active`, `needs_review`, `superseded` y `archived`, archivado automático de vencidas y purga transaccional de archivadas. La búsqueda FTS5 incorpora expansión léxica conservadora para singular/plural y sinónimos configurables. La compactación determinista genera resúmenes acotados por `maxChars`, conserva relaciones con las fuentes y permite archivar fuentes de forma explícita. El demo de consumidor separa escritura de búsqueda para evitar sobrescrituras accidentales. La revisión vencida puede consultarse y completarse desde el CLI y desde `PiHarnessMemoryProvider`, con aislamiento por proyecto y eventos auditables.
+**Estado:** núcleo inicial, lifecycle y protocolo reusable completados. La persistencia, búsqueda, actualización por `subjectKey`, lifecycle de sesiones y relaciones entre memorias están implementados y probados. Las memorias ahora tienen vigencia (`validFrom`/`expiresAt`), revisión (`reviewAt`), estados `active`, `needs_review`, `superseded` y `archived`, archivado automático de vencidas y purga transaccional de archivadas. La búsqueda FTS5 incorpora expansión léxica conservadora para singular/plural y sinónimos configurables. La compactación determinista genera resúmenes acotados por `maxChars`, conserva relaciones con las fuentes y permite archivar fuentes de forma explícita. El demo de consumidor separa escritura de búsqueda para evitar sobrescrituras accidentales. La revisión vencida puede consultarse y completarse desde el CLI y desde `PiHarnessMemoryProvider`, con aislamiento por proyecto y eventos auditables. Falta conectar el protocolo a hooks/tools automáticos del runtime del harness.
 
 - Diseñar el esquema de sesiones, memorias, relaciones y resúmenes.
 - Implementar `MemoryItem` con tipo, contenido, `subjectKey`, tags, estado y fechas.
@@ -80,6 +80,8 @@ El proyecto está listo para una prueba manual de Agent Memory sobre SQLite usan
 - Completar y reprogramar revisiones. **Implementado: `completeReview()` exige una próxima fecha futura, reactiva la memoria y emite `review_completed`; el demo lo expone con `--complete-review` y `--next-review-at`.**
 - Integrar revisiones con el consumidor real. **Implementado: `PiHarnessMemoryProvider.completeReview()` aplica el proyecto actual, completa sólo revisiones vencidas y devuelve un resultado consumible.**
 - Exponer la cola de revisión en pi-harness. **Implementado: `PiHarnessMemoryProvider.listDueForReview()` devuelve entradas acotadas por límite, tamaño y proyecto.**
+- Definir el protocolo reusable para agentes consumidores: bootstrap de contexto, búsqueda antes de decisiones, guardado de decisiones/bugs/fixes/patrones, actualización por duplicados, resumen de sesión y exclusión de secretos/trivialidades. **Implementado en `PiHarnessMemoryProtocol` y documentado en `docs/agent-memory-protocol.md`.**
+- Conectar el protocolo a hooks/tools reales del runtime de pi-harness para que el agente invoque SQLite automáticamente, sin comandos manuales por cada memoria. **Pendiente en `your-harness-v0`.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 
@@ -146,6 +148,7 @@ El proyecto está listo para una prueba manual de Agent Memory sobre SQLite usan
 - Exponer API interna para memoria, conocimiento y contexto. **`POST /v1/context` y `KnowledgeHttpClient.context()` implementados; el servidor compone Agent Memory SQLite y Knowledge RAG.**
 - Publicar contratos de red independientes del lenguaje.
 - En pi-harness: crear la extensión nativa que mapee `PiHarnessKnowledgeAdapter.toolDefinitions()` a `pi.registerTool`.
+- En pi-harness: crear la extensión nativa que mapee el provider de Agent Memory y el protocolo agentico a tools/hooks del runtime. **Pendiente en `your-harness-v0`.**
 - Mantener el Agent Memory como paquete local con SQLite.
 - Exponer un `MemoryProvider` compatible con pi-harness sobre el repositorio SQLite.
 - Exponer MCP cuando el núcleo y la API estén estabilizados.

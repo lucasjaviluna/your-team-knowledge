@@ -17,6 +17,16 @@ export {
   type PiHarnessMemorySearchResult,
   type PiHarnessMemoryWriteRequest,
 } from "./adapters/pi-harness-memory-provider.js";
+export {
+  PiHarnessMemoryProtocol,
+  type PiHarnessMemoryBootstrapRequest,
+  type PiHarnessMemoryBootstrapResult,
+  type PiHarnessMemoryFinishRequest,
+  type PiHarnessMemoryProtocolEvent,
+  type PiHarnessMemoryProtocolOptions,
+  type PiHarnessMemoryRememberRequest,
+  type PiHarnessMemoryRememberResult,
+} from "./adapters/pi-harness-memory-protocol.js";
 
 export type {
   AddMemoryRelationInput,
