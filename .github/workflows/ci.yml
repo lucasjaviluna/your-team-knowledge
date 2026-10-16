@@ -23,7 +23,18 @@ jobs:
           # npm 11 rejects msvs_version as an npm option, but node-gyp reads
           # this environment variable during native dependency installation.
           npm_config_msvs_version: "2022"
-      - run: npm run format
+      - name: Check formatting
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          Write-Host "Node: $(node --version)"
+          Write-Host "npm: $(npm --version)"
+          Write-Host "Prettier: $(npm exec -- prettier --version)"
+          npm run format -- --log-level debug
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Prettier exited with code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
