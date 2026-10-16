@@ -8,7 +8,9 @@ jobs:
   validate:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # Keep Windows on the VS 2022 image. windows-latest currently resolves
+        # to an image with Visual Studio 18, which node-gyp does not recognize.
+        os: [ubuntu-latest, windows-2022]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -16,6 +18,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Configure node-gyp for Visual Studio 2022
+        if: runner.os == 'Windows'
+        run: npm config set msvs_version 2022
       - run: npm ci
       - run: npm run format
       - run: npm run typecheck
