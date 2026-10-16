@@ -46,6 +46,17 @@ export class MemoryService {
       throw new Error("Sensitive content detected in memory.");
     }
     const subjectKey = optionalText(input.subjectKey);
+    const sessionId = optionalText(input.sessionId);
+    if (sessionId) {
+      const session = this.repository.findSession(sessionId);
+      if (
+        !session ||
+        session.workspaceId !== workspaceId ||
+        (input.ownerId && session.ownerId !== input.ownerId)
+      ) {
+        throw new Error(`Session '${sessionId}' was not found.`);
+      }
+    }
     const now = this.now();
     const requestedStatus = requireMemoryStatus(input.status ?? "active");
     const existing = subjectKey
@@ -61,9 +72,7 @@ export class MemoryService {
     const item: MemoryItem = {
       id: existing?.id ?? this.idGenerator(),
       workspaceId,
-      ...(input.sessionId
-        ? { sessionId: requireText(input.sessionId, "sessionId") }
-        : {}),
+      ...(sessionId ? { sessionId } : {}),
       type: input.type,
       title,
       content,
@@ -99,6 +108,14 @@ export class MemoryService {
       includeNeedsReview: input.includeNeedsReview ?? false,
       asOf: input.asOf ?? this.now(),
     });
+  }
+
+  get(memoryId: string, workspaceId: string): MemoryItem | undefined {
+    const normalizedId = requireText(memoryId, "memoryId");
+    const normalizedWorkspaceId = requireText(workspaceId, "workspaceId");
+    const item = this.repository.findById(normalizedId);
+
+    return item?.workspaceId === normalizedWorkspaceId ? item : undefined;
   }
 
   compact(input: CompactMemoryInput): CompactMemoryResult {
@@ -416,9 +433,11 @@ export class MemoryService {
   }
 
   startSession(input: StartSessionInput): MemorySession {
+    const ownerId = optionalText(input.ownerId);
     const session: MemorySession = {
       id: this.idGenerator(),
       workspaceId: requireText(input.workspaceId, "workspaceId"),
+      ...(ownerId ? { ownerId } : {}),
       startedAt: this.now(),
     };
     this.repository.insertSession(session);
@@ -441,6 +460,25 @@ export class MemoryService {
       ...(input.summary?.trim() ? { summary: input.summary.trim() } : {}),
       endedAt,
     };
+  }
+
+  endSessionForWorkspace(
+    input: EndSessionInput,
+    workspaceId: string,
+  ): MemorySession {
+    const sessionId = requireText(input.sessionId, "sessionId");
+    const normalizedWorkspaceId = requireText(workspaceId, "workspaceId");
+    const existing = this.repository.findSession(sessionId);
+
+    if (
+      !existing ||
+      existing.workspaceId !== normalizedWorkspaceId ||
+      (input.ownerId && existing.ownerId !== input.ownerId)
+    ) {
+      throw new Error(`Session '${sessionId}' was not found.`);
+    }
+
+    return this.endSession(input);
   }
 
   addRelation(input: AddMemoryRelationInput): MemoryRelation {

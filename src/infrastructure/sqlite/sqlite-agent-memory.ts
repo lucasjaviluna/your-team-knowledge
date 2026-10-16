@@ -37,6 +37,7 @@ interface MemoryRow {
 interface SessionRow {
   id: string;
   workspace_id: string;
+  owner_id: string | null;
   started_at: string;
   ended_at: string | null;
   summary: string | null;
@@ -157,12 +158,13 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
   insertSession(session: MemorySession): void {
     this.database
       .prepare(
-        `INSERT INTO sessions (id, workspace_id, started_at, ended_at, summary)
-         VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO sessions (id, workspace_id, owner_id, started_at, ended_at, summary)
+         VALUES (?, ?, ?, ?, ?, ?)`,
       )
       .run(
         session.id,
         session.workspaceId,
+        session.ownerId ?? null,
         session.startedAt.toISOString(),
         null,
         null,
@@ -470,6 +472,7 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
       CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
         workspace_id TEXT NOT NULL,
+        owner_id TEXT,
         started_at TEXT NOT NULL,
         ended_at TEXT,
         summary TEXT
@@ -519,6 +522,7 @@ export class SqliteAgentMemoryRepository implements MemoryRepository {
       );
     `);
 
+    this.ensureColumn("sessions", "owner_id", "TEXT");
     this.ensureColumn(
       "memory_items",
       "valid_from",
@@ -629,6 +633,7 @@ function toMemorySession(row: SessionRow): MemorySession {
   return {
     id: row.id,
     workspaceId: row.workspace_id,
+    ...(row.owner_id ? { ownerId: row.owner_id } : {}),
     startedAt: new Date(row.started_at),
     ...(row.ended_at ? { endedAt: new Date(row.ended_at) } : {}),
     ...(row.summary ? { summary: row.summary } : {}),

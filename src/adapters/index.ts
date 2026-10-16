@@ -11,6 +11,29 @@ export {
   type PiHarnessToolDefinition,
 } from "./pi-harness-knowledge.js";
 export {
+  SqliteAgentMemoryProvider,
+  type AgentMemoryContext,
+  type AgentMemoryEntry,
+  type AgentMemoryProvider,
+  type AgentMemoryReviewRequest,
+  type AgentMemoryReviewResult,
+  type AgentMemorySaveRequest,
+  type AgentMemorySaveResult,
+  type AgentMemorySearchRequest,
+  type AgentMemorySearchResult,
+  type AgentMemorySessionFinishRequest,
+  type AgentMemorySessionResult,
+} from "./agent-memory-provider.js";
+export {
+  AgentMemoryProtocol,
+  type AgentMemoryBootstrapRequest,
+  type AgentMemoryBootstrapResult,
+  type AgentMemoryFinishRequest,
+  type AgentMemoryProtocolEvent,
+  type AgentMemoryProtocolOptions,
+  type AgentMemoryRememberRequest,
+} from "./agent-memory-protocol.js";
+export {
   PiHarnessMemoryProvider,
   type PiHarnessMemoryContext,
   type PiHarnessMemoryEntry,

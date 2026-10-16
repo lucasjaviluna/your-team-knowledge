@@ -42,6 +42,7 @@ export interface MemoryItem {
 export interface MemorySession {
   id: string;
   workspaceId: string;
+  ownerId?: string;
   startedAt: Date;
   endedAt?: Date;
   summary?: string;

@@ -10,6 +10,7 @@ import type {
 export interface SaveMemoryInput {
   workspaceId: string;
   sessionId?: string;
+  ownerId?: string;
   type: MemoryItemType;
   title: string;
   content: string;
@@ -162,11 +163,13 @@ export interface RunMemoryRetentionResult {
 
 export interface StartSessionInput {
   workspaceId: string;
+  ownerId?: string;
 }
 
 export interface EndSessionInput {
   sessionId: string;
   summary?: string;
+  ownerId?: string;
 }
 
 export interface AddMemoryRelationInput {

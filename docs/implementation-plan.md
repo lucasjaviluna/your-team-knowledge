@@ -9,16 +9,16 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
      → Governance y evaluación → Adaptadores → Conectores y evolución
 ```
 
-## Estado global — 2026-10-13
+## Estado global — 2026-10-15
 
 - **Etapas 0–1:** completadas; arquitectura, base TypeScript, CI, migraciones y contratos de distribución están establecidos.
-- **Etapa 2 — Agent Memory SQLite:** completada para el primer slice operativo de almacenamiento y lifecycle. Incluye persistencia, FTS5, `subjectKey`, sesiones, relaciones, compactación, lifecycle, revisión, retención, backup, métricas, detección de secretos, smoke de mantenimiento y provider compatible con pi-harness. La integración agentica automática mediante protocolo `AGENTS.md` y hooks/tools del harness queda pendiente.
+- **Etapa 2 — Agent Memory SQLite:** completada como producto local instalable: contrato provider-neutral, MCP, resolución segura de proyecto/sesión, setup de agentes, diagnóstico, backup, upgrade, rollback y release interno multiplataforma.
 - **Etapa 3 — RAG/Postgres:** en curso avanzado; ingesta Markdown, embeddings E5 provisional, `vector(384)`, HNSW, recuperación híbrida, ACL, provenance y servicios de consulta están implementados. Queda pendiente cerrar la estrategia de transporte/MCP y la decisión de publicación del proveedor.
 - **Etapa 4 — Context Orchestrator:** primer vertical slice completado; combina memoria SQLite y RAG con límites, selección de fuentes y provenance.
 - **Etapas 5–6:** calidad, evaluación, HTTP, seguridad, auditoría, cliente y distribución están implementados; quedan integraciones corporativas concretas y la extensión nativa en el repositorio de pi-harness.
 - **Etapa 7:** pendiente; conectores, sincronización incremental y evolución operativa.
 
-El núcleo y el protocolo reusable están listos para una prueba manual de persistencia sobre SQLite usando un proyecto real, sin requerir PostgreSQL ni un modelo de embeddings. La prueba objetivo —un agente que recupera y guarda memoria automáticamente durante cambios— requiere conectar el protocolo al runtime del harness.
+Agent Memory queda cerrado como producto local: el E2E reproducible usa dos clientes MCP independientes y valida bootstrap, recall, escritura idempotente, ownership de sesión, cierre, compactación y reanudación. Los adaptadores nativos de hosts concretos son integraciones externas que consumen el mismo MCP y no bloquean el núcleo.
 
 ## Etapa 0 — Arquitectura v0 y reglas del proyecto
 
@@ -51,13 +51,15 @@ El núcleo y el protocolo reusable están listos para una prueba manual de persi
 
 **Objetivo:** implementar la memoria operativa del agente sobre SQLite.
 
-**Estado:** núcleo inicial, lifecycle y protocolo reusable completados. La persistencia, búsqueda, actualización por `subjectKey`, lifecycle de sesiones y relaciones entre memorias están implementados y probados. Las memorias ahora tienen vigencia (`validFrom`/`expiresAt`), revisión (`reviewAt`), estados `active`, `needs_review`, `superseded` y `archived`, archivado automático de vencidas y purga transaccional de archivadas. La búsqueda FTS5 incorpora expansión léxica conservadora para singular/plural y sinónimos configurables. La compactación determinista genera resúmenes acotados por `maxChars`, conserva relaciones con las fuentes y permite archivar fuentes de forma explícita. El demo de consumidor separa escritura de búsqueda para evitar sobrescrituras accidentales. La revisión vencida puede consultarse y completarse desde el CLI y desde `PiHarnessMemoryProvider`, con aislamiento por proyecto y eventos auditables. Falta conectar el protocolo a hooks/tools automáticos del runtime del harness.
+**Estado:** producto local completado. El servidor MCP resuelve proyecto de forma segura y fija owner de sesión por proceso; el inicializador deja configuración portable e instrucciones neutrales. El CLI administrativo cubre diagnóstico, backup, upgrade y rollback confirmado. CI valida el tarball privado en Windows y Linux.
 
 - Diseñar el esquema de sesiones, memorias, relaciones y resúmenes.
 - Implementar `MemoryItem` con tipo, contenido, `subjectKey`, tags, estado y fechas.
 - Implementar guardado, búsqueda, recuperación, actualización por `subjectKey` y deduplicación.
 - Crear resúmenes de sesión y lifecycle: activa, reemplazada, pendiente de revisión y archivada. **Implementado con fechas de vigencia/revisión, transiciones explícitas, archivado de vencidas y purga controlada.**
 - Exponer la interfaz `MemoryProvider`.
+- Generalizar la fachada sin nombres de productos externos. **Implementado con `AgentMemoryProvider`, `SqliteAgentMemoryProvider` y `AgentMemoryProtocol`; los adaptadores anteriores quedan como compatibilidad.**
+- Exponer Agent Memory mediante MCP nativo. **Implementado por `stdio` con cinco herramientas, validación de entrada, resultados estructurados, scope inmutable por proyecto y smoke E2E con el cliente oficial.**
 - Crear pruebas de persistencia, deduplicación y actualización.
 - Mejorar recall léxico sin perder precisión. **Implementado con variaciones simples singular/plural y expansión configurable de grupos de sinónimos conservadores, manteniendo semántica `AND`; quedan pendientes stemming semántico y retrieval vectorial.**
 - Hacer operativa la compactación desde SQLite. **Implementado con `npm run demo:agent-memory -- --compact-ids ...`, presupuesto configurable, archivado opt-in y regresión de migración desde tablas legacy.**
@@ -80,8 +82,8 @@ El núcleo y el protocolo reusable están listos para una prueba manual de persi
 - Completar y reprogramar revisiones. **Implementado: `completeReview()` exige una próxima fecha futura, reactiva la memoria y emite `review_completed`; el demo lo expone con `--complete-review` y `--next-review-at`.**
 - Integrar revisiones con el consumidor real. **Implementado: `PiHarnessMemoryProvider.completeReview()` aplica el proyecto actual, completa sólo revisiones vencidas y devuelve un resultado consumible.**
 - Exponer la cola de revisión en pi-harness. **Implementado: `PiHarnessMemoryProvider.listDueForReview()` devuelve entradas acotadas por límite, tamaño y proyecto.**
-- Definir el protocolo reusable para agentes consumidores: bootstrap de contexto, búsqueda antes de decisiones, guardado de decisiones/bugs/fixes/patrones, actualización por duplicados, resumen de sesión y exclusión de secretos/trivialidades. **Implementado en `PiHarnessMemoryProtocol` y documentado en `docs/agent-memory-protocol.md`.**
-- Conectar el protocolo a las capacidades de memoria del runtime consumidor para que el agente invoque almacenamiento y recuperación automáticamente, sin comandos manuales por cada memoria. **Pendiente en el adaptador del runtime consumidor.**
+- Definir el protocolo reusable para agentes consumidores: bootstrap de contexto, búsqueda antes de decisiones, guardado durable, actualización por tema, resumen de sesión y exclusión de secretos/trivialidades. **Implementado en `AgentMemoryProtocol` y documentado en `docs/agent-memory-protocol.md`.**
+- Conectar el protocolo a runtimes consumidores mediante una superficie estándar. **Implementado con MCP nativo, setup portable y E2E de dos consumidores independientes que cubre recall, actualización idempotente, ownership de sesión, resumen, compactación y reanudación. El registro nativo de cada proveedor queda fuera del núcleo: cada host MCP consume el mismo `mcp.json`.**
 
 **Resultado:** un agente preserva y recupera contexto local entre sesiones.
 

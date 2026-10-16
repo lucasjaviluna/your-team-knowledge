@@ -22,11 +22,21 @@ for (const requiredFile of ["dist", "package.json", "README.md", "LICENSE"]) {
     failures.push(`package.files must include ${requiredFile}`);
   }
 }
-for (const exportKey of [".", "./memory"]) {
+for (const exportKey of [".", "./memory", "./mcp"]) {
   const entry = packageJson.exports?.[exportKey];
   if (!entry?.types || !entry.import) {
     failures.push(`exports.${exportKey} must define types and import entries`);
   }
+}
+if (packageJson.bin?.["team-knowledge-memory-mcp"] !== "./dist/mcp-server.js") {
+  failures.push("package.bin must expose team-knowledge-memory-mcp");
+}
+for (const binary of [
+  "team-knowledge-memory-init",
+  "team-knowledge-memory-admin",
+]) {
+  if (typeof packageJson.bin?.[binary] !== "string")
+    failures.push(`package.bin must expose ${binary}`);
 }
 for (const optionalPeer of ["pg", "@huggingface/transformers"]) {
   if (packageJson.peerDependenciesMeta?.[optionalPeer]?.optional !== true) {

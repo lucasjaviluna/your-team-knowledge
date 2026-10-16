@@ -10,6 +10,29 @@ export {
   type SqliteBackupResult,
 } from "./infrastructure/sqlite/sqlite-agent-memory.js";
 export {
+  SqliteAgentMemoryProvider,
+  type AgentMemoryContext,
+  type AgentMemoryEntry,
+  type AgentMemoryProvider,
+  type AgentMemoryReviewRequest,
+  type AgentMemoryReviewResult,
+  type AgentMemorySaveRequest,
+  type AgentMemorySaveResult,
+  type AgentMemorySearchRequest,
+  type AgentMemorySearchResult,
+  type AgentMemorySessionFinishRequest,
+  type AgentMemorySessionResult,
+} from "./adapters/agent-memory-provider.js";
+export {
+  AgentMemoryProtocol,
+  type AgentMemoryBootstrapRequest,
+  type AgentMemoryBootstrapResult,
+  type AgentMemoryFinishRequest,
+  type AgentMemoryProtocolEvent,
+  type AgentMemoryProtocolOptions,
+  type AgentMemoryRememberRequest,
+} from "./adapters/agent-memory-protocol.js";
+export {
   PiHarnessMemoryProvider,
   type PiHarnessMemoryContext,
   type PiHarnessMemoryEntry,

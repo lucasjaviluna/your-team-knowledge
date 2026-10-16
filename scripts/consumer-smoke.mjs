@@ -62,26 +62,29 @@ try {
   await writeFile(
     join(consumerDir, "consumer-smoke.mjs"),
     `import { join } from "node:path";
-import { MemoryService, PiHarnessMemoryProvider, SqliteAgentMemoryRepository } from "@corporate-knowledge/platform/memory";
+import { AgentMemoryProtocol, MemoryService, SqliteAgentMemoryProvider, SqliteAgentMemoryRepository } from "@corporate-knowledge/platform/memory";
+import { createAgentMemoryMcpServer } from "@corporate-knowledge/platform/mcp";
 
 const database = join(process.cwd(), "agent-memory.sqlite");
 const repository = new SqliteAgentMemoryRepository(database);
 const memory = new MemoryService(repository);
-const provider = new PiHarnessMemoryProvider(memory);
+const provider = new SqliteAgentMemoryProvider(memory);
+const protocol = new AgentMemoryProtocol(provider);
 const context = { projectId: "consumer-workspace-a", area: "backend" };
-const stored = await provider.store({
-  idempotencyKey: "consumer-smoke-memory",
+const stored = await protocol.remember(context, {
+  topicKey: "consumer-smoke-memory",
+  type: "discovery",
   title: "Consumer smoke memory",
   content: "Agent Memory works from the installed package.",
-  source: "consumer-smoke",
-  tags: ["discovery"],
-}, context);
+});
 const hits = await provider.search({ query: "installed package", limit: 5, maxChars: 200 }, context);
 const isolated = await provider.search({
   query: "installed package",
   limit: 5,
   maxChars: 200,
 }, { projectId: "consumer-workspace-b", area: "backend" });
+const mcp = createAgentMemoryMcpServer(provider, context);
+await mcp.close();
 repository.close();
 if (!stored.stored || hits.entries.length !== 1 || isolated.entries.length !== 0) {
   throw new Error(JSON.stringify({ stored: stored.stored, hitCount: hits.entries.length, isolatedCount: isolated.entries.length }));

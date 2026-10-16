@@ -59,7 +59,9 @@ El RAG usa contratos de documentos/chunks, un ingestor Markdown y persistencia P
 
 La capa de aplicación expone `KnowledgeIngestionService` para coordinar ingesta, generación de embeddings y persistencia, y `KnowledgeQueryService` para generar el embedding de consulta, recuperar resultados y proyectarlos a citas trazables. La ingesta rechaza patrones de credenciales antes de generar embeddings o persistir contenido; la política puede desactivarse sólo mediante una opción explícita del servicio. `MemoryService` aplica la misma barrera antes de escribir Agent Memory en SQLite. Los consumidores no necesitan conocer PostgreSQL ni el formato interno de pgvector.
 
-Para consumidores con memoria provider-neutral, `PiHarnessMemoryProvider` adapta `MemoryService`/SQLite a las operaciones `isAvailable`, `search` y `store`. El `projectId` externo se trata como `workspaceId` local y el límite de caracteres se aplica antes de entregar contexto al agente.
+El contrato provider-neutral `AgentMemoryProvider` separa al consumidor del almacenamiento y del transporte. Incluye disponibilidad, búsqueda, lectura individual, guardado idempotente, sesiones y revisión. `SqliteAgentMemoryProvider` lo implementa sobre `MemoryService`; el `projectId` externo se trata como `workspaceId` local y cada lectura valida ese alcance. `AgentMemoryProtocol` agrega el ciclo de bootstrap, persistencia durable y resumen de sesión sin depender de un runtime concreto.
+
+El servidor MCP es un adaptador sobre ese contrato. Cada proceso queda fijado a un único `projectId` al iniciar y sus herramientas no aceptan otro proyecto, de modo que un cliente no puede cambiar el scope por parámetros. Los adaptadores con nombres de consumidores concretos se conservan únicamente por compatibilidad y quedan fuera del contrato neutral.
 
 El paquete expone `KnowledgeHttpClient` y `PiHarnessKnowledgeAdapter` para consumidores externos. El adaptador traduce operaciones de búsqueda/ingesta y definiciones de herramientas, conservando las citas y dejando la integración con el registro nativo del consumidor como una capa final.
 

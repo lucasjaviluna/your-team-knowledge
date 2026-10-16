@@ -14,7 +14,16 @@
     "./memory": {
       "types": "./dist/memory.d.ts",
       "import": "./dist/memory.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp.d.ts",
+      "import": "./dist/mcp.js"
     }
+  },
+  "bin": {
+    "team-knowledge-memory-mcp": "./dist/mcp-server.js",
+    "team-knowledge-memory-init": "./dist/agent-memory-init.js",
+    "team-knowledge-memory-admin": "./dist/agent-memory-admin.js"
   },
   "files": [
     "dist",
@@ -29,12 +38,16 @@
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/server.js",
     "demo:agent-memory": "npm run build && node scripts/agent-memory-demo.mjs",
+    "start:mcp": "npm run build && node dist/mcp-server.js",
     "pack:check": "npm pack --dry-run",
     "package:check": "node scripts/package-contract-check.mjs",
     "release:check": "node scripts/release-contract-check.mjs",
     "migrations:check": "node scripts/migration-contract-check.mjs",
     "test:consumer": "npm run build && node scripts/consumer-smoke.mjs",
     "test:maintenance-smoke": "npm run build && node scripts/agent-memory-maintenance-smoke.mjs",
+    "test:mcp-smoke": "npm run build && node scripts/agent-memory-mcp-smoke.mjs",
+    "test:agent-memory-e2e": "npm run build && node scripts/agent-memory-e2e.mjs",
+    "release:internal": "npm run release:check && npm run package:check && npm run build && node -e \"require('fs').mkdirSync('artifacts', { recursive: true })\" && npm pack --pack-destination artifacts",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "eslint .",
     "format": "prettier --check .",
@@ -46,6 +59,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@modelcontextprotocol/client": "^2.3.1",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.23.1",
@@ -56,7 +70,9 @@
     "vitest": "^3.0.7"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3"
+    "@modelcontextprotocol/server": "^2.3.1",
+    "better-sqlite3": "^13.0.3",
+    "zod": "^4.6.7"
   },
   "peerDependencies": {
     "@huggingface/transformers": "^4.3.1",
