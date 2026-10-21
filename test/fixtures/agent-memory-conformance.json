@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "clock": "2026-01-15T12:00:00.000Z",
+  "operations": [
+    {
+      "id": "main-session",
+      "op": "startSession",
+      "workspaceId": "workspace-a",
+      "ownerId": "agent-a"
+    },
+    {
+      "id": "auth",
+      "op": "save",
+      "workspaceId": "workspace-a",
+      "sessionId": "$session.main-session",
+      "type": "decision",
+      "title": "Checkout authentication",
+      "content": "The checkout uses the approved authentication model.",
+      "subjectKey": "architecture/checkout/authentication",
+      "tags": ["architecture", "authentication", "authentication"]
+    },
+    {
+      "id": "boundary",
+      "op": "save",
+      "workspaceId": "workspace-a",
+      "sessionId": "$session.main-session",
+      "type": "discovery",
+      "title": "Checkout boundary",
+      "content": "The checkout frontend calls the BFF boundary.",
+      "tags": ["checkout", "bff"]
+    },
+    {
+      "id": "other-workspace",
+      "op": "save",
+      "workspaceId": "workspace-b",
+      "type": "discovery",
+      "title": "Other workspace",
+      "content": "This memory must remain isolated from workspace-a."
+    },
+    {
+      "id": "search-auth",
+      "op": "search",
+      "workspaceId": "workspace-a",
+      "query": "authentication checkout",
+      "expectedTitles": ["Checkout authentication"]
+    },
+    {
+      "id": "auth-update",
+      "op": "save",
+      "workspaceId": "workspace-a",
+      "type": "decision",
+      "title": "Checkout authentication updated",
+      "content": "The approved authentication model remains the boundary.",
+      "subjectKey": "architecture/checkout/authentication",
+      "tags": ["updated", "architecture"]
+    },
+    {
+      "id": "search-old",
+      "op": "search",
+      "workspaceId": "workspace-a",
+      "query": "approved authentication model",
+      "expectedTitles": ["Checkout authentication updated"]
+    },
+    {
+      "id": "relation",
+      "op": "addRelation",
+      "sourceMemoryId": "$memory.auth",
+      "targetMemoryId": "$memory.boundary",
+      "relation": "supports"
+    },
+    {
+      "id": "relation-repeat",
+      "op": "addRelation",
+      "sourceMemoryId": "$memory.auth",
+      "targetMemoryId": "$memory.boundary",
+      "relation": "supports"
+    },
+    {
+      "id": "cross-workspace-relation",
+      "op": "addRelation",
+      "sourceMemoryId": "$memory.auth",
+      "targetMemoryId": "$memory.other-workspace",
+      "relation": "related",
+      "expectError": "Related memories must belong to the same workspace."
+    },
+    {
+      "id": "sensitive",
+      "op": "save",
+      "workspaceId": "workspace-a",
+      "type": "discovery",
+      "title": "Runtime configuration",
+      "content": "client_secret: 12345678901234567890",
+      "expectError": "Sensitive content detected in memory."
+    },
+    {
+      "id": "expired",
+      "op": "save",
+      "workspaceId": "workspace-a",
+      "type": "discovery",
+      "title": "Expired rollout",
+      "content": "This memory is outside its validity window.",
+      "validFrom": "2025-01-01T00:00:00.000Z",
+      "expiresAt": "2025-12-31T00:00:00.000Z"
+    },
+    {
+      "id": "lifecycle-before-archive",
+      "op": "inspectLifecycle",
+      "workspaceId": "workspace-a",
+      "expected": {
+        "total": 3,
+        "expired": 1,
+        "byStatus": {
+          "active": 3,
+          "needs_review": 0,
+          "superseded": 0,
+          "archived": 0
+        }
+      }
+    },
+    {
+      "id": "archive-expired",
+      "op": "archiveExpired",
+      "workspaceId": "workspace-a",
+      "expectedCount": 1
+    },
+    {
+      "id": "lifecycle-after-archive",
+      "op": "inspectLifecycle",
+      "workspaceId": "workspace-a",
+      "expected": {
+        "total": 3,
+        "expired": 1,
+        "byStatus": {
+          "active": 2,
+          "needs_review": 0,
+          "superseded": 0,
+          "archived": 1
+        }
+      }
+    },
+    {
+      "id": "finish-session",
+      "op": "endSession",
+      "sessionId": "$session.main-session",
+      "summary": "Captured the authentication and boundary decisions."
+    }
+  ]
+}

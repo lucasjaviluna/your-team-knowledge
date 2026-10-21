@@ -47,6 +47,7 @@
     "test:maintenance-smoke": "npm run build && node scripts/agent-memory-maintenance-smoke.mjs",
     "test:mcp-smoke": "npm run build && node scripts/agent-memory-mcp-smoke.mjs",
     "test:agent-memory-e2e": "npm run build && node scripts/agent-memory-e2e.mjs",
+    "test:agent-memory-conformance": "npm run build && node scripts/agent-memory-conformance.mjs",
     "release:internal": "npm run release:check && npm run package:check && npm run build && node -e \"require('fs').mkdirSync('artifacts', { recursive: true })\" && npm pack --pack-destination artifacts",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "eslint .",
