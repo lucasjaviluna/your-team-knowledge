@@ -13,8 +13,10 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
 
 El estado revisado y la cola de continuación están en [current-status.md](current-status.md). Ese documento es la referencia para el siguiente trabajo; este plan conserva el alcance y la secuencia por etapas.
 
+**Objetivo próximo:** migrar Agent Memory a un runtime Go distribuible como binario, preservando los contratos actuales. El alcance, fases y criterios de salida se detallan en [agent-memory-go-migration-plan.md](agent-memory-go-migration-plan.md).
+
 - **Etapas 0–1:** completadas; arquitectura, base TypeScript, CI, migraciones y contratos de distribución están establecidos.
-- **Etapa 2 — Agent Memory SQLite:** completada como producto local instalable: contrato provider-neutral, MCP, resolución segura de proyecto/sesión, setup de agentes, diagnóstico, backup, upgrade, rollback y release interno multiplataforma.
+- **Etapa 2 — Agent Memory SQLite:** el runtime TypeScript está completado como producto local instalable y pasa a ser la referencia de compatibilidad para su migración a Go. El objetivo de la migración es una distribución nativa sin Node/npm; no cambia los contratos ni el modelo local-first.
 - **Etapa 3 — RAG/Postgres:** vertical avanzado; ingesta Markdown, embeddings E5 provisional, `vector(384)`, HNSW, recuperación híbrida, ACL, provenance y servicios de consulta están implementados. HTTP expone consulta/ingesta documental y contexto. No hay servidor MCP para RAG; decidir si hace falta es una decisión de producto pendiente. El modelo y la dimensión siguen provisionales hasta validarlos con corpus y consultas representativos.
 - **Etapa 4 — Context Orchestrator:** primer vertical slice completado; combina memoria SQLite y RAG con límites, selección de fuentes y provenance.
 - **Etapas 5–6:** evaluación determinista, controles ACL en retrieval, auditoría, HTTP, cliente TypeScript, adaptadores, instalador Codex y empaquetado/release interno están implementados. Pendientes: identidad corporativa real, validación con datos/servicios representativos y extensiones nativas de runtimes consumidores donde aporten valor.

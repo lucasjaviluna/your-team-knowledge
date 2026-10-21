@@ -2,7 +2,7 @@
 
 Plataforma de conocimiento corporativo que combina memoria local para agentes y recuperación documental corporativa.
 
-La arquitectura y sus decisiones vigentes se mantienen en [docs/architecture.md](docs/architecture.md). La hoja de ruta de implementación está en [docs/implementation-plan.md](docs/implementation-plan.md), y el estado actual con el siguiente punto de continuación en [docs/current-status.md](docs/current-status.md).
+La arquitectura y sus decisiones vigentes se mantienen en [docs/architecture.md](docs/architecture.md). La hoja de ruta de implementación está en [docs/implementation-plan.md](docs/implementation-plan.md), y el estado actual con el siguiente punto de continuación en [docs/current-status.md](docs/current-status.md). La migración de Agent Memory a un binario Go está planificada en [docs/agent-memory-go-migration-plan.md](docs/agent-memory-go-migration-plan.md); la experiencia objetivo para repositorios consumidores está en [docs/agent-memory-native-consumer-guide.md](docs/agent-memory-native-consumer-guide.md).
 
 ## Agent Memory
 

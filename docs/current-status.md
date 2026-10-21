@@ -1,9 +1,13 @@
 # Estado actual y punto de continuación
 
 **Revisado:** 2026-10-20  
-**Alcance:** inspección local de documentación, código, scripts y workflow de CI. No se consultó el estado remoto de CI ni se pudo leer el estado de Git.
+**Alcance:** inspección local de documentación, código, scripts y workflow de CI. No se consultó el estado remoto de CI. Git quedó habilitado para este checkout después de configurar su ruta como segura.
 
 Este es el punto canónico para retomar trabajo. El [plan de implementación](implementation-plan.md) describe el alcance por etapas; este documento registra qué está comprobado, qué falta y cuál es el siguiente paso.
+
+## Objetivo próximo
+
+Migrar Agent Memory a un runtime Go que se distribuya como binario local y no requiera Node.js ni npm en repositorios consumidores. El trabajo comienza por la Fase 0 del [plan de migración y distribución](agent-memory-go-migration-plan.md): convertir la implementación TypeScript actual en contratos, fixtures y pruebas de conformidad. La decisión arquitectónica está en [ADR 0007](adr/0007-agent-memory-native-go-runtime.md) y la experiencia para repositorios consumidores en la [guía de consumo nativo](agent-memory-native-consumer-guide.md).
 
 ## Resumen
 
@@ -21,36 +25,29 @@ El estado es **alpha interna**. La implementación y los contratos están bastan
 
 ## Verificación local de esta revisión
 
-| Check                    | Resultado             | Detalle                                                                                                                                                                                                                                    |
-| ------------------------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `npm run typecheck`      | Aprobado              | Sin errores.                                                                                                                                                                                                                               |
-| `npm run build`          | Aprobado              | Compilación correcta.                                                                                                                                                                                                                      |
-| `npm test`               | Aprobado parcialmente | 68 aprobadas; 3 integraciones omitidas por requerir servicios/modelos.                                                                                                                                                                     |
-| `npm run format`         | Falló                 | La ejecución inicial reportó `.agents/skills/ytk-memory/SKILL.md`, `.ytk-memory/YTK-MEMORY.md` y `AGENTS.md`. Formateé `AGENTS.md` al añadir la referencia de estado; los dos archivos bajo `.agents/` y `.ytk-memory/` siguen pendientes. |
-| `npm run lint`           | Sin resultado         | No emitió salida tras más de un minuto y se detuvo; no se considera aprobado.                                                                                                                                                              |
-| Git status/último commit | No disponible         | Git rechazó la carpeta por `dubious ownership`; el working tree puede contener cambios y se desconoce.                                                                                                                                     |
+| Check                    | Resultado             | Detalle                                                                                         |
+| ------------------------ | --------------------- | ----------------------------------------------------------------------------------------------- |
+| `npm run typecheck`      | Aprobado              | Sin errores.                                                                                    |
+| `npm run build`          | Aprobado              | Compilación correcta.                                                                           |
+| `npm test`               | Aprobado parcialmente | 68 aprobadas; 3 integraciones omitidas por requerir servicios/modelos.                          |
+| `npm run format`         | Aprobado              | Los archivos generados de instrucciones se excluyen de Prettier; la comprobación completa pasa. |
+| `npm run lint`           | Sin resultado         | No emitió salida tras más de un minuto y se detuvo; no se considera aprobado.                   |
+| Git status/último commit | Disponible            | El checkout está en `main...origin/main`; la inspección de cambios ya no está bloqueada.        |
 
 Las integraciones PostgreSQL/embeddings y los smokes de distribución no se volvieron a ejecutar en esta revisión. El reporte de madurez anterior registraba resultados históricos, que no se deben presentar como verificación actual.
 
 ## Pendientes ordenados
 
-1. **Recuperar visibilidad del checkout.** Una vez que el propietario confíe en esta carpeta, añadir su ruta exacta a `safe.directory` o corregir el propietario; luego revisar `git status` antes de otros cambios. Comando habitual en Windows:
-
-   ```powershell
-   git config --global --add safe.directory 'C:/Users/user/Documents/AI/luna/your-team-knowledge'
-   ```
-
-   Esto agrega una excepción global para esa ruta concreta. Usarlo sólo si se confía en el contenido del repositorio. La alternativa es que el administrador/cuenta propietaria cambie el ownership de la carpeta al usuario que ejecuta Git.
-
+1. **Migración nativa de Agent Memory:** ejecutar la Fase 0 del plan Go: inventario de contrato y fixtures de conformidad.
 2. **Definir el piloto RAG:** elegir una fuente/corpus real, consultas representativas, workspace/equipos y el proveedor de identidad esperado. Sin esos datos no se puede cerrar si E5/384 sirve ni comprobar permisos de extremo a extremo.
 3. **Ejecutar validación controlada:** con corpus y entorno elegidos, correr las integraciones PostgreSQL/embeddings y establecer si pasan a un job CI programado. Medir calidad de citas, recall, latencia y costo antes de fijar modelo/dimensión.
 4. **Conectar identidad real:** implementar `BearerIdentityResolver` para el IdP elegido y verificar aislamiento multiusuario/workspace.
 5. **Decidir transporte MCP de RAG:** HTTP ya cubre conocimiento/contexto; añadir MCP sólo si el piloto requiere que agentes consuman directamente herramientas documentales.
-6. **Cerrar higiene local:** resolver los tres fallos de formato de archivos de instrucciones y diagnosticar por qué lint tarda/no termina en el entorno local.
+6. **Cerrar higiene local:** diagnosticar por qué lint tarda/no termina y repetir el smoke de consumidor en un entorno npm limpio; los demás smokes MCP/E2E ya pasaron en esta revisión.
 
 ### Siguiente punto de trabajo recomendado
 
-Después de recuperar Git, acordar el alcance del piloto RAG (fuente, IdP y conjunto de consultas). Esa decisión desbloquea una tarea de código verificable y evita fijar el embedding o el transporte sobre datos hipotéticos. Si no hay un piloto corporativo disponible todavía, el siguiente trabajo autónomo es dejar estable la comprobación local de lint/formato y ejecutar los smokes de paquete/MCP que el workflow ya define.
+Inventariar el esquema SQLite, sus migraciones, las consultas FTS y el comportamiento observable del runtime TypeScript. Con ese inventario, extraer fixtures de conformidad para que la futura implementación Go demuestre la misma semántica antes de publicar un binario.
 
 ## Cambios de documentación conciliados
 
