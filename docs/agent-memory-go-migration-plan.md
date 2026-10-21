@@ -214,3 +214,14 @@ el comparador de procesos. La siguiente tarea es **Fase 1**: crear el módulo
 SQLite en Go y conectarlo al adaptador de conformidad. El runtime TypeScript y
 sus archivos permanecen operativos durante toda la implementación y validación
 de paridad.
+
+La Fase 1 está completada. El módulo vive en `native/ytk-memory`, usa
+`modernc.org/sqlite` sin cgo y expone por ahora el subcomando interno
+`ytk-memory conformance`. `npm run test:agent-memory-go-conformance` compila
+ese binario temporalmente y lo compara contra TypeScript con el fixture común.
+El fixture cubre persistencia, FTS con expansión léxica, sesiones, relaciones,
+lifecycle, revisiones, retención, compactación y contenido sensible. El Core
+abre también bases SQLite heredadas sin las columnas de lifecycle.
+
+La siguiente tarea es **Fase 2**: exponer este Core mediante MCP y los comandos
+operativos, sin modificar el runtime TypeScript que continúa siendo compatible.

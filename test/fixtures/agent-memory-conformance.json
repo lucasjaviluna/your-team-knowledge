@@ -62,6 +62,13 @@
       "expectedTitles": ["Checkout authentication updated"]
     },
     {
+      "id": "search-synonym",
+      "op": "search",
+      "workspaceId": "workspace-a",
+      "query": "auth checkout",
+      "expectedTitles": ["Checkout authentication updated"]
+    },
+    {
       "id": "relation",
       "op": "addRelation",
       "sourceMemoryId": "$memory.auth",
@@ -137,6 +144,83 @@
           "archived": 1
         }
       }
+    },
+    {
+      "id": "reviewable",
+      "op": "save",
+      "workspaceId": "workspace-a",
+      "type": "decision",
+      "title": "Reviewable checkout decision",
+      "content": "The checkout boundary needs periodic review.",
+      "validFrom": "2026-01-01T00:00:00.000Z",
+      "reviewAt": "2026-01-10T00:00:00.000Z"
+    },
+    {
+      "id": "due-review",
+      "op": "listDueForReview",
+      "workspaceId": "workspace-a"
+    },
+    {
+      "id": "review-status",
+      "op": "transitionStatus",
+      "memoryId": "$memory.reviewable",
+      "status": "needs_review"
+    },
+    {
+      "id": "complete-review",
+      "op": "completeReview",
+      "memoryId": "$memory.reviewable",
+      "nextReviewAt": "2026-02-15T12:00:00.000Z"
+    },
+    {
+      "id": "compact-checkout",
+      "op": "compact",
+      "workspaceId": "workspace-a",
+      "memoryIds": ["$memory.auth", "$memory.boundary"],
+      "title": "Checkout compact summary",
+      "maxChars": 200,
+      "archiveSources": false
+    },
+    {
+      "id": "compact-checkout-repeat",
+      "op": "compact",
+      "workspaceId": "workspace-a",
+      "memoryIds": ["$memory.auth", "$memory.boundary"],
+      "title": "Checkout compact summary",
+      "maxChars": 200,
+      "archiveSources": false
+    },
+    {
+      "id": "retention-preview",
+      "op": "runRetention",
+      "workspaceId": "workspace-a",
+      "purgeBefore": "2026-02-01T00:00:00.000Z",
+      "dryRun": true
+    },
+    {
+      "id": "retention-execute",
+      "op": "runRetention",
+      "workspaceId": "workspace-a",
+      "purgeBefore": "2026-02-01T00:00:00.000Z",
+      "dryRun": false
+    },
+    {
+      "id": "private-key-sensitive",
+      "op": "save",
+      "workspaceId": "workspace-a",
+      "type": "discovery",
+      "title": "Private material",
+      "content": "-----BEGIN RSA PRIVATE KEY-----",
+      "expectError": "Sensitive content detected in memory."
+    },
+    {
+      "id": "compact-and-archive-reviewable",
+      "op": "compact",
+      "workspaceId": "workspace-a",
+      "memoryIds": ["$memory.reviewable"],
+      "title": "Reviewed decision summary",
+      "maxChars": 200,
+      "archiveSources": true
     },
     {
       "id": "finish-session",

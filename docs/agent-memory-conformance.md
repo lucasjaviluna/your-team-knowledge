@@ -50,6 +50,16 @@ para verificar este protocolo antes de que exista el binario Go:
 npm run test:agent-memory-conformance-adapter
 ```
 
+El primer Core Go se comprueba con:
+
+```text
+npm run test:agent-memory-go-conformance
+```
+
+El comando compila temporalmente `native/ytk-memory/cmd/ytk-memory`, ejecuta
+`ytk-memory conformance` y compara su reporte con TypeScript. No registra ni
+requiere el binario Go como servidor MCP; esa superficie corresponde a la Fase 2.
+
 ## Contrato cubierto por la primera línea base
 
 - sesiones: inicio, owner y cierre con resumen;

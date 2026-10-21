@@ -2,7 +2,11 @@ import { readFileSync } from "node:fs";
 
 import { MemoryService } from "../application/index.js";
 import { SqliteAgentMemoryRepository } from "../infrastructure/index.js";
-import type { MemoryItemType, MemoryRelationType } from "../domain/index.js";
+import type {
+  MemoryItem,
+  MemoryItemType,
+  MemoryRelationType,
+} from "../domain/index.js";
 
 export interface ConformanceFixture {
   version: number;
@@ -26,8 +30,18 @@ export interface ConformanceOperation {
   tags?: readonly string[];
   validFrom?: string;
   expiresAt?: string;
+  reviewAt?: string;
   query?: string;
   summary?: string;
+  memoryId?: string;
+  status?: "active" | "needs_review" | "superseded" | "archived";
+  nextReviewAt?: string;
+  memoryIds?: readonly string[];
+  maxChars?: number;
+  archiveSources?: boolean;
+  purgeBefore?: string;
+  dryRun?: boolean;
+  allWorkspaces?: boolean;
   expectedTitles?: readonly string[];
   expectedCount?: number;
   expected?: {
@@ -151,6 +165,9 @@ function execute(
         ...(operation.expiresAt
           ? { expiresAt: new Date(operation.expiresAt) }
           : {}),
+        ...(operation.reviewAt
+          ? { reviewAt: new Date(operation.reviewAt) }
+          : {}),
       });
       memories.set(operation.id, memory.id);
       return memory;
@@ -197,6 +214,64 @@ function execute(
         ...(operation.summary ? { summary: operation.summary } : {}),
       });
       return session;
+    }
+    case "transitionStatus": {
+      const transition = service.transitionStatus({
+        memoryId: resolve(operation.memoryId, memories),
+        status: required(operation.status, "status") as MemoryItem["status"],
+      });
+      return { status: transition.status, changed: transition.changed };
+    }
+    case "completeReview": {
+      const completion = service.completeReview({
+        memoryId: resolve(operation.memoryId, memories),
+        nextReviewAt: new Date(
+          required(operation.nextReviewAt, "nextReviewAt"),
+        ),
+      });
+      return { status: completion.status, reviewAt: completion.reviewAt };
+    }
+    case "listDueForReview": {
+      return {
+        ids: service
+          .listDueForReview(required(operation.workspaceId, "workspaceId"))
+          .map((memory) => memory.id),
+      };
+    }
+    case "compact": {
+      const result = service.compact({
+        workspaceId: required(operation.workspaceId, "workspaceId"),
+        memoryIds: (operation.memoryIds ?? []).map((memoryId) =>
+          resolve(memoryId, memories),
+        ),
+        ...(operation.title ? { title: operation.title } : {}),
+        ...(operation.maxChars ? { maxChars: operation.maxChars } : {}),
+        ...(operation.archiveSources !== undefined
+          ? { archiveSources: operation.archiveSources }
+          : {}),
+      });
+      memories.set(operation.id, result.summary.id);
+      return {
+        summaryId: result.summary.id,
+        archivedSourceIds: result.archivedSourceIds,
+        reused: result.reused,
+      };
+    }
+    case "runRetention": {
+      const result = service.runRetention({
+        purgeBefore: new Date(required(operation.purgeBefore, "purgeBefore")),
+        ...(operation.workspaceId
+          ? { workspaceId: operation.workspaceId }
+          : {}),
+        ...(operation.allWorkspaces ? { allWorkspaces: true } : {}),
+        ...(operation.dryRun !== undefined ? { dryRun: operation.dryRun } : {}),
+      });
+      return {
+        expiredCandidateIds: result.expiredCandidateIds,
+        archivedCount: result.archivedCount,
+        purgeCandidateIds: result.purgeCandidateIds,
+        purgedCount: result.purgedCount,
+      };
     }
     default:
       throw new Error(`Unsupported conformance operation '${operation.op}'.`);
