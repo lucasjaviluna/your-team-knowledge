@@ -209,6 +209,8 @@ deben retrasar el piloto ni sustituir checksums, firma y `doctor`.
 
 ## Próximo incremento
 
-La primera tarea es **Fase 0**: inventariar el contrato observable del runtime
-TypeScript y generar fixtures de conformidad. No se debe crear el módulo Go
-antes de completar esa línea base.
+La Fase 0 queda cerrada con el contrato observable, los fixtures compartidos y
+el comparador de procesos. La siguiente tarea es **Fase 1**: crear el módulo
+SQLite en Go y conectarlo al adaptador de conformidad. El runtime TypeScript y
+sus archivos permanecen operativos durante toda la implementación y validación
+de paridad.

@@ -16,6 +16,40 @@ produce un resultado o error distinto del esperado. El runner escribe un
 reporte JSON en stdout para que otro runtime pueda producir la misma forma de
 salida y compararse sin depender de Node.
 
+## Adaptador entre runtimes
+
+El contrato de ejecución está implementado en
+`scripts/agent-memory-conformance-runner.mjs` y
+`scripts/agent-memory-conformance-compare.mjs`. El runner de referencia acepta
+un fixture y una base mediante:
+
+```text
+node scripts/agent-memory-conformance-runner.mjs \
+  --runtime typescript \
+  --conformance-fixture test/fixtures/agent-memory-conformance.json \
+  --database .ytk-memory/conformance.sqlite
+```
+
+El comparador ejecuta TypeScript y un proceso externo con el mismo fixture y
+compara el reporte completo, ignorando sólo el campo `runtime`:
+
+```text
+node scripts/agent-memory-conformance-compare.mjs \
+  --command ./ytk-memory \
+  --arg conformance
+```
+
+El proceso externo debe aceptar `--conformance-fixture <path>` y
+`--database <path>`, reservar `stdout` para un único reporte JSON y escribir
+diagnósticos en `stderr`. El reporte debe conservar `version`, `clock`,
+`passed` y `operations`, incluyendo resultados normalizados y mensajes de error
+estables. El smoke test actual usa el runner TypeScript como proceso externo
+para verificar este protocolo antes de que exista el binario Go:
+
+```text
+npm run test:agent-memory-conformance-adapter
+```
+
 ## Contrato cubierto por la primera línea base
 
 - sesiones: inicio, owner y cierre con resumen;
@@ -40,7 +74,7 @@ resultados pueden referenciar valores anteriores con `$session.<id>` o
 si la operación no falla o cambia su mensaje, el escenario falla.
 
 El runner Go deberá aceptar el mismo fixture y emitir un reporte equivalente.
-Durante la transición se compararán ambos reportes. Las diferencias deben
+Durante la transición el comparador ejecutará ambos reportes. Las diferencias deben
 resolverse en el contrato o registrarse mediante un ADR antes de cambiar la
 semántica.
 
