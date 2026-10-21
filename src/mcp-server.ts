@@ -79,6 +79,6 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`agent-memory MCP server: ${message}\n`);
+  process.stderr.write(`ytk-memory MCP server: ${message}\n`);
   process.exitCode = 1;
 });

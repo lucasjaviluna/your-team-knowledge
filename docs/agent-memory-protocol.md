@@ -2,6 +2,12 @@
 
 Este bloque está pensado para incorporarse a las instrucciones de un repositorio y ser entendido por agentes que funcionen con cualquier proveedor o runtime. No presupone SDKs, herramientas, nombres de productos ni mecanismos concretos de integración.
 
+El instalador mantiene el protocolo operativo en una única fuente y lo emite
+como `.ytk-memory/YTK-MEMORY.md`. El adaptador Codex lo emite también como
+`.agents/skills/ytk-memory/SKILL.md`; el bloque de `AGENTS.md` sólo activa la
+skill. La implementación MCP actual expone `memory_session_start`,
+`memory_search`, `memory_get`, `memory_save` y `memory_session_finish`.
+
 ## Instrucciones para el agente
 
 ### Inicio de una sesión

@@ -28,13 +28,10 @@ for (const exportKey of [".", "./memory", "./mcp"]) {
     failures.push(`exports.${exportKey} must define types and import entries`);
   }
 }
-if (packageJson.bin?.["team-knowledge-memory-mcp"] !== "./dist/mcp-server.js") {
-  failures.push("package.bin must expose team-knowledge-memory-mcp");
+if (packageJson.bin?.["ytk-memory-mcp"] !== "./dist/mcp-server.js") {
+  failures.push("package.bin must expose ytk-memory-mcp");
 }
-for (const binary of [
-  "team-knowledge-memory-init",
-  "team-knowledge-memory-admin",
-]) {
+for (const binary of ["ytk-memory-init", "ytk-memory-admin"]) {
   if (typeof packageJson.bin?.[binary] !== "string")
     failures.push(`package.bin must expose ${binary}`);
 }

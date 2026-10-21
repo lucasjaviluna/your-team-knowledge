@@ -9,13 +9,15 @@ Fundación → Agent Memory → Knowledge RAG → Context Orchestrator
      → Governance y evaluación → Adaptadores → Conectores y evolución
 ```
 
-## Estado global — 2026-10-15
+## Estado global — 2026-10-20
+
+El estado revisado y la cola de continuación están en [current-status.md](current-status.md). Ese documento es la referencia para el siguiente trabajo; este plan conserva el alcance y la secuencia por etapas.
 
 - **Etapas 0–1:** completadas; arquitectura, base TypeScript, CI, migraciones y contratos de distribución están establecidos.
 - **Etapa 2 — Agent Memory SQLite:** completada como producto local instalable: contrato provider-neutral, MCP, resolución segura de proyecto/sesión, setup de agentes, diagnóstico, backup, upgrade, rollback y release interno multiplataforma.
-- **Etapa 3 — RAG/Postgres:** en curso avanzado; ingesta Markdown, embeddings E5 provisional, `vector(384)`, HNSW, recuperación híbrida, ACL, provenance y servicios de consulta están implementados. Queda pendiente cerrar la estrategia de transporte/MCP y la decisión de publicación del proveedor.
+- **Etapa 3 — RAG/Postgres:** vertical avanzado; ingesta Markdown, embeddings E5 provisional, `vector(384)`, HNSW, recuperación híbrida, ACL, provenance y servicios de consulta están implementados. HTTP expone consulta/ingesta documental y contexto. No hay servidor MCP para RAG; decidir si hace falta es una decisión de producto pendiente. El modelo y la dimensión siguen provisionales hasta validarlos con corpus y consultas representativos.
 - **Etapa 4 — Context Orchestrator:** primer vertical slice completado; combina memoria SQLite y RAG con límites, selección de fuentes y provenance.
-- **Etapas 5–6:** calidad, evaluación, HTTP, seguridad, auditoría, cliente y distribución están implementados; quedan integraciones corporativas concretas y la extensión nativa en el repositorio de pi-harness.
+- **Etapas 5–6:** evaluación determinista, controles ACL en retrieval, auditoría, HTTP, cliente TypeScript, adaptadores, instalador Codex y empaquetado/release interno están implementados. Pendientes: identidad corporativa real, validación con datos/servicios representativos y extensiones nativas de runtimes consumidores donde aporten valor.
 - **Etapa 7:** pendiente; conectores, sincronización incremental y evolución operativa.
 
 Agent Memory queda cerrado como producto local: el E2E reproducible usa dos clientes MCP independientes y valida bootstrap, recall, escritura idempotente, ownership de sesión, cierre, compactación y reanudación. Los adaptadores nativos de hosts concretos son integraciones externas que consumen el mismo MCP y no bloquean el núcleo.
@@ -103,7 +105,7 @@ Agent Memory queda cerrado como producto local: el E2E reproducible usa dos clie
 - Integrar un `EmbeddingProvider` concreto y definir la dimensión estable de embeddings. **E5 queda como referencia provisional; `vector(384)` está aplicado en la migración 002 con índice HNSW y la integración real PostgreSQL pasa.**
 - Enriquecer la ingesta Markdown con embeddings antes de persistir. **Implementado mediante `ingestMarkdownWithEmbeddings`.**
 - Coordinar ingesta, embeddings y persistencia mediante una fachada de aplicación. **Implementado con `KnowledgeIngestionService`.**
-- Exponer una consulta de aplicación que genere el embedding, ejecute retrieval híbrido y devuelva `SourceCitation` con provenance. **Contrato y servicio inicial implementados con `KnowledgeQueryService`; queda pendiente el transporte HTTP/MCP.**
+- Exponer una consulta de aplicación que genere el embedding, ejecute retrieval híbrido y devuelva `SourceCitation` con provenance. **Implementado con `KnowledgeQueryService` y expuesto por HTTP. No existe transporte MCP para RAG; su necesidad sigue por decidir.**
 
 **Resultado:** consultas documentales relevantes, trazables y con fuentes.
 
@@ -126,17 +128,19 @@ Agent Memory queda cerrado como producto local: el E2E reproducible usa dos clie
 
 **Objetivo:** verificar seguridad y calidad antes de integrar fuentes corporativas.
 
-- Implementar ACL inicial por actor, equipo y workspace.
-- Aplicar controles de acceso dentro de las consultas de RAG.
-- Registrar eventos mínimos de auditoría.
-- Añadir clasificación y autoridad de fuentes.
+**Estado:** base técnica implementada: ACL en la consulta, auditoría HTTP, detección de contenido sensible antes de persistencia/embeddings y evaluación determinista de contexto. Falta validación operativa con identidad corporativa y corpus representativo; la vigencia/revisión de documentos corporativos es más limitada que el lifecycle de Agent Memory.
+
+- Implementar ACL inicial por actor, equipo y workspace. **Implementado en el contrato y el retrieval.**
+- Aplicar controles de acceso dentro de las consultas de RAG. **Implementado dentro de SQL.**
+- Registrar eventos mínimos de auditoría. **Implementado mediante `AuditSink` y `PostgresAuditLog`.**
+- Añadir clasificación y autoridad de fuentes. **El contrato de fuente y provenance existen; no hay un modelo completo de gobierno/autoridad documental.**
 - Crear dataset de evaluación con consultas y resultados esperados. **Implementado con casos deterministas de continuidad, documental, mixto y aislamiento por permisos.**
 - Medir relevancia, cobertura, citas y filtrado de permisos. **Implementado con el arnés `evaluateContextProvider`, que calcula exactitud de intención, precision/recall de memoria y citas, fugas de contenido prohibido y umbrales configurables para CI mediante `thresholdFailures`; el workflow ejecuta además `npm run test:context-evaluation` como verificación dedicada.**
 - Evaluar el recorrido real de composición. **Implementado con `context-evaluation.real-provider.test.ts`: usa SQLite real para Agent Memory, `MemoryService`, `KnowledgeQueryService`, un repositorio documental determinista con ACL y `ContextOrchestrator`.**
 - Comparar contra el almacenamiento corporativo real. **Implementado y validado de forma opt-in con `context-evaluation.postgres.integration.test.ts`: usa PostgreSQL/pgvector, ingesta con embeddings de 384 dimensiones, consulta híbrida, filtros ACL y los mismos umbrales; con PostgreSQL local en `55432` la evaluación pasó.**
 - Convertir la evaluación del `EmbeddingProvider` en una regresión automatizable. **Implementado de forma opt-in con `test:embedding-benchmark`: la comparación real aplica umbrales de recall@3 y precisión de cita@1 por modelo, además de reportar latencia media y P95.**
 - Habilitar una prueba funcional persistente sobre un proyecto real. **Implementado con `npm run demo:agent-memory`, que ejercita SQLite, FTS5, `projectId`/`workspaceId` y recuperación del provider tipo pi-harness sin requerir PostgreSQL ni un modelo.**
-- Definir reglas de vigencia, revisión y deprecación.
+- Definir reglas de vigencia, revisión y deprecación para documentos corporativos. **Pendiente de completar; no confundir con el lifecycle ya implementado para Agent Memory.**
 - Añadir detección de contenido sensible durante la ingesta. **Implementado con patrones conservadores para claves privadas, JWT, claves AWS y asignaciones de credenciales; se ejecuta antes de embeddings/persistencia y también antes de guardar Agent Memory en SQLite.**
 
 **Resultado:** conocimiento relevante sin exposición no autorizada.
@@ -145,16 +149,15 @@ Agent Memory queda cerrado como producto local: el E2E reproducible usa dos clie
 
 **Objetivo:** permitir consumo desacoplado desde pi-harness y otros clientes.
 
-**Estado:** contrato de aplicación, transporte HTTP para conocimiento y contexto, autenticación/autorización inicial, auditoría persistente, interfaz de identidad, entrypoint ejecutable, despliegue Docker, cliente TypeScript y adaptador de consumidor tipo pi-harness completados. La distribución local de Agent Memory está validada mediante `@corporate-knowledge/platform/memory`, dependencias RAG opcionales y el smoke `npm run test:consumer`, que se ejecuta también en CI. El contrato de distribución está automatizado con `npm run package:check`, el contrato de release interno con `npm run release:check`, la configuración de arranque está aislada y probada con `loadServerConfig`, `/health` y `/ready` separan liveness de readiness con verificación de PostgreSQL y auditoría, y las requests registran duración junto con `requestId`. CI valida explícitamente formato, typecheck, lint, build, tests, evaluación de contexto, contratos de paquete/release, migraciones, tarball y consumidor; queda pendiente conectar el resolver con el proveedor corporativo real y retirar `private: true` sólo cuando exista una decisión explícita de publicación externa.
+**Estado:** API HTTP de conocimiento/contexto, autenticación/autorización inicial, auditoría persistente, interfaz `BearerIdentityResolver`, entrypoint, Docker, cliente TypeScript y adaptador de herramientas para pi-harness implementados. Agent Memory se distribuye como paquete privado; el instalador configura Codex y el proyecto incluye CLI `doctor`, backup, upgrade y rollback. CI declara matriz Ubuntu/Windows y ejecuta typecheck, lint, build, tests, smokes, contratos de empaquetado y release interno. No se ha verificado en esta revisión el estado de ejecuciones remotas de CI. Quedan pendientes un resolver de identidad conectado a un IdP real y las extensiones nativas en runtimes consumidores cuando sean necesarias. `private: true` refleja la decisión actual de distribución interna.
 
 - Exponer API interna para memoria, conocimiento y contexto. **`POST /v1/context` y `KnowledgeHttpClient.context()` implementados; el servidor compone Agent Memory SQLite y Knowledge RAG.**
-- Publicar contratos de red independientes del lenguaje.
-- En pi-harness: crear la extensión nativa que mapee `PiHarnessKnowledgeAdapter.toolDefinitions()` a `pi.registerTool`.
-- En cada runtime consumidor: crear el adaptador nativo que mapee el provider de Agent Memory y el protocolo agéntico a sus tools/hooks. **Pendiente.**
-- Mantener el Agent Memory como paquete local con SQLite.
-- Exponer un `MemoryProvider` compatible con pi-harness sobre el repositorio SQLite.
-- Exponer MCP cuando el núcleo y la API estén estabilizados.
-- Conectar `BearerIdentityResolver` con el proveedor de identidad corporativo.
+- Contratos TypeScript de aplicación/cliente y rutas HTTP implementados; no se ha establecido aquí una API de red versionada como contrato multiplataforma completo.
+- El adaptador `PiHarnessKnowledgeAdapter` define herramientas para el consumidor, pero el registro nativo mediante `pi.registerTool` vive en el repositorio pi-harness y no está incluido aquí.
+- La integración provider-neutral de Agent Memory sobre MCP está implementada; los hosts pueden usar el mismo servidor MCP. Los registros/hooks nativos adicionales son integración externa.
+- Agent Memory local con SQLite y el provider de pi-harness están implementados.
+- MCP disponible para Agent Memory; no para RAG/conocimiento documental.
+- `BearerIdentityResolver` existe como contrato, pero falta una implementación conectada a un proveedor de identidad corporativo.
 
 **Resultado:** los consumidores usan el mismo servicio sin conocer sus almacenamientos internos.
 

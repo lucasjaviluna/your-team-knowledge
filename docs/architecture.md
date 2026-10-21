@@ -63,6 +63,15 @@ El contrato provider-neutral `AgentMemoryProvider` separa al consumidor del alma
 
 El servidor MCP es un adaptador sobre ese contrato. Cada proceso queda fijado a un único `projectId` al iniciar y sus herramientas no aceptan otro proyecto, de modo que un cliente no puede cambiar el scope por parámetros. Los adaptadores con nombres de consumidores concretos se conservan únicamente por compatibilidad y quedan fuera del contrato neutral.
 
+El inicializador separa la resolución común de proyecto, base y ejecutable de adaptadores de instalación por cliente. El primer adaptador configura Codex mediante bloques propios en `.codex/config.toml` y `AGENTS.md`; los demás clientes pueden añadirse sin cambiar el contrato MCP ni el almacenamiento. Los cambios se planifican antes de escribir y se revierten si una escritura falla.
+
+Cada cliente nuevo implementa `AgentInstallerAdapter` en `src/installer/` y se registra por nombre en el CLI. Su adaptador define únicamente los archivos y bloques específicos del host; la resolución del proyecto y la aplicación de cambios siguen en el núcleo común.
+
+El alcance de las instrucciones es parte del contexto común del instalador:
+`local`, `global` o `both`. La configuración MCP y sus rutas quedan en el
+checkout; las instrucciones globales no incluyen proyecto ni rutas locales y
+deben ser condicionales a la disponibilidad de las herramientas del host.
+
 El paquete expone `KnowledgeHttpClient` y `PiHarnessKnowledgeAdapter` para consumidores externos. El adaptador traduce operaciones de búsqueda/ingesta y definiciones de herramientas, conservando las citas y dejando la integración con el registro nativo del consumidor como una capa final.
 
 La extensión nativa que llama a `pi.registerTool` vive en pi-harness, no en esta plataforma: pertenece al borde de ejecución del agente y depende de la API y políticas de aprobación de Pi. Esta plataforma solo publica el SDK/adaptadores que esa extensión consume.

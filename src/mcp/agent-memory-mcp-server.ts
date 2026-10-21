@@ -42,7 +42,7 @@ export function createAgentMemoryMcpServer(
       : {}),
   });
   const server = new McpServer({
-    name: options.name ?? "agent-memory",
+    name: options.name ?? "ytk-memory",
     version: options.version ?? "0.1.0",
   });
 

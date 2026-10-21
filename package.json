@@ -21,9 +21,9 @@
     }
   },
   "bin": {
-    "team-knowledge-memory-mcp": "./dist/mcp-server.js",
-    "team-knowledge-memory-init": "./dist/agent-memory-init.js",
-    "team-knowledge-memory-admin": "./dist/agent-memory-admin.js"
+    "ytk-memory-mcp": "./dist/mcp-server.js",
+    "ytk-memory-init": "./dist/agent-memory-init.js",
+    "ytk-memory-admin": "./dist/agent-memory-admin.js"
   },
   "files": [
     "dist",

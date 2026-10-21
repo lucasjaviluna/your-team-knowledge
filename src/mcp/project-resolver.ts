@@ -30,7 +30,7 @@ export function resolveProjectMemoryConfig(input: {
   const discovered = findConfig(workingDirectory);
   const fileConfig = discovered?.config;
   const explicitProject = text(input.projectId);
-  const environmentProject = text(input.environment.TEAM_KNOWLEDGE_PROJECT_ID);
+  const environmentProject = text(input.environment.YTK_MEMORY_PROJECT_ID);
   const configuredProject =
     text(fileConfig?.project_slug) ?? text(fileConfig?.projectId);
   const gitProject =
@@ -55,15 +55,15 @@ export function resolveProjectMemoryConfig(input: {
   const projectRoot = discovered?.directory ?? workingDirectory;
   const configuredDatabase =
     text(input.database) ??
-    text(input.environment.TEAM_KNOWLEDGE_MEMORY_DATABASE) ??
+    text(input.environment.YTK_MEMORY_DATABASE) ??
     text(fileConfig?.database);
   const databaseFile = resolve(
     projectRoot,
-    configuredDatabase || ".team-memory/agent-memory.sqlite",
+    configuredDatabase || ".ytk-memory/ytk-memory.sqlite",
   );
   const area =
     text(input.area) ??
-    text(input.environment.TEAM_KNOWLEDGE_AREA) ??
+    text(input.environment.YTK_MEMORY_AREA) ??
     text(fileConfig?.default_area);
   return {
     projectId: requireProjectId(projectId),
@@ -80,7 +80,7 @@ function findConfig(
 ): { filename: string; directory: string; config: TeamMemoryFile } | undefined {
   let current = start;
   while (true) {
-    const filename = join(current, ".team-memory.json");
+    const filename = join(current, ".ytk-memory.json");
     if (existsSync(filename)) {
       let parsed: unknown;
       try {

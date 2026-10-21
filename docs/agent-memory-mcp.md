@@ -4,44 +4,104 @@ El paquete incluye un servidor MCP local por `stdio` sobre el contrato provider-
 
 ## Instalación y configuración de agentes
 
-Después de instalar el paquete, prepará cada checkout una sola vez:
+El paquete es privado por ahora y se instala en un proyecto destino desde el
+tarball interno. Desde el checkout de esta plataforma ejecutá:
 
 ```text
-team-knowledge-memory-init --area backend
+npm run release:internal
 ```
 
-El comando crea o actualiza `.team-memory.json` con el identificador estable,
-la base SQLite y el área predeterminada; además genera `.team-memory/mcp.json`
-con una configuración MCP portable y `.team-memory/AGENT-MEMORY.md` con el
-protocolo que pueden incorporar los distintos agentes. No reemplaza los dos
-archivos generados si ya existen, salvo con `--force`.
+En el proyecto destino instalá el archivo generado en `artifacts/`:
 
-Cada host MCP debe registrar el comando y los argumentos de `mcp.json` en su
-propia configuración. El archivo no incluye el proyecto porque el servidor lo
-resuelve de manera segura desde el checkout.
+```text
+npm install --save-dev "<ruta-al-repositorio>/artifacts/corporate-knowledge-platform-0.1.0.tgz"
+```
+
+Se requiere Node.js 22 o posterior. Los comandos siguientes se ejecutan desde
+la raíz del proyecto destino y pueden invocarse con `npx` porque el paquete
+instala sus binarios en `node_modules/.bin`.
+
+Después de instalar el paquete, configurá Codex desde el checkout:
+
+```text
+ytk-memory-init --agent codex --area backend
+```
+
+El comando crea o actualiza `.ytk-memory.json` con el identificador estable,
+la base SQLite y el área predeterminada. Genera `.ytk-memory/YTK-MEMORY.md`
+con el protocolo operativo completo como fallback portable. Con instrucciones
+locales, el adaptador Codex instala además `.agents/skills/ytk-memory/SKILL.md`
+con el mismo protocolo y añade a `AGENTS.md` sólo el activador de la skill. Usa
+`node` y rutas absolutas al ejecutable MCP y a SQLite, con el proyecto
+explícito. Una segunda ejecución actualiza esos archivos sin duplicarlos. Codex
+carga la configuración local sólo si el proyecto es de confianza; iniciá una
+nueva sesión después de instalar.
+
+Por defecto, el bloque de instrucciones se agrega al `AGENTS.md` del
+repositorio. En una terminal interactiva, el instalador permite elegir entre
+ese alcance, el perfil global de Codex o ambos. Para automatizaciones indicá el
+alcance explícitamente:
+
+```text
+ytk-memory-init --agent codex --instructions local
+ytk-memory-init --agent codex --instructions global
+ytk-memory-init --agent codex --instructions both
+```
+
+El bloque global se escribe en `~/.codex/AGENTS.md` (o en `CODEX_HOME` si está
+definido) y sólo indica usar Agent Memory cuando las herramientas estén
+disponibles. No contiene un proyecto ni rutas del checkout. El bloque local
+mantiene el protocolo y el proyecto concreto. La configuración MCP se mantiene
+en el repositorio. `--instructions` sólo cambia el destino de `AGENTS.md`; no
+mueve el registro MCP a la configuración global de Codex. `.ytk-memory/mcp.json` se genera sólo sin adaptador
+específico o cuando se indica `--portable`.
+
+Usá `--dry-run` para ver qué archivos cambiarían y
+`ytk-memory-init --uninstall --agent codex` para retirar sólo los
+bloques locales del adaptador. Agregá `--instructions global` o
+`--instructions both` para retirar el bloque global correspondiente. El
+proyecto y los archivos portables permanecen para otros clientes. `--force`
+permite reemplazar archivos portables preexistentes que no tengan la marca del
+instalador. Sin `--agent`, el comando conserva el flujo portable para hosts
+MCP que se configuran manualmente.
+
+Para verificar una instalación sin modificar archivos:
+
+```text
+npx ytk-memory-init --agent codex --area backend --dry-run --no-prompt
+```
+
+La salida enumera los archivos que crearía o actualizaría y aclara que el modo
+dry-run no escribe ningún archivo. Después de una instalación real, confiá el
+proyecto en Codex si corresponde y abrí una nueva sesión para cargar la
+configuración MCP.
+
+Los demás hosts MCP pueden registrar el comando y los argumentos de
+`.ytk-memory/mcp.json` en su propia configuración. El instalador separa la
+resolución común del proyecto y la base de los adaptadores de host.
 
 ## Inicio
 
 El proyecto se resuelve, en orden, desde `--project`, la variable de entorno,
-`.team-memory.json`, el remoto Git y el nombre del directorio. Una vez resuelto
+`.ytk-memory.json`, el remoto Git y el nombre del directorio. Una vez resuelto
 queda fijo durante toda la vida del proceso:
 
 ```text
-team-knowledge-memory-mcp --project my-project --database .team-memory/agent-memory.sqlite --area backend
+ytk-memory-mcp --project my-project --database .ytk-memory/ytk-memory.sqlite --area backend
 ```
 
-También se aceptan las variables `TEAM_KNOWLEDGE_PROJECT_ID`, `TEAM_KNOWLEDGE_MEMORY_DATABASE` y `TEAM_KNOWLEDGE_AREA`. Si no se indica una base, se usa `.team-memory/agent-memory.sqlite` en la raíz de configuración o en el directorio de trabajo. Cada proceso recibe un propietario de sesión aleatorio: otro proceso no puede terminar la sesión ni asociar escrituras a ella, incluso dentro del mismo proyecto.
+También se aceptan las variables `YTK_MEMORY_PROJECT_ID`, `YTK_MEMORY_DATABASE` y `YTK_MEMORY_AREA`. Si no se indica una base, se usa `.ytk-memory/ytk-memory.sqlite` en la raíz de configuración o en el directorio de trabajo. Cada proceso recibe un propietario de sesión aleatorio: otro proceso no puede terminar la sesión ni asociar escrituras a ella, incluso dentro del mismo proyecto.
 
 Configuración genérica de un host MCP:
 
 ```json
 {
-  "command": "team-knowledge-memory-mcp",
+  "command": "ytk-memory-mcp",
   "args": [
     "--project",
     "my-project",
     "--database",
-    ".team-memory/agent-memory.sqlite"
+    ".ytk-memory/ytk-memory.sqlite"
   ]
 }
 ```
@@ -66,12 +126,12 @@ Las herramientas validan tamaños, tipos y cardinalidades antes de llegar al dom
 
 ## Operación y recuperación
 
-`team-knowledge-memory-admin doctor` informa el alcance resuelto, la versión de Node y el lifecycle de la base; no crea una base ausente. Para realizar operaciones de recuperación:
+`ytk-memory-admin doctor` informa el alcance resuelto, la versión de Node y el lifecycle de la base; no crea una base ausente. Para realizar operaciones de recuperación:
 
 ```text
-team-knowledge-memory-admin backup --to .team-memory/backup.sqlite
-team-knowledge-memory-admin upgrade --backup-to .team-memory/pre-upgrade.sqlite
-team-knowledge-memory-admin rollback --from .team-memory/pre-upgrade.sqlite --backup-current-to .team-memory/pre-rollback.sqlite --confirm
+ytk-memory-admin backup --to .ytk-memory/backup.sqlite
+ytk-memory-admin upgrade --backup-to .ytk-memory/pre-upgrade.sqlite
+ytk-memory-admin rollback --from .ytk-memory/pre-upgrade.sqlite --backup-current-to .ytk-memory/pre-rollback.sqlite --confirm
 ```
 
 `upgrade` abre la base con la migración compatible y exige una copia previa. `rollback` exige confirmación y una copia verificable de la base actual antes de reemplazarla. `npm run release:internal` genera el tarball privado en `artifacts/`; CI lo valida y publica como artefacto en Windows y Linux.
