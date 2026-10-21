@@ -44,6 +44,23 @@ Durante la transición se compararán ambos reportes. Las diferencias deben
 resolverse en el contrato o registrarse mediante un ADR antes de cambiar la
 semántica.
 
+## Superficies externas
+
+La segunda línea base se ejecuta con:
+
+```text
+npm run test:agent-memory-surface-conformance
+```
+
+Su fixture separado en
+`test/fixtures/agent-memory-surface-conformance.json` valida los cinco nombres
+de herramientas MCP, lectura/escritura/búsqueda/cierre, aislamiento entre dos
+proyectos, `doctor`, backup, upgrade, rollback con confirmación y el flujo
+Codex de instalación `dry-run`/aplicación/desinstalación. Se mantiene separado
+del fixture del core porque MCP, filesystem y procesos son adaptadores de
+transporte y operación; el futuro binario Go deberá producir los mismos
+resultados observables.
+
 ## Fuera de esta primera línea base
 
 MCP wire-level, backup nativo, instalación de hosts y compactación se validan

@@ -7,7 +7,7 @@ Este es el punto canónico para retomar trabajo. El [plan de implementación](im
 
 ## Objetivo próximo
 
-Migrar Agent Memory a un runtime Go que se distribuya como binario local y no requiera Node.js ni npm en repositorios consumidores. La Fase 0 está iniciada: existe una [especificación de conformidad](agent-memory-conformance.md), un fixture JSON compartido y un runner black-box para el runtime TypeScript. La decisión arquitectónica está en [ADR 0007](adr/0007-agent-memory-native-go-runtime.md) y la experiencia para repositorios consumidores en la [guía de consumo nativo](agent-memory-native-consumer-guide.md).
+Migrar Agent Memory a un runtime Go que se distribuya como binario local y no requiera Node.js ni npm en repositorios consumidores. La Fase 0 está iniciada: existen una [especificación de conformidad](agent-memory-conformance.md), fixtures JSON compartidos y runners black-box para el core TypeScript y sus superficies MCP, mantenimiento e instalación. La decisión arquitectónica está en [ADR 0007](adr/0007-agent-memory-native-go-runtime.md) y la experiencia para repositorios consumidores en la [guía de consumo nativo](agent-memory-native-consumer-guide.md).
 
 ## Resumen
 
@@ -38,7 +38,7 @@ Las integraciones PostgreSQL/embeddings y los smokes de distribución no se volv
 
 ## Pendientes ordenados
 
-1. **Migración nativa de Agent Memory:** completar la Fase 0 del plan Go: añadir casos de MCP, mantenimiento e instalación al contrato compartido y preparar el runner para un segundo runtime.
+1. **Migración nativa de Agent Memory:** completar la Fase 0 del plan Go: definir el adaptador de ejecución del fixture para un segundo runtime y empezar el core SQLite en Go.
 2. **Definir el piloto RAG:** elegir una fuente/corpus real, consultas representativas, workspace/equipos y el proveedor de identidad esperado. Sin esos datos no se puede cerrar si E5/384 sirve ni comprobar permisos de extremo a extremo.
 3. **Ejecutar validación controlada:** con corpus y entorno elegidos, correr las integraciones PostgreSQL/embeddings y establecer si pasan a un job CI programado. Medir calidad de citas, recall, latencia y costo antes de fijar modelo/dimensión.
 4. **Conectar identidad real:** implementar `BearerIdentityResolver` para el IdP elegido y verificar aislamiento multiusuario/workspace.
@@ -47,7 +47,7 @@ Las integraciones PostgreSQL/embeddings y los smokes de distribución no se volv
 
 ### Siguiente punto de trabajo recomendado
 
-Extender el fixture de conformidad con el protocolo MCP y mantenimiento. Después, implementar el primer paquete Go contra el mismo fixture, empezando por SQLite, migraciones y búsqueda FTS.
+Definir la interfaz de ejecución que permita correr los fixtures contra TypeScript y Go. Después, implementar el primer paquete Go contra el fixture del core, empezando por SQLite, migraciones y búsqueda FTS.
 
 ## Cambios de documentación conciliados
 
