@@ -57,6 +57,9 @@ type Relation struct {
 }
 
 func Open(filename string, now func() time.Time) (*Store, error) {
+	if now == nil {
+		now = time.Now
+	}
 	db, err := sql.Open("sqlite", filename)
 	if err != nil {
 		return nil, err
@@ -170,6 +173,57 @@ func (s *Store) EndSession(ctx context.Context, sessionID string, summary *strin
 	return existing, nil
 }
 
+// EndOwnedSession closes a session only when both its project and owner match.
+func (s *Store) EndOwnedSession(ctx context.Context, sessionID, workspaceID, ownerID string, summary *string) (Session, error) {
+	existing, err := s.findSession(ctx, required(sessionID, "sessionId"))
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && (existing.WorkspaceID != workspaceID || existing.OwnerID == nil || *existing.OwnerID != ownerID)) {
+		return Session{}, fmt.Errorf("Session '%s' was not found.", sessionID)
+	}
+	if err != nil {
+		return Session{}, err
+	}
+	return s.EndSession(ctx, sessionID, summary)
+}
+
+// Get returns an item only when it belongs to the requested workspace.
+func (s *Store) Get(ctx context.Context, id, workspaceID string) (Memory, bool, error) {
+	item, err := s.findMemory(ctx, required(id, "memoryId"))
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && item.WorkspaceID != workspaceID) {
+		return Memory{}, false, nil
+	}
+	if err != nil {
+		return Memory{}, false, err
+	}
+	return item, true, nil
+}
+
+// Backup writes a consistent SQLite snapshot using the SQLite backup operation.
+type BackupResult struct {
+	DestinationFile string `json:"destinationFile"`
+	TotalPages      int    `json:"totalPages"`
+	RemainingPages  int    `json:"remainingPages"`
+}
+
+func (s *Store) Backup(ctx context.Context, destination string) (BackupResult, error) {
+	if strings.TrimSpace(destination) == "" {
+		return BackupResult{}, errors.New("destination is required")
+	}
+	_, err := s.db.ExecContext(ctx, `VACUUM INTO '`+strings.ReplaceAll(destination, "'", "''")+`'`)
+	if err != nil {
+		return BackupResult{}, err
+	}
+	backup, err := sql.Open("sqlite", destination)
+	if err != nil {
+		return BackupResult{}, err
+	}
+	defer backup.Close()
+	var pages int
+	if err := backup.QueryRowContext(ctx, "PRAGMA page_count").Scan(&pages); err != nil {
+		return BackupResult{}, err
+	}
+	return BackupResult{DestinationFile: destination, TotalPages: pages, RemainingPages: 0}, nil
+}
+
 func (s *Store) Save(ctx context.Context, input SaveInput) (Memory, error) {
 	workspaceID := required(input.WorkspaceID, "workspaceId")
 	title, content := required(input.Title, "title"), required(input.Content, "content")
@@ -178,7 +232,7 @@ func (s *Store) Save(ctx context.Context, input SaveInput) (Memory, error) {
 	}
 	if input.SessionID != nil {
 		session, err := s.findSession(ctx, *input.SessionID)
-		if err != nil || session.WorkspaceID != workspaceID {
+		if err != nil || session.WorkspaceID != workspaceID || (input.OwnerID != nil && (session.OwnerID == nil || *session.OwnerID != *input.OwnerID)) {
 			return Memory{}, fmt.Errorf("Session '%s' was not found.", *input.SessionID)
 		}
 	}
@@ -236,9 +290,9 @@ func (s *Store) Save(ctx context.Context, input SaveInput) (Memory, error) {
 }
 
 type SaveInput struct {
-	ID, WorkspaceID, Type, Title, Content, Status         string
-	SessionID, SubjectKey, ValidFrom, ExpiresAt, ReviewAt *string
-	Tags                                                  []string
+	ID, WorkspaceID, Type, Title, Content, Status                  string
+	SessionID, SubjectKey, ValidFrom, ExpiresAt, ReviewAt, OwnerID *string
+	Tags                                                           []string
 }
 
 func (s *Store) Search(ctx context.Context, workspaceID, query string, limit int) ([]Memory, error) {

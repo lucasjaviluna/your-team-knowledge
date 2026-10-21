@@ -18,6 +18,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: native/ytk-memory/go.mod
+          cache-dependency-path: native/ytk-memory/go.sum
       - run: npm ci
         env:
           # npm 11 rejects msvs_version as an npm option, but node-gyp reads
@@ -47,6 +51,10 @@ jobs:
       - run: npm run test:consumer
       - run: npm run test:mcp-smoke
       - run: npm run test:agent-memory-e2e
+      - run: npm run test:agent-memory-go-conformance
+      - run: npm run test:agent-memory-go-surface
+      - run: go test ./...
+        working-directory: native/ytk-memory
       - run: npm run release:internal
       - uses: actions/upload-artifact@v4
         with:

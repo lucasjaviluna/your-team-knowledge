@@ -1,51 +1,321 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"flag"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"runtime"
+	"strings"
 
 	"github.com/corporate-knowledge/ytk-memory/internal/core"
+	"github.com/corporate-knowledge/ytk-memory/internal/surface"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+type configFile struct {
+	ProjectSlug string `json:"project_slug"`
+	ProjectID   string `json:"projectId"`
+	Database    string `json:"database"`
+	Area        string `json:"default_area"`
+}
+type config struct{ project, database, area string }
+
 func main() {
-	if len(os.Args) < 2 || os.Args[1] != "conformance" {
-		fmt.Fprintln(os.Stderr, "usage: ytk-memory conformance --conformance-fixture <path> --database <path>")
-		os.Exit(2)
-	}
-	fixture, database, err := conformanceArguments(os.Args[2:])
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
-	}
-	report, err := core.RunConformance(fixture, database)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	if err := json.NewEncoder(os.Stdout).Encode(report); err != nil {
+	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
-
-func conformanceArguments(args []string) (string, string, error) {
-	var fixture, database string
-	for index := 0; index < len(args); index += 2 {
-		if index+1 >= len(args) {
-			return "", "", fmt.Errorf("argument '%s' requires a value", args[index])
+func run(args []string) error {
+	if len(args) == 0 {
+		return errors.New("usage: ytk-memory <mcp|conformance|doctor|backup|upgrade|rollback> [options]")
+	}
+	command := args[0]
+	if command == "conformance" {
+		fixture, database, err := conformanceArguments(args[1:])
+		if err != nil {
+			return err
 		}
-		switch args[index] {
-		case "--conformance-fixture":
-			fixture = args[index+1]
-		case "--database":
-			database = args[index+1]
-		default:
-			return "", "", fmt.Errorf("unexpected argument '%s'", args[index])
+		report, err := core.RunConformance(fixture, database)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(os.Stdout).Encode(report)
+	}
+	fs := flag.NewFlagSet(command, flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	project := fs.String("project", "", "project id")
+	database := fs.String("database", "", "SQLite path")
+	area := fs.String("area", "", "memory area")
+	to := fs.String("to", "", "backup target")
+	backupTo := fs.String("backup-to", "", "upgrade backup target")
+	from := fs.String("from", "", "rollback source")
+	currentTo := fs.String("backup-current-to", "", "rollback safety backup")
+	confirm := fs.Bool("confirm", false, "confirm rollback")
+	overwrite := fs.Bool("overwrite", false, "replace existing backup")
+	if err := fs.Parse(args[1:]); err != nil {
+		return err
+	}
+	if fs.NArg() != 0 {
+		return fmt.Errorf("unexpected argument: %s", fs.Arg(0))
+	}
+	cfg, err := resolve(*project, *database, *area)
+	if err != nil {
+		return err
+	}
+	if command == "mcp" {
+		store, err := core.Open(cfg.database, nil)
+		if err != nil {
+			return err
+		}
+		defer store.Close()
+		return surface.NewService(store, surface.Config{ProjectID: cfg.project, Area: cfg.area}).Server().Run(context.Background(), &mcp.StdioTransport{})
+	}
+	if command == "doctor" {
+		return doctor(cfg)
+	}
+	if command == "backup" {
+		return doBackup(cfg, *to, *overwrite)
+	}
+	if command == "upgrade" {
+		return doUpgrade(cfg, *backupTo, *overwrite)
+	}
+	if command == "rollback" {
+		return doRollback(cfg, *from, *currentTo, *confirm)
+	}
+	return fmt.Errorf("unknown operation: %s", command)
+}
+func resolve(project, database, area string) (config, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return config{}, err
+	}
+	root := cwd
+	var configured configFile
+	for dir := cwd; ; dir = filepath.Dir(dir) {
+		p := filepath.Join(dir, ".ytk-memory.json")
+		b, e := os.ReadFile(p)
+		if e == nil {
+			if json.Unmarshal(b, &configured) != nil {
+				return config{}, fmt.Errorf("Invalid JSON in %s.", p)
+			}
+			root = dir
+			break
+		}
+		if dir == filepath.Dir(dir) {
+			break
 		}
 	}
+	if project == "" {
+		project = os.Getenv("YTK_MEMORY_PROJECT_ID")
+	}
+	if project == "" {
+		project = configured.ProjectSlug
+		if project == "" {
+			project = configured.ProjectID
+		}
+	}
+	if project == "" {
+		if out, e := exec.Command("git", "config", "--get", "remote.origin.url").Output(); e == nil {
+			re := regexp.MustCompile(`(?:[:/])([^/:]+?)(?:\.git)?$`)
+			if m := re.FindStringSubmatch(strings.TrimSpace(string(out))); len(m) > 1 {
+				project = slug(m[1])
+			}
+		}
+	}
+	if project == "" {
+		project = slug(filepath.Base(cwd))
+	}
+	project = strings.TrimSpace(project)
+	if database == "" {
+		database = os.Getenv("YTK_MEMORY_DATABASE")
+	}
+	if database == "" {
+		database = configured.Database
+	}
+	if area == "" {
+		area = os.Getenv("YTK_MEMORY_AREA")
+	}
+	if area == "" {
+		area = configured.Area
+	}
+	database, area = strings.TrimSpace(database), strings.TrimSpace(area)
+	if database == "" {
+		database = ".ytk-memory/ytk-memory.sqlite"
+	}
+	if !filepath.IsAbs(database) {
+		database = filepath.Join(root, database)
+	}
+	database, _ = filepath.Abs(database)
+	if strings.TrimSpace(project) == "" || len(project) > 200 {
+		return config{}, errors.New("Resolved project id is invalid.")
+	}
+	for _, r := range project {
+		if r < 0x20 {
+			return config{}, errors.New("Resolved project id is invalid.")
+		}
+	}
+	return config{project, database, area}, nil
+}
+func slug(s string) string {
+	re := regexp.MustCompile(`[^a-zA-Z0-9]+`)
+	s = strings.Trim(re.ReplaceAllString(strings.ToLower(strings.TrimSpace(s)), "-"), "-")
+	if s == "" {
+		return "project"
+	}
+	return s
+}
+func doctor(c config) error {
+	if _, err := os.Stat(c.database); os.IsNotExist(err) {
+		return json.NewEncoder(os.Stdout).Encode(map[string]any{"operation": "doctor", "healthy": false, "projectId": c.project, "database": c.database, "checks": []any{map[string]string{"name": "database", "status": "missing", "message": "Run the MCP server once or restore a backup."}}})
+	}
+	s, err := core.Open(c.database, nil)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+	life, err := s.InspectLifecycle(context.Background(), c.project)
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(os.Stdout).Encode(map[string]any{"operation": "doctor", "healthy": true, "projectId": c.project, "database": c.database, "lifecycle": life, "go": runtime.Version()})
+}
+func doBackup(c config, target string, overwrite bool) error {
+	if target == "" {
+		return errors.New("--to is required.")
+	}
+	return backup(c.database, target, c.project, overwrite, "backup")
+}
+func doUpgrade(c config, target string, overwrite bool) error {
+	if target == "" {
+		return errors.New("--backup-to is required.")
+	}
+	if _, err := os.Stat(c.database); err != nil {
+		return fmt.Errorf("Database does not exist: %s", c.database)
+	}
+	backupPath, err := makeBackup(c.database, target, overwrite)
+	if err != nil {
+		return err
+	}
+	s, err := core.Open(c.database, nil)
+	if err != nil {
+		return err
+	}
+	s.Close()
+	return json.NewEncoder(os.Stdout).Encode(map[string]any{"operation": "upgrade", "projectId": c.project, "database": c.database, "backup": backupPath, "schema": "current"})
+}
+func doRollback(c config, source, current string, confirmed bool) error {
+	if !confirmed {
+		return errors.New("Rollback requires --confirm.")
+	}
+	if source == "" || current == "" {
+		return errors.New("--from and --backup-current-to are required.")
+	}
+	src, _ := filepath.Abs(source)
+	dst := c.database
+	safe, _ := filepath.Abs(current)
+	if src == dst || safe == dst || src == safe {
+		return errors.New("Rollback paths must be distinct.")
+	}
+	if _, err := os.Stat(src); err != nil {
+		return fmt.Errorf("Rollback source does not exist: %s", src)
+	}
+	safeBackup, err := makeBackup(dst, safe, false)
+	if err != nil {
+		return err
+	}
+	restore := dst + ".rollback.tmp"
+	if _, err := os.Stat(restore); err == nil {
+		return fmt.Errorf("Temporary rollback file already exists: %s", restore)
+	}
+	sourceStore, err := core.Open(src, nil)
+	if err != nil {
+		return err
+	}
+	_, err = sourceStore.Backup(context.Background(), restore)
+	sourceStore.Close()
+	if err != nil {
+		return err
+	}
+	verify, err := core.Open(restore, nil)
+	if err != nil {
+		os.Remove(restore)
+		return err
+	}
+	verify.Close()
+	if err = os.Remove(dst); err != nil {
+		return err
+	}
+	_ = os.Remove(dst + "-wal")
+	_ = os.Remove(dst + "-shm")
+	if err = os.Rename(restore, dst); err != nil {
+		return err
+	}
+	return json.NewEncoder(os.Stdout).Encode(map[string]string{"operation": "rollback", "database": dst, "restoredFrom": src, "backupCurrentTo": safeBackup.DestinationFile})
+}
+func backup(database, target, project string, overwrite bool, operation string) error {
+	p, err := makeBackup(database, target, overwrite)
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(os.Stdout).Encode(map[string]any{"operation": operation, "projectId": project, "destinationFile": p.DestinationFile, "totalPages": p.TotalPages, "remainingPages": p.RemainingPages})
+}
+func makeBackup(database, target string, overwrite bool) (core.BackupResult, error) {
+	src, _ := filepath.Abs(database)
+	dst, err := filepath.Abs(target)
+	if err != nil {
+		return core.BackupResult{}, err
+	}
+	if src == dst {
+		return core.BackupResult{}, errors.New("Backup destination must differ from the database.")
+	}
+	if _, err = os.Stat(dst); err == nil {
+		if !overwrite {
+			return core.BackupResult{}, errors.New("Backup destination already exists; pass --overwrite.")
+		}
+		if err = os.Remove(dst); err != nil {
+			return core.BackupResult{}, err
+		}
+	}
+	if err = os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return core.BackupResult{}, err
+	}
+	store, err := core.Open(src, nil)
+	if err != nil {
+		return core.BackupResult{}, err
+	}
+	result, err := store.Backup(context.Background(), dst)
+	store.Close()
+	if err != nil {
+		return core.BackupResult{}, err
+	}
+	result.DestinationFile = dst
+	return result, nil
+}
+func conformanceArguments(args []string) (string, string, error) {
+	var fixture, database string
+	for i := 0; i < len(args); i++ {
+		if i+1 >= len(args) {
+			return "", "", fmt.Errorf("argument '%s' requires a value", args[i])
+		}
+		switch args[i] {
+		case "--conformance-fixture":
+			fixture = args[i+1]
+		case "--database":
+			database = args[i+1]
+		default:
+			return "", "", fmt.Errorf("unexpected argument '%s'", args[i])
+		}
+		i++
+	}
 	if fixture == "" || database == "" {
-		return "", "", fmt.Errorf("--conformance-fixture and --database are required")
+		return "", "", errors.New("--conformance-fixture and --database are required")
 	}
 	return fixture, database, nil
 }

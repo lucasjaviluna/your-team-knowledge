@@ -223,5 +223,14 @@ El fixture cubre persistencia, FTS con expansión léxica, sesiones, relaciones,
 lifecycle, revisiones, retención, compactación y contenido sensible. El Core
 abre también bases SQLite heredadas sin las columnas de lifecycle.
 
-La siguiente tarea es **Fase 2**: exponer este Core mediante MCP y los comandos
-operativos, sin modificar el runtime TypeScript que continúa siendo compatible.
+La Fase 2 está completada: el binario Go sirve las cinco herramientas MCP por
+`stdio`, fija cada proceso a un proyecto, valida ownership de sesión y expone
+`doctor`, `backup`, `upgrade` y `rollback`. `npm run
+test:agent-memory-go-surface` ejerce dos procesos MCP independientes y los
+comandos operativos; `npm run test:agent-memory-go-conformance` mantiene la
+paridad del Core con el fixture TypeScript, y `go test ./...` cubre los paquetes
+Go. El runtime TypeScript sigue intacto y continúa siendo el runtime activo
+hasta completar la migración y el piloto de la Fase 5.
+
+La siguiente tarea es **Fase 3**: implementar `setup codex`, instalación
+repetible y desinstalación segura sobre el binario Go.

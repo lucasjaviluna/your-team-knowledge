@@ -18,7 +18,7 @@ try {
     goCommand(),
     ["build", "-o", executable, "./cmd/ytk-memory"],
     moduleDirectory,
-    { ...process.env, GOCACHE: join(outputDirectory, "go-build-cache") },
+    { ...process.env, GOCACHE: join(tmpdir(), "ytk-memory-go-build-cache") },
   );
   run(
     process.execPath,
