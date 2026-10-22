@@ -1,8 +1,7 @@
 # Guía de consumo de Agent Memory nativo
 
-> Esta guía describe el flujo objetivo del binario Go. El runtime actual sigue
-> siendo el paquete Node documentado en [agent-memory-mcp.md](agent-memory-mcp.md)
-> hasta que se publique el primer release nativo estable.
+Esta guía describe el flujo soportado para instalar y usar el binario nativo
+desde un repositorio de trabajo.
 
 ## Qué necesita un repositorio consumidor
 
@@ -31,13 +30,27 @@ mínima compatible del esquema SQLite.
 
 ## Instalar el binario
 
-Descargá el artefacto de la versión aprobada desde el canal interno y verificá
-checksum y firma según el procedimiento de ese canal. Descomprimí el binario en
-un directorio incluido en `PATH` y verificá:
+Descargá el artefacto de la versión aprobada desde el canal interno. Junto al
+paquete deben estar el manifiesto, el archivo de SHA-256, la firma `.sig` y la
+clave pública del canal. Verificá el checksum y la firma según el procedimiento
+de ese canal. Descomprimí el binario en un directorio incluido en `PATH` y
+verificá:
 
 ```powershell
 ytk-memory --version
 ```
+
+En Windows, una verificación de checksum con PowerShell puede hacerse así:
+
+```powershell
+Get-FileHash .\ytk-memory_0.1.0_windows_amd64.zip -Algorithm SHA256
+Get-Content .\ytk-memory_0.1.0_checksums.txt
+```
+
+El release de CI genera una firma efímera cuando no se configura una clave de
+release. Para publicar un release confiable, el canal debe proporcionar una
+clave Ed25519 estable y configurar `YTK_MEMORY_SIGNING_PRIVATE_KEY` únicamente
+en el job protegido de publicación.
 
 El binario no se actualiza solo. La actualización debe usar un release
 verificado y el comando `upgrade` del proyecto.
@@ -87,7 +100,7 @@ No se comparte ni sincroniza automáticamente entre personas o repositorios.
 ytk-memory doctor
 ytk-memory backup --to .ytk-memory/backup.sqlite
 ytk-memory upgrade --backup-to .ytk-memory/pre-upgrade.sqlite
-ytk-memory rollback --from .ytk-memory/pre-upgrade.sqlite --confirm
+ytk-memory rollback --from .ytk-memory/pre-upgrade.sqlite --backup-current-to .ytk-memory/current.sqlite --confirm
 ```
 
 `upgrade` exige un backup. `rollback` exige confirmación y preserva una copia

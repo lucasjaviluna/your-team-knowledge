@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent Memory · Documentación</title>
+    <style>
+      :root {
+        --ink: #172033;
+        --muted: #5f6b7a;
+        --line: #dbe3ee;
+        --paper: #fff;
+        --wash: #f4f7fb;
+        --blue: #2156d8;
+        --blue-soft: #eaf0ff;
+        --teal: #087f79;
+        --teal-soft: #e7f7f5;
+        --amber: #9a5b08;
+        --amber-soft: #fff5df;
+        --shadow: 0 18px 50px rgb(31 52 87/0.1);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--wash);
+        font:
+          16px/1.65 system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      a {
+        color: var(--blue);
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 265px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      aside {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow: auto;
+        padding: 28px 22px;
+        background: #101a30;
+        color: #dfe7ff;
+      }
+      .brand {
+        display: flex;
+        gap: 11px;
+        align-items: center;
+        margin-bottom: 28px;
+        font-weight: 750;
+        letter-spacing: 0.02em;
+      }
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 11px;
+        background: linear-gradient(135deg, #68a1ff, #37d0bb);
+        color: #101a30;
+        font-weight: 900;
+      }
+      nav a {
+        display: block;
+        padding: 7px 10px;
+        border-radius: 8px;
+        color: #adbadb;
+        text-decoration: none;
+        font-size: 14px;
+      }
+      nav a:hover {
+        color: #fff;
+        background: #ffffff17;
+      }
+      .side-note {
+        margin-top: 30px;
+        padding: 13px;
+        border: 1px solid #ffffff26;
+        border-radius: 12px;
+        color: #a9b7d8;
+        font-size: 12px;
+      }
+      main {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+        padding: 0 34px 70px;
+      }
+      .hero {
+        margin: 0 -34px 38px;
+        padding: 82px 34px 68px;
+        background:
+          radial-gradient(circle at 80% 15%, #dce9ff 0, transparent 34%),
+          linear-gradient(135deg, #fff, #eef5ff);
+        border-bottom: 1px solid var(--line);
+      }
+      .eyebrow {
+        color: var(--blue);
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 760px;
+        margin: 10px 0 18px;
+        font-size: clamp(38px, 6vw, 68px);
+        line-height: 1.02;
+        letter-spacing: -0.045em;
+      }
+      .lead {
+        max-width: 740px;
+        margin: 0;
+        color: #3e4b61;
+        font-size: 20px;
+      }
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        margin-top: 28px;
+      }
+      .pill {
+        padding: 5px 10px;
+        border: 1px solid #bfd0ef;
+        border-radius: 99px;
+        background: #ffffffb3;
+        color: #335083;
+        font-size: 13px;
+      }
+      section {
+        scroll-margin-top: 20px;
+        margin: 56px 0;
+      }
+      h2 {
+        margin: 0 0 15px;
+        font-size: 31px;
+        letter-spacing: -0.025em;
+      }
+      h3 {
+        margin: 24px 0 8px;
+        font-size: 20px;
+      }
+      .intro {
+        max-width: 800px;
+        color: var(--muted);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .grid.two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .card {
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+      .card h3 {
+        margin-top: 0;
+      }
+      .tag {
+        display: inline-block;
+        margin-bottom: 10px;
+        padding: 3px 8px;
+        border-radius: 7px;
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-size: 12px;
+        font-weight: 750;
+      }
+      .tag.teal {
+        background: var(--teal-soft);
+        color: var(--teal);
+      }
+      .tag.amber {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        margin: 24px 0;
+      }
+      .flow-step {
+        position: relative;
+        padding: 15px 12px;
+        border: 1px solid #c8d7f3;
+        border-radius: 13px;
+        background: var(--blue-soft);
+        text-align: center;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .flow-step:not(:last-child)::after {
+        content: "→";
+        position: absolute;
+        right: -17px;
+        top: 24px;
+        color: var(--blue);
+        font-size: 20px;
+        z-index: 2;
+      }
+      .architecture {
+        display: grid;
+        gap: 10px;
+        max-width: 760px;
+        margin: 25px auto;
+        text-align: center;
+      }
+      .arch-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .arch-box {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        background: var(--paper);
+      }
+      .arch-box.primary {
+        border-color: #9db6f4;
+        background: var(--blue-soft);
+      }
+      .arch-box.data {
+        border-color: #9bd8d1;
+        background: var(--teal-soft);
+      }
+      .arrow {
+        color: var(--blue);
+        font-size: 25px;
+        line-height: 1;
+      }
+      pre {
+        overflow: auto;
+        margin: 15px 0;
+        padding: 17px 18px;
+        border-radius: 12px;
+        background: #111a2c;
+        color: #e8efff;
+        font:
+          13px/1.6 ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+      }
+      code {
+        padding: 2px 5px;
+        border-radius: 5px;
+        background: #edf1f7;
+        color: #273754;
+        font:
+          0.9em ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+      }
+      pre code {
+        padding: 0;
+        background: none;
+        color: inherit;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 17px 0;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--paper);
+      }
+      th,
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+        text-align: left;
+      }
+      th {
+        background: #eef3fb;
+        color: #394b69;
+        font-size: 13px;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      .callout {
+        margin: 18px 0;
+        padding: 17px 19px;
+        border-left: 4px solid var(--blue);
+        border-radius: 9px;
+        background: var(--blue-soft);
+      }
+      .callout.good {
+        border-color: var(--teal);
+        background: var(--teal-soft);
+      }
+      .callout.warn {
+        border-color: #d28a24;
+        background: var(--amber-soft);
+      }
+      ul,
+      ol {
+        padding-left: 23px;
+      }
+      li + li {
+        margin-top: 5px;
+      }
+      footer {
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 13px;
+      }
+      @media (max-width: 850px) {
+        .shell {
+          display: block;
+        }
+        aside {
+          position: relative;
+          height: auto;
+        }
+        nav {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 3px;
+        }
+        .side-note {
+          display: none;
+        }
+        main {
+          padding: 0 19px 50px;
+        }
+        .hero {
+          margin: 0 -19px 28px;
+          padding: 58px 19px 48px;
+        }
+        .grid,
+        .grid.two,
+        .arch-row {
+          grid-template-columns: 1fr;
+        }
+        .flow {
+          grid-template-columns: 1fr;
+        }
+        .flow-step:not(:last-child)::after {
+          right: auto;
+          left: calc(50% - 5px);
+          top: auto;
+          bottom: -22px;
+          content: "↓";
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside>
+        <div class="brand">
+          <span class="mark">A</span><span>Agent Memory</span>
+        </div>
+        <nav aria-label="Secciones">
+          <a href="#overview">Visión general</a
+          ><a href="#architecture">Arquitectura</a
+          ><a href="#data">Información guardada</a
+          ><a href="#lifecycle">Ciclo del agente</a
+          ><a href="#mcp">MCP y tools</a><a href="#install">Instalación</a
+          ><a href="#operations">Operación</a><a href="#design">Decisiones</a
+          ><a href="#strengths">Fortalezas y mejoras</a
+          ><a href="#future">Evolución</a>
+        </nav>
+        <div class="side-note">
+          Guía de referencia del runtime nativo local. La memoria vive en el
+          repositorio de trabajo y el agente la consulta mediante MCP.
+        </div>
+      </aside>
+      <main>
+        <header class="hero" id="overview">
+          <div class="eyebrow">Documentación del proyecto · v0.1</div>
+          <h1>Contexto útil, guardado cerca del trabajo.</h1>
+          <p class="lead">
+            Agent Memory es una memoria local, trazable y controlada por
+            proyecto para agentes. Conserva decisiones y aprendizajes entre
+            sesiones sin depender de un servicio remoto.
+          </p>
+          <div class="hero-meta">
+            <span class="pill">SQLite + FTS5</span
+            ><span class="pill">MCP por stdio</span
+            ><span class="pill">Windows x64</span
+            ><span class="pill">Linux x64</span
+            ><span class="pill">Go sin cgo</span>
+          </div>
+        </header>
+
+        <section>
+          <h2>Qué resuelve</h2>
+          <p class="intro">
+            Una sesión de agente termina, pero sus decisiones no deberían
+            desaparecer. Agent Memory ofrece una superficie pequeña para
+            recuperar conocimiento relevante, guardar información durable y
+            mantener el ciclo de vida de cada entrada bajo control.
+          </p>
+          <div class="grid">
+            <article class="card">
+              <span class="tag">Local-first</span>
+              <h3>Datos en el checkout</h3>
+              <p>
+                La base SQLite se guarda en <code>.ytk-memory/</code>. El uso
+                cotidiano no requiere red, una base externa ni credenciales
+                corporativas.
+              </p>
+            </article>
+            <article class="card">
+              <span class="tag teal">Aislada</span>
+              <h3>Scope por proyecto</h3>
+              <p>
+                Cada proceso MCP queda fijado a un proyecto y a una base. Las
+                búsquedas, lecturas y sesiones no cruzan workspaces.
+              </p>
+            </article>
+            <article class="card">
+              <span class="tag amber">Operable</span>
+              <h3>Diagnóstico y recuperación</h3>
+              <p>
+                <code>doctor</code>, backups, upgrade y rollback hacen visible
+                el estado y evitan reemplazos silenciosos de la base.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="architecture">
+          <h2>Arquitectura</h2>
+          <p class="intro">
+            El host del agente sólo conoce herramientas MCP. El binario resuelve
+            validación, ownership, persistencia y lifecycle; SQLite conserva los
+            datos.
+          </p>
+          <div class="architecture">
+            <div class="arch-row">
+              <div class="arch-box">Codex u otro host MCP</div>
+              <div class="arch-box">Agente y protocolo de trabajo</div>
+              <div class="arch-box">Configuración del repositorio</div>
+            </div>
+            <div class="arrow">↓ &nbsp; stdio</div>
+            <div class="arch-box primary">
+              <strong>ytk-memory</strong><br />MCP · setup · doctor ·
+              mantenimiento
+            </div>
+            <div class="arrow">↓</div>
+            <div class="arch-row">
+              <div class="arch-box data">SQLite</div>
+              <div class="arch-box data">FTS5 e índices</div>
+              <div class="arch-box data">Backups verificables</div>
+            </div>
+          </div>
+          <div class="grid two">
+            <article class="card">
+              <h3>Componentes</h3>
+              <ul>
+                <li>
+                  <strong>Core:</strong> reglas de memoria, sesiones, relaciones
+                  y lifecycle.
+                </li>
+                <li>
+                  <strong>Surface:</strong> cinco tools MCP y respuestas
+                  estructuradas.
+                </li>
+                <li>
+                  <strong>Setup:</strong> configuración Codex, instrucciones y
+                  manifiesto portable.
+                </li>
+                <li>
+                  <strong>CLI:</strong> versionado, diagnóstico y operaciones de
+                  base.
+                </li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3>Distribución</h3>
+              <ul>
+                <li>Binario Windows x64 en ZIP.</li>
+                <li>Binario Linux x64 en tar.gz.</li>
+                <li>Manifiesto de versión y protocolo.</li>
+                <li>SHA-256, firma Ed25519 y clave pública del release.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="data">
+          <h2>Qué información se guarda</h2>
+          <p class="intro">
+            La memoria está pensada para conocimiento reutilizable y breve. Cada
+            registro tiene identidad, tipo, contenido, scope y fechas que
+            permiten saber si sigue vigente.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Entidad</th>
+                <th>Contenido</th>
+                <th>Uso</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Sesión</strong></td>
+                <td>
+                  Identificador, proyecto, owner, inicio, cierre y resumen.
+                </td>
+                <td>
+                  Vincula el trabajo de una interacción y evita que otro proceso
+                  cierre la sesión.
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Memory item</strong></td>
+                <td>
+                  Tipo, título, contenido, <code>topicKey</code>, tags, estado y
+                  vigencia.
+                </td>
+                <td>
+                  Representa una decisión, hallazgo, patrón, preferencia o
+                  resumen reutilizable.
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Relación</strong></td>
+                <td>Origen, destino, tipo y fecha.</td>
+                <td>
+                  Expresa que una memoria apoya, contradice, reemplaza o se
+                  relaciona con otra.
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Metadata</strong></td>
+                <td>Fuente, área, fechas de revisión y expiración.</td>
+                <td>
+                  Permite filtrar, auditar y retirar contexto vencido sin borrar
+                  todo el historial.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="callout warn">
+            <strong>Regla de contenido:</strong> no guardes secretos, tokens,
+            contraseñas, credenciales, transcripciones completas ni datos
+            personales innecesarios. El runtime rechaza contenido sensible antes
+            de persistirlo.
+          </div>
+          <h3>Tipos admitidos</h3>
+          <p>
+            <code>decision</code> · <code>discovery</code> ·
+            <code>pattern</code> · <code>preference</code> ·
+            <code>summary</code>
+          </p>
+        </section>
+
+        <section id="lifecycle">
+          <h2>Cómo usa la memoria un agente</h2>
+          <div class="flow">
+            <div class="flow-step">1. Abrir sesión</div>
+            <div class="flow-step">2. Buscar contexto</div>
+            <div class="flow-step">3. Decidir</div>
+            <div class="flow-step">4. Guardar aprendizaje</div>
+            <div class="flow-step">5. Cerrar y resumir</div>
+          </div>
+          <p>
+            El protocolo recomienda recuperar contexto antes de una decisión
+            técnica, tratar los resultados como evidencia y guardar sólo aquello
+            que otra sesión pueda reutilizar. El agente usa un
+            <code>topicKey</code> estable para actualizar un tema sin
+            duplicarlo.
+          </p>
+          <pre><code>// Inicio y recall
+&gt; memory_session_start({ "query": "decisiones sobre autenticación", "limit": 10 })
+
+// Aprendizaje durable
+&gt; memory_save({
+    "type": "decision",
+    "title": "Usar tokens de corta duración",
+    "content": "La API valida ...",
+    "topicKey": "security/token-lifetime",
+    "tags": ["security", "api"]
+  })
+
+// Cierre
+&gt; memory_session_finish({ "sessionId": "...", "summary": "..." })</code></pre>
+          <p>
+            El cierre puede crear automáticamente un registro de tipo
+            <code>summary</code>. Los ítems tienen estados <code>active</code>,
+            <code>needs_review</code>, <code>superseded</code> y
+            <code>archived</code>; una entrada archivada no vuelve a aparecer en
+            la búsqueda normal.
+          </p>
+        </section>
+
+        <section id="mcp">
+          <h2>MCP y tools</h2>
+          <p class="intro">
+            El servidor usa MCP sobre <code>stdio</code>. El host inicia un
+            proceso del binario y se comunica mediante mensajes JSON-RPC. La
+            salida estándar queda reservada para MCP.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Entrada principal</th>
+                <th>Respuesta</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>memory_session_start</code></td>
+                <td>
+                  <code>query?</code>, <code>limit?</code>,
+                  <code>maxChars?</code>
+                </td>
+                <td>
+                  <code>sessionId</code> y entradas recuperadas opcionales.
+                </td>
+              </tr>
+              <tr>
+                <td><code>memory_search</code></td>
+                <td>
+                  <code>query</code>, <code>limit?</code>,
+                  <code>maxChars?</code>
+                </td>
+                <td>
+                  Entradas activas del proyecto, ordenadas por relevancia FTS5.
+                </td>
+              </tr>
+              <tr>
+                <td><code>memory_get</code></td>
+                <td><code>memoryId</code>, <code>maxChars?</code></td>
+                <td>Una entrada completa, respetando proyecto y área.</td>
+              </tr>
+              <tr>
+                <td><code>memory_save</code></td>
+                <td>
+                  <code>type</code>, <code>title</code>, <code>content</code>,
+                  <code>topicKey?</code>, tags, fuente y sesión.
+                </td>
+                <td>
+                  <code>stored</code> y <code>entryId</code>; un topic existente
+                  se actualiza.
+                </td>
+              </tr>
+              <tr>
+                <td><code>memory_session_finish</code></td>
+                <td><code>sessionId</code>, <code>summary?</code></td>
+                <td>Confirmación de cierre y <code>summaryStored</code>.</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="grid two">
+            <article class="card">
+              <h3>Límites útiles</h3>
+              <p>
+                Las búsquedas aceptan hasta 100 resultados y 20.000 caracteres
+                por entrada. Los títulos admiten 500 caracteres y el contenido
+                durable hasta 50.000.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Seguridad de scope</h3>
+              <p>
+                El proceso conserva un owner aleatorio para sus sesiones. Una
+                lectura por ID fuera del proyecto se presenta como inexistente,
+                evitando filtraciones de existencia.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="install">
+          <h2>Instalación desde un repositorio</h2>
+          <p class="intro">
+            Descargá un artefacto aprobado para tu plataforma, verificá su hash
+            y firma, agregá el binario al <code>PATH</code> y ejecutá el setup
+            desde la raíz del checkout.
+          </p>
+          <pre><code># Verificar disponibilidad
+ytk-memory --version
+
+# Revisar cambios
+ytk-memory setup codex --instructions local --dry-run
+
+# Aplicar configuración
+ytk-memory setup codex --instructions local
+
+# Verificar base, registro MCP y ejecutable
+ytk-memory doctor</code></pre>
+          <div class="callout good">
+            <strong>Resultado:</strong> se crea
+            <code>.ytk-memory/ytk-memory.sqlite</code>, se registra el servidor
+            en <code>.codex/config.toml</code> y se instalan instrucciones
+            administradas. Reiniciá el host MCP para que cargue la
+            configuración.
+          </div>
+          <h3>Ámbitos</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Opción</th>
+                <th>Uso</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>--instructions local</code></td>
+                <td>Instrucciones y skill en el repositorio actual.</td>
+              </tr>
+              <tr>
+                <td><code>--instructions global</code></td>
+                <td>Instrucciones globales del usuario.</td>
+              </tr>
+              <tr>
+                <td><code>--instructions both</code></td>
+                <td>Ambos ámbitos.</td>
+              </tr>
+              <tr>
+                <td><code>--portable</code></td>
+                <td>
+                  También genera <code>.ytk-memory/mcp.json</code> para hosts
+                  portables.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="operations">
+          <h2>Setup, verificación y mantenimiento</h2>
+          <pre><code># Backup consistente
+ytk-memory backup --to .ytk-memory/backup.sqlite
+
+# Upgrade con backup obligatorio
+ytk-memory upgrade --backup-to .ytk-memory/pre-upgrade.sqlite
+
+# Rollback confirmado y protegido
+ytk-memory rollback   --from .ytk-memory/pre-upgrade.sqlite   --backup-current-to .ytk-memory/current.sqlite   --confirm
+
+# Retirar sólo la integración administrada
+ytk-memory uninstall codex --instructions local</code></pre>
+          <p>
+            <code>doctor</code> comprueba que la base sea legible y que el
+            registro administrado corresponda al proyecto y a la ruta de base
+            actuales. Los destinos de backup existentes se rechazan salvo que se
+            indique <code>--overwrite</code>.
+          </p>
+          <div class="grid two">
+            <article class="card">
+              <h3>Configuración creada</h3>
+              <p>
+                <code>.ytk-memory.json</code>, <code>.codex/config.toml</code>,
+                <code>AGENTS.md</code>,
+                <code>.agents/skills/ytk-memory/SKILL.md</code> y,
+                opcionalmente, <code>.ytk-memory/mcp.json</code>.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Reversibilidad</h3>
+              <p>
+                El desinstalador quita sólo bloques con marcadores
+                administrados. Conserva la base y los backups para permitir una
+                decisión posterior.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="design">
+          <h2>Decisiones de diseño</h2>
+          <div class="grid">
+            <article class="card">
+              <span class="tag">SQLite</span>
+              <h3>Local y portable</h3>
+              <p>
+                Reduce dependencias operativas, permite backup simple y mantiene
+                la memoria cerca del código que la necesita.
+              </p>
+            </article>
+            <article class="card">
+              <span class="tag teal">FTS5</span>
+              <h3>Recall explicable</h3>
+              <p>
+                La búsqueda léxica es rápida, auditable y adecuada para
+                decisiones, nombres de módulos y términos de proyecto.
+              </p>
+            </article>
+            <article class="card">
+              <span class="tag amber">MCP</span>
+              <h3>Superficie pequeña</h3>
+              <p>
+                Un conjunto de cinco herramientas permite integrar distintos
+                hosts sin acoplar el Core a una interfaz de usuario.
+              </p>
+            </article>
+          </div>
+          <ul>
+            <li>
+              <strong>Sin cgo:</strong> el binario usa SQLite embebido y se
+              distribuye sin toolchain nativo.
+            </li>
+            <li>
+              <strong>Scope explícito:</strong> proyecto, base y área viajan en
+              la configuración del proceso.
+            </li>
+            <li>
+              <strong>Idempotencia:</strong> <code>topicKey</code> actualiza
+              conocimiento en lugar de multiplicarlo.
+            </li>
+            <li>
+              <strong>Lifecycle:</strong> vigencia, revisión y archivado evitan
+              que contexto obsoleto contamine una respuesta.
+            </li>
+            <li>
+              <strong>Operaciones seguras:</strong> backup antes de upgrade y
+              copia de seguridad durante rollback.
+            </li>
+          </ul>
+        </section>
+
+        <section id="strengths">
+          <h2>Fortalezas y puntos a mejorar</h2>
+          <div class="grid two">
+            <article class="card">
+              <span class="tag teal">Fortalezas</span>
+              <ul>
+                <li>Instalación local sin servicios externos.</li>
+                <li>Paridad de contrato MCP y respuestas estructuradas.</li>
+                <li>Aislamiento por proyecto y owner de sesión.</li>
+                <li>Datos inspeccionables y backups verificables.</li>
+                <li>Distribución nativa con hash y firma.</li>
+                <li>Pruebas de conformance, superficie y release.</li>
+              </ul>
+            </article>
+            <article class="card">
+              <span class="tag amber">A mejorar</span>
+              <ul>
+                <li>
+                  Validar el canal interno de releases con una clave estable y
+                  revocación.
+                </li>
+                <li>
+                  Medir recall y latencia con corpus de trabajo representativo.
+                </li>
+                <li>
+                  Añadir identidad corporativa cuando el uso multiusuario lo
+                  requiera.
+                </li>
+                <li>
+                  Evaluar stemming o retrieval semántico sin perder
+                  explicabilidad.
+                </li>
+                <li>
+                  Incorporar macOS arm64 después de una validación nativa
+                  equivalente.
+                </li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="future">
+          <h2>Posibilidades de crecimiento</h2>
+          <div class="grid">
+            <article class="card">
+              <h3>Más hosts</h3>
+              <p>
+                El manifiesto portable permite conectar otros hosts MCP
+                manteniendo las mismas tools y el mismo scope.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Mejor recuperación</h3>
+              <p>
+                Se pueden sumar expansión semántica, embeddings locales o
+                ranking híbrido como capas optativas.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Gobernanza</h3>
+              <p>
+                Auditoría, políticas de retención, sincronización selectiva y
+                autorización corporativa pueden crecer sin cambiar el contrato
+                base.
+              </p>
+            </article>
+          </div>
+          <div class="callout">
+            La siguiente etapa recomendada es un piloto con repositorios de
+            trabajo y dos hosts MCP, midiendo utilidad de las memorias,
+            estabilidad de las actualizaciones y recuperación entre sesiones.
+          </div>
+        </section>
+        <footer>
+          Agent Memory · documentación del proyecto · La base es local al
+          repositorio y el agente opera a través de MCP.
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

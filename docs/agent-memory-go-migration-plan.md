@@ -26,7 +26,9 @@ repositorio y el usuario puede crear backups, actualizar o volver a una copia
 anterior mediante el mismo binario.
 
 La guía de uso y requisitos está en
-[agent-memory-native-consumer-guide.md](agent-memory-native-consumer-guide.md).
+[agent-memory-native-consumer-guide.md](agent-memory-native-consumer-guide.md) y
+el procedimiento paso a paso en
+[agent-memory-installation.md](agent-memory-installation.md).
 
 ## Arquitectura objetivo
 

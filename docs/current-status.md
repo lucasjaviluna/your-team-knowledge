@@ -1,13 +1,13 @@
 # Estado actual y punto de continuación
 
 **Revisado:** 2026-10-21
-**Alcance:** inspección local de documentación, código, scripts y workflow de CI. No se consultó el estado remoto de CI. Git quedó habilitado para este checkout después de configurar su ruta como segura.
+**Alcance:** inspección local de documentación, código, scripts y workflow de CI. La última ejecución remota fue confirmada como verde por el equipo; no se consultó su detalle desde este checkout. La guía operativa nueva está en [agent-memory-installation.md](agent-memory-installation.md) y la documentación visual en [agent-memory.html](agent-memory.html). Git quedó habilitado para este checkout después de configurar su ruta como segura.
 
 Este es el punto canónico para retomar trabajo. El [plan de implementación](implementation-plan.md) describe el alcance por etapas; este documento registra qué está comprobado, qué falta y cuál es el siguiente paso.
 
 ## Objetivo próximo
 
-Migrar Agent Memory a un runtime Go que se distribuya como binario local y no requiera Node.js ni npm en repositorios consumidores. Las Fases 0, 1, 2, 3 y 4 están cerradas: `native/ytk-memory` contiene el Core SQLite sin cgo, el servidor MCP `stdio`, ownership de sesiones, comandos operativos, setup/uninstall seguro para Codex y empaquetado nativo Windows/Linux. El fixture compartido pasa en ambos runtimes. TypeScript sigue intacto y activo hasta completar la transición y el piloto de la Fase 5. La decisión arquitectónica está en [ADR 0007](adr/0007-agent-memory-native-go-runtime.md) y la experiencia objetivo para repositorios consumidores en la [guía de consumo nativo](agent-memory-native-consumer-guide.md).
+Ejecutar el piloto de Agent Memory nativo en repositorios consumidores y hosts MCP reales. Las Fases 0, 1, 2, 3 y 4 están cerradas: `native/ytk-memory` contiene el Core SQLite sin cgo, el servidor MCP `stdio`, ownership de sesiones, comandos operativos, setup/uninstall seguro para Codex y empaquetado nativo Windows/Linux. El fixture compartido pasa en ambos runtimes. TypeScript sigue intacto y activo hasta completar la transición y el piloto de la Fase 5. La decisión arquitectónica está en [ADR 0007](adr/0007-agent-memory-native-go-runtime.md) y la experiencia objetivo para repositorios consumidores en la [guía de consumo nativo](agent-memory-native-consumer-guide.md).
 
 ## Resumen
 
@@ -23,7 +23,7 @@ El estado es **alpha interna**. La implementación y los contratos están bastan
 - **Instalación:** inicializador con adaptador Codex, configuración MCP local, instrucciones/skill y operaciones repetibles con `dry-run`/desinstalación.
 - **RAG:** ingesta Markdown, `EmbeddingProvider`, PostgreSQL/pgvector, retrieval lexical/vectorial/híbrido, ACL dentro de la consulta y citas/provenance. `Xenova/multilingual-e5-small` y 384 dimensiones siguen siendo provisionales.
 - **Contexto y API:** `ContextOrchestrator`, consulta/ingesta HTTP y `POST /v1/context`, cliente TypeScript, autorización inicial y auditoría.
-- **Calidad automatizada:** el workflow configura Node 22 y matriz Ubuntu/Windows, ejecuta formato, typecheck, lint, build, suite, evaluación de contexto, contratos de paquete/release/migración, smokes y artefacto de release interno. La configuración del workflow no demuestra por sí sola que la última ejecución remota haya pasado.
+- **Calidad automatizada:** el workflow configura Node 22 y matriz Ubuntu/Windows, ejecuta formato, typecheck, lint, build, suite, evaluación de contexto, contratos de paquete/release/migración, smokes, release nativo y artefactos de release. La última ejecución remota fue confirmada como verde por el equipo.
 
 ## Verificación local de esta revisión
 
@@ -36,7 +36,7 @@ El estado es **alpha interna**. La implementación y los contratos están bastan
 | `npm run lint`           | Sin resultado         | No emitió salida tras más de un minuto y se detuvo; no se considera aprobado.                   |
 | Git status/último commit | Disponible            | El checkout está en `main...origin/main`; la inspección de cambios ya no está bloqueada.        |
 
-Las integraciones PostgreSQL/embeddings y los smokes de distribución no se volvieron a ejecutar en esta revisión. El reporte de madurez anterior registraba resultados históricos, que no se deben presentar como verificación actual.
+Las integraciones PostgreSQL/embeddings no se volvieron a ejecutar en esta revisión. El reporte de madurez anterior registraba resultados históricos, que no se deben presentar como verificación actual.
 
 ## Pendientes ordenados
 
@@ -51,13 +51,17 @@ Las integraciones PostgreSQL/embeddings y los smokes de distribución no se volv
 
 Implementar el piloto de la Fase 5 del [plan de migración Go](agent-memory-go-migration-plan.md) usando los artefactos nativos generados por CI.
 
-## Verificación de Fase 3 (2026-10-21)
+## Verificación de Fases 3 y 4 (2026-10-21)
 
 | Check                                  | Resultado                                                                       |
 | -------------------------------------- | ------------------------------------------------------------------------------- |
 | `go test ./...`                        | Aprobado                                                                        |
 | `npm run test:agent-memory-go-setup`   | Aprobado; dry-run, preservación, repetición, desinstalación y alcance global    |
 | `npm run test:agent-memory-go-release` | Aprobado en Windows; paquete nativo, manifiesto, SHA-256, firma y prueba limpia |
+
+La matriz remota de CI ejecuta también el release smoke en Windows y Linux y
+publica los artefactos nativos por plataforma. La verificación local del release
+se realizó en Windows; la evidencia de Linux corresponde al job remoto verde.
 
 ## Verificación de Fase 2 (2026-10-21)
 

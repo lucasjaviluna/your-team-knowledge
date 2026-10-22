@@ -2,7 +2,8 @@
 
 ## Estado
 
-Aceptada; implementación pendiente.
+Aceptada; Fases 0–4 implementadas y verificadas en CI. La Fase 5 queda como
+piloto operativo antes de retirar el canal de compatibilidad.
 
 ## Contexto
 
