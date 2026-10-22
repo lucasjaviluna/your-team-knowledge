@@ -77,6 +77,15 @@ El servidor MCP es un adaptador sobre ese contrato. Cada proceso queda fijado a 
 
 El inicializador separa la resolución común de proyecto, base y ejecutable de adaptadores de instalación por cliente. El primer adaptador configura Codex mediante bloques propios en `.codex/config.toml` y `AGENTS.md`; los demás clientes pueden añadirse sin cambiar el contrato MCP ni el almacenamiento. Los cambios se planifican antes de escribir y se revierten si una escritura falla.
 
+El binario nativo implementa el mismo límite mediante `setup codex` y
+`uninstall codex`. El registro MCP queda siempre en el checkout; las
+instrucciones pueden instalarse localmente, globalmente o en ambos alcances.
+La configuración TOML, Markdown y la skill se actualizan sólo mediante bloques
+marcados. Antes de aplicar una instalación, el binario valida todas las
+colisiones; luego crea la SQLite local y aplica los cambios administrados. La
+desinstalación conserva la base, el archivo de proyecto y cualquier contenido
+que no pertenezca a esos bloques.
+
 Cada cliente nuevo implementa `AgentInstallerAdapter` en `src/installer/` y se registra por nombre en el CLI. Su adaptador define únicamente los archivos y bloques específicos del host; la resolución del proyecto y la aplicación de cambios siguen en el núcleo común.
 
 El alcance de las instrucciones es parte del contexto común del instalador:

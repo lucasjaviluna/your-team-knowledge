@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/corporate-knowledge/ytk-memory/internal/core"
+	"github.com/corporate-knowledge/ytk-memory/internal/setup"
 	"github.com/corporate-knowledge/ytk-memory/internal/surface"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -34,7 +35,7 @@ func main() {
 }
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: ytk-memory <mcp|conformance|doctor|backup|upgrade|rollback> [options]")
+		return errors.New("usage: ytk-memory <mcp|setup|uninstall|conformance|doctor|backup|upgrade|rollback> [options]")
 	}
 	command := args[0]
 	if command == "conformance" {
@@ -47,6 +48,9 @@ func run(args []string) error {
 			return err
 		}
 		return json.NewEncoder(os.Stdout).Encode(report)
+	}
+	if command == "setup" || command == "uninstall" {
+		return runSetup(command, args[1:])
 	}
 	fs := flag.NewFlagSet(command, flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
@@ -90,6 +94,81 @@ func run(args []string) error {
 		return doRollback(cfg, *from, *currentTo, *confirm)
 	}
 	return fmt.Errorf("unknown operation: %s", command)
+}
+
+func runSetup(command string, args []string) error {
+	if len(args) == 0 || args[0] != "codex" {
+		return errors.New("usage: ytk-memory setup codex [--instructions local|global|both] [--dry-run] [--portable]")
+	}
+	fs := flag.NewFlagSet(command, flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	project := fs.String("project", "", "project id")
+	database := fs.String("database", "", "SQLite path")
+	area := fs.String("area", "", "memory area")
+	instructions := fs.String("instructions", "local", "local, global, or both")
+	dryRun := fs.Bool("dry-run", false, "preview changes")
+	portable := fs.Bool("portable", false, "write generic MCP manifest")
+	remove := fs.Bool("uninstall", false, "remove setup owned by Codex")
+	if err := fs.Parse(args[1:]); err != nil {
+		return err
+	}
+	if fs.NArg() != 0 {
+		return fmt.Errorf("unexpected argument: %s", fs.Arg(0))
+	}
+	cfg, err := resolve(*project, *database, *area)
+	if err != nil {
+		return err
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	executable, err = filepath.Abs(executable)
+	if err != nil {
+		return err
+	}
+	home := os.Getenv("CODEX_HOME")
+	if home == "" {
+		userHome, homeErr := os.UserHomeDir()
+		if homeErr != nil {
+			return homeErr
+		}
+		home = filepath.Join(userHome, ".codex")
+	}
+	home, err = filepath.Abs(home)
+	if err != nil {
+		return err
+	}
+	context := setup.Context{Root: cwd, Home: home, Executable: executable, ProjectID: cfg.project, Database: cfg.database, Area: cfg.area, Scope: setup.Scope(*instructions)}
+	var result setup.Result
+	if command == "uninstall" || *remove {
+		result, err = setup.Uninstall(context, *dryRun)
+	} else if *dryRun {
+		result, err = setup.Install(context, *dryRun, *portable)
+	} else {
+		if _, err := setup.Install(context, true, *portable); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Dir(cfg.database), 0755); err != nil {
+			return err
+		}
+		store, openErr := core.Open(cfg.database, nil)
+		if openErr != nil {
+			return openErr
+		}
+		if closeErr := store.Close(); closeErr != nil {
+			return closeErr
+		}
+		result, err = setup.Install(context, false, *portable)
+	}
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(os.Stdout).Encode(result)
 }
 func resolve(project, database, area string) (config, error) {
 	cwd, err := os.Getwd()
@@ -184,7 +263,43 @@ func doctor(c config) error {
 	if err != nil {
 		return err
 	}
-	return json.NewEncoder(os.Stdout).Encode(map[string]any{"operation": "doctor", "healthy": true, "projectId": c.project, "database": c.database, "lifecycle": life, "go": runtime.Version()})
+	checks := []map[string]string{{"name": "database", "status": "ok", "message": "SQLite schema is readable."}}
+	healthy := true
+	if cwd, cwdErr := os.Getwd(); cwdErr == nil {
+		setupCheck := inspectCodexSetup(filepath.Join(cwd, ".codex", "config.toml"))
+		checks = append(checks, setupCheck)
+		if setupCheck["status"] == "invalid" {
+			healthy = false
+		}
+	}
+	return json.NewEncoder(os.Stdout).Encode(map[string]any{"operation": "doctor", "healthy": healthy, "projectId": c.project, "database": c.database, "lifecycle": life, "go": runtime.Version(), "checks": checks})
+}
+
+func inspectCodexSetup(filename string) map[string]string {
+	contents, err := os.ReadFile(filename)
+	if os.IsNotExist(err) {
+		return map[string]string{"name": "codex_mcp", "status": "not_configured", "message": "Run ytk-memory setup codex to register the native MCP server."}
+	}
+	if err != nil {
+		return map[string]string{"name": "codex_mcp", "status": "invalid", "message": err.Error()}
+	}
+	text := string(contents)
+	begin, end := strings.Index(text, "# BEGIN ytk-memory-init:codex"), strings.Index(text, "# END ytk-memory-init:codex")
+	if begin < 0 && end < 0 {
+		return map[string]string{"name": "codex_mcp", "status": "not_configured", "message": "No native Codex MCP registration was found."}
+	}
+	if begin < 0 || end < begin {
+		return map[string]string{"name": "codex_mcp", "status": "invalid", "message": "Managed Codex MCP block is incomplete."}
+	}
+	block := text[begin:end]
+	match := regexp.MustCompile(`(?m)^command\s*=\s*"([^"]+)"\s*$`).FindStringSubmatch(block)
+	if len(match) != 2 {
+		return map[string]string{"name": "codex_mcp", "status": "invalid", "message": "Managed Codex MCP command is missing."}
+	}
+	if _, err := os.Stat(match[1]); err != nil {
+		return map[string]string{"name": "codex_mcp", "status": "invalid", "message": "Registered native executable is unavailable."}
+	}
+	return map[string]string{"name": "codex_mcp", "status": "ok", "message": "Native MCP executable is registered and available."}
 }
 func doBackup(c config, target string, overwrite bool) error {
 	if target == "" {

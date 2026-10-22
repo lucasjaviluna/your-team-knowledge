@@ -15,7 +15,7 @@ El estado revisado y la cola de continuación están en [current-status.md](curr
 
 **Objetivo próximo:** migrar Agent Memory a un runtime Go distribuible como binario, preservando los contratos actuales. El alcance, fases y criterios de salida se detallan en [agent-memory-go-migration-plan.md](agent-memory-go-migration-plan.md).
 
-Las Fases 0, 1 y 2 de la migración Go están completadas. La Fase 2 incluye MCP `stdio`, ownership por proceso, comandos operativos y E2E de dos consumidores. La Fase 3 (setup/uninstall Codex) es el siguiente incremento. Los archivos y el runtime TypeScript siguen operativos durante toda la migración.
+Las Fases 0, 1, 2 y 3 de la migración Go están completadas. La Fase 2 incluye MCP `stdio`, ownership por proceso, comandos operativos y E2E de dos consumidores; la Fase 3 incorpora setup/uninstall Codex seguro. La Fase 4 (empaquetado y releases) es el siguiente incremento. Los archivos y el runtime TypeScript siguen operativos durante toda la migración.
 
 - **Etapas 0–1:** completadas; arquitectura, base TypeScript, CI, migraciones y contratos de distribución están establecidos.
 - **Etapa 2 — Agent Memory SQLite:** el runtime TypeScript está completado como producto local instalable y pasa a ser la referencia de compatibilidad para su migración a Go. El objetivo de la migración es una distribución nativa sin Node/npm; no cambia los contratos ni el modelo local-first.

@@ -232,5 +232,15 @@ paridad del Core con el fixture TypeScript, y `go test ./...` cubre los paquetes
 Go. El runtime TypeScript sigue intacto y continúa siendo el runtime activo
 hasta completar la migración y el piloto de la Fase 5.
 
-La siguiente tarea es **Fase 3**: implementar `setup codex`, instalación
-repetible y desinstalación segura sobre el binario Go.
+La Fase 3 está completada: `ytk-memory setup codex` crea la base local,
+registra el binario nativo en `.codex/config.toml`, genera la skill y el
+fallback portable desde una plantilla común y admite `--dry-run`,
+`--instructions local|global|both` y `setup codex --uninstall` (o
+`uninstall codex`). El instalador conserva el contenido ajeno y rechaza
+colisiones antes de escribir. `doctor` verifica el esquema SQLite y el
+registro MCP administrado. `npm run test:agent-memory-go-setup` cubre un
+checkout con TOML y `AGENTS.md` preexistentes, repetición, desinstalación y
+guía global. TypeScript continúa activo durante toda la transición.
+
+La siguiente tarea es **Fase 4**: empaquetar y validar los binarios nativos
+para Windows y Linux con checksums, firma y pruebas en una instalación limpia.
