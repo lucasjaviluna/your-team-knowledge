@@ -174,7 +174,7 @@ function output(result) {
 }
 
 function cli(operation, args) {
-  const result = spawnSync(executable, [operation, ...args], {
+  const result = spawnSync(executable, [operation, ...args, "--json"], {
     encoding: "utf8",
   });
   if (result.error) throw result.error;
