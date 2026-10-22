@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -300,7 +301,7 @@ func slug(s string) string {
 }
 func doctor(c config, jsonOutput bool) error {
 	if _, err := os.Stat(c.database); os.IsNotExist(err) {
-		result := map[string]any{"operation": "doctor", "healthy": false, "projectId": c.project, "database": c.database, "checks": []any{map[string]string{"name": "database", "status": "missing", "message": "Run the MCP server once or restore a backup."}}}
+		result := map[string]any{"operation": "doctor", "healthy": false, "state": "missing_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "missing", "message": "No se encontró la base de datos. Ejecutá `ytk-memory setup codex` para crearla o restaurá un backup."}}}
 		return printDoctor(result, jsonOutput)
 	}
 	s, err := core.Open(c.database, nil)
@@ -326,21 +327,27 @@ func doctor(c config, jsonOutput bool) error {
 }
 
 func printDoctor(result map[string]any, jsonOutput bool) error {
+	return writeDoctor(os.Stdout, result, jsonOutput)
+}
+
+func writeDoctor(output io.Writer, result map[string]any, jsonOutput bool) error {
 	if jsonOutput {
-		return json.NewEncoder(os.Stdout).Encode(result)
+		return json.NewEncoder(output).Encode(result)
 	}
 	healthy := result["healthy"] == true
 	title := "Agent Memory · Revisar configuración"
 	if healthy {
 		title = "Agent Memory · Todo en orden"
+	} else if result["state"] == "missing_configuration" {
+		title = "Agent Memory · Falta configuración"
 	}
-	fmt.Fprintln(os.Stdout, title)
-	fmt.Fprintf(os.Stdout, "Proyecto: %v\nBase de datos: %v\n", result["projectId"], result["database"])
+	fmt.Fprintln(output, title)
+	fmt.Fprintf(output, "Proyecto: %v\nBase de datos: %v\n", result["projectId"], result["database"])
 	if value, ok := result["go"]; ok {
-		fmt.Fprintf(os.Stdout, "Go: %v\n", value)
+		fmt.Fprintf(output, "Go: %v\n", value)
 	}
 	if checks, ok := result["checks"].([]map[string]string); ok && len(checks) > 0 {
-		fmt.Fprintln(os.Stdout, "\nVerificaciones:")
+		fmt.Fprintln(output, "\nVerificaciones:")
 		for _, check := range checks {
 			icon := "·"
 			if check["status"] == "ok" {
@@ -348,13 +355,13 @@ func printDoctor(result map[string]any, jsonOutput bool) error {
 			} else if check["status"] == "invalid" || check["status"] == "missing" {
 				icon = "✗"
 			}
-			fmt.Fprintf(os.Stdout, "  %s %s: %s\n", icon, check["name"], check["message"])
+			fmt.Fprintf(output, "  %s %s: %s\n", icon, check["name"], check["message"])
 		}
 	}
 	if lifecycle, ok := result["lifecycle"].(core.Lifecycle); ok {
-		fmt.Fprintln(os.Stdout, "\nMemorias:")
-		fmt.Fprintf(os.Stdout, "  Total: %d · Activas: %d · Para revisar: %d · Archivadas: %d\n", lifecycle.Total, lifecycle.ByStatus["active"], lifecycle.ByStatus["needs_review"], lifecycle.ByStatus["archived"])
-		fmt.Fprintf(os.Stdout, "  Futuras: %d · Vencidas: %d · Revisión pendiente: %d\n", lifecycle.Future, lifecycle.Expired, lifecycle.DueForReview)
+		fmt.Fprintln(output, "\nMemorias:")
+		fmt.Fprintf(output, "  Total: %d · Activas: %d · Para revisar: %d · Archivadas: %d\n", lifecycle.Total, lifecycle.ByStatus["active"], lifecycle.ByStatus["needs_review"], lifecycle.ByStatus["archived"])
+		fmt.Fprintf(output, "  Futuras: %d · Vencidas: %d · Revisión pendiente: %d\n", lifecycle.Future, lifecycle.Expired, lifecycle.DueForReview)
 	}
 	return nil
 }
