@@ -118,6 +118,9 @@ function run(command, args, cwd, env) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 function goCommand() {
+  if (process.env.GO) return process.env.GO;
   const windowsGo = "C:\\Program Files\\Go\\bin\\go.exe";
-  return process.env.GO ?? (process.platform === "win32" ? windowsGo : "go");
+  return process.platform === "win32" && existsSync(windowsGo)
+    ? windowsGo
+    : "go";
 }
