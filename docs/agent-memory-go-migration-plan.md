@@ -242,5 +242,14 @@ registro MCP administrado. `npm run test:agent-memory-go-setup` cubre un
 checkout con TOML y `AGENTS.md` preexistentes, repetición, desinstalación y
 guía global. TypeScript continúa activo durante toda la transición.
 
-La siguiente tarea es **Fase 4**: empaquetar y validar los binarios nativos
-para Windows y Linux con checksums, firma y pruebas en una instalación limpia.
+La Fase 4 está completada: `scripts/agent-memory-go-release.mjs` construye el
+binario nativo con `CGO_ENABLED=0`, genera el archivo comprimido de la
+plataforma, manifiesto, SHA-256 y firma Ed25519. El workflow de CI ejecuta el
+flujo en runners Windows y Linux, publica los artefactos como artefactos de
+workflow y valida una instalación limpia con `setup`, `doctor`, MCP, backup y
+upgrade. Para un release confiable se puede proporcionar
+`YTK_MEMORY_SIGNING_PRIVATE_KEY` con una clave PEM; CI sin esa variable genera
+una firma efímera verificable para validar el pipeline.
+
+La siguiente tarea es **Fase 5**: ejecutar el piloto en repositorios consumidores
+y hosts MCP reales manteniendo TypeScript como canal de compatibilidad.

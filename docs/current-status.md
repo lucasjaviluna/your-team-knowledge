@@ -7,7 +7,7 @@ Este es el punto canónico para retomar trabajo. El [plan de implementación](im
 
 ## Objetivo próximo
 
-Migrar Agent Memory a un runtime Go que se distribuya como binario local y no requiera Node.js ni npm en repositorios consumidores. Las Fases 0, 1, 2 y 3 están cerradas: `native/ytk-memory` contiene el Core SQLite sin cgo, el servidor MCP `stdio`, ownership de sesiones, comandos operativos y setup/uninstall seguro para Codex. El fixture compartido pasa en ambos runtimes. TypeScript sigue intacto y activo hasta completar la transición y el piloto de la Fase 5. La decisión arquitectónica está en [ADR 0007](adr/0007-agent-memory-native-go-runtime.md) y la experiencia objetivo para repositorios consumidores en la [guía de consumo nativo](agent-memory-native-consumer-guide.md).
+Migrar Agent Memory a un runtime Go que se distribuya como binario local y no requiera Node.js ni npm en repositorios consumidores. Las Fases 0, 1, 2, 3 y 4 están cerradas: `native/ytk-memory` contiene el Core SQLite sin cgo, el servidor MCP `stdio`, ownership de sesiones, comandos operativos, setup/uninstall seguro para Codex y empaquetado nativo Windows/Linux. El fixture compartido pasa en ambos runtimes. TypeScript sigue intacto y activo hasta completar la transición y el piloto de la Fase 5. La decisión arquitectónica está en [ADR 0007](adr/0007-agent-memory-native-go-runtime.md) y la experiencia objetivo para repositorios consumidores en la [guía de consumo nativo](agent-memory-native-consumer-guide.md).
 
 ## Resumen
 
@@ -18,7 +18,7 @@ El estado es **alpha interna**. La implementación y los contratos están bastan
 ## Implementado y comprobado en el repositorio
 
 - **Agent Memory:** SQLite, contrato `AgentMemoryProvider`, protocolo de sesión, MCP `stdio`, aislamiento por proyecto, guardado idempotente, lifecycle/revisión/retención y CLI `doctor`, backup, upgrade y rollback.
-- **Runtime Go nativo de Agent Memory:** Core SQLite sin cgo; cinco herramientas MCP compatibles; `doctor`, backup, upgrade y rollback; prueba E2E de dos procesos consumidores y fixture Core compartido. El empaquetado del binario pertenece a la fase siguiente.
+- **Runtime Go nativo de Agent Memory:** Core SQLite sin cgo; cinco herramientas MCP compatibles; `doctor`, backup, upgrade y rollback; prueba E2E de dos procesos consumidores y fixture Core compartido. La Fase 4 añade paquetes Windows/Linux, manifiestos, SHA-256, firma Ed25519 y validación de instalación limpia.
 - **Setup nativo Codex:** `setup codex`, `--dry-run`, alcances local/global/ambos y desinstalación selectiva. Preserva TOML y Markdown preexistentes, genera la base SQLite y permite a `doctor` comprobar el registro MCP nativo.
 - **Instalación:** inicializador con adaptador Codex, configuración MCP local, instrucciones/skill y operaciones repetibles con `dry-run`/desinstalación.
 - **RAG:** ingesta Markdown, `EmbeddingProvider`, PostgreSQL/pgvector, retrieval lexical/vectorial/híbrido, ACL dentro de la consulta y citas/provenance. `Xenova/multilingual-e5-small` y 384 dimensiones siguen siendo provisionales.
@@ -40,7 +40,7 @@ Las integraciones PostgreSQL/embeddings y los smokes de distribución no se volv
 
 ## Pendientes ordenados
 
-1. **Migración nativa de Agent Memory:** implementar la Fase 4: empaquetar binarios Windows/Linux, checksums, firma y pruebas nativas de instalación limpia, sin retirar ni desactivar archivos TypeScript.
+1. **Piloto nativo de Agent Memory:** ejecutar la Fase 5 en repositorios consumidores y hosts MCP reales, sin retirar ni desactivar archivos TypeScript.
 2. **Definir el piloto RAG:** elegir una fuente/corpus real, consultas representativas, workspace/equipos y el proveedor de identidad esperado. Sin esos datos no se puede cerrar si E5/384 sirve ni comprobar permisos de extremo a extremo.
 3. **Ejecutar validación controlada:** con corpus y entorno elegidos, correr las integraciones PostgreSQL/embeddings y establecer si pasan a un job CI programado. Medir calidad de citas, recall, latencia y costo antes de fijar modelo/dimensión.
 4. **Conectar identidad real:** implementar `BearerIdentityResolver` para el IdP elegido y verificar aislamiento multiusuario/workspace.
@@ -49,14 +49,15 @@ Las integraciones PostgreSQL/embeddings y los smokes de distribución no se volv
 
 ### Siguiente punto de trabajo recomendado
 
-Implementar la Fase 4 del [plan de migración Go](agent-memory-go-migration-plan.md): empaquetado Windows/Linux, checksums, firma y validación de instalación limpia sin Node.
+Implementar el piloto de la Fase 5 del [plan de migración Go](agent-memory-go-migration-plan.md) usando los artefactos nativos generados por CI.
 
 ## Verificación de Fase 3 (2026-10-21)
 
-| Check                                | Resultado                                                                    |
-| ------------------------------------ | ---------------------------------------------------------------------------- |
-| `go test ./...`                      | Aprobado                                                                     |
-| `npm run test:agent-memory-go-setup` | Aprobado; dry-run, preservación, repetición, desinstalación y alcance global |
+| Check                                  | Resultado                                                                       |
+| -------------------------------------- | ------------------------------------------------------------------------------- |
+| `go test ./...`                        | Aprobado                                                                        |
+| `npm run test:agent-memory-go-setup`   | Aprobado; dry-run, preservación, repetición, desinstalación y alcance global    |
+| `npm run test:agent-memory-go-release` | Aprobado en Windows; paquete nativo, manifiesto, SHA-256, firma y prueba limpia |
 
 ## Verificación de Fase 2 (2026-10-21)
 

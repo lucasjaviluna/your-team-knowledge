@@ -19,6 +19,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+var version = "dev"
+
 type configFile struct {
 	ProjectSlug string `json:"project_slug"`
 	ProjectID   string `json:"projectId"`
@@ -36,6 +38,10 @@ func main() {
 func run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("usage: ytk-memory <mcp|setup|uninstall|conformance|doctor|backup|upgrade|rollback> [options]")
+	}
+	if args[0] == "--version" || args[0] == "version" {
+		fmt.Println(version)
+		return nil
 	}
 	command := args[0]
 	if command == "conformance" {

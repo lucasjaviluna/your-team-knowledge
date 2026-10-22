@@ -52,6 +52,8 @@
     "test:agent-memory-go-conformance": "npm run build && node scripts/agent-memory-go-conformance.mjs",
     "test:agent-memory-go-surface": "node scripts/agent-memory-go-surface.mjs",
     "test:agent-memory-go-setup": "node scripts/agent-memory-go-setup.mjs",
+    "test:agent-memory-go-release": "node scripts/agent-memory-go-release.mjs",
+    "release:native": "node scripts/agent-memory-go-release.mjs",
     "test:agent-memory-surface-conformance": "npm run build && node scripts/agent-memory-surface-conformance.mjs",
     "release:internal": "npm run release:check && npm run package:check && npm run build && node -e \"require('fs').mkdirSync('artifacts', { recursive: true })\" && npm pack --pack-destination artifacts",
     "typecheck": "tsc --project tsconfig.json --noEmit",

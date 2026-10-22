@@ -54,6 +54,7 @@ jobs:
       - run: npm run test:agent-memory-go-conformance
       - run: npm run test:agent-memory-go-surface
       - run: npm run test:agent-memory-go-setup
+      - run: npm run test:agent-memory-go-release
       - run: go test ./...
         working-directory: native/ytk-memory
       - run: npm run release:internal
@@ -61,3 +62,7 @@ jobs:
         with:
           name: internal-release-${{ matrix.os }}
           path: artifacts/*.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-release-${{ matrix.os }}
+          path: artifacts/native/*
