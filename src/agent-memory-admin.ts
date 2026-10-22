@@ -187,10 +187,11 @@ function parseOptions(args: readonly string[]): Map<string, string | true> {
         "backup-current-to",
         "confirm",
         "overwrite",
+        "json",
       ].includes(name)
     )
       throw new Error(`Unknown argument: ${flag}`);
-    if (name === "confirm" || name === "overwrite") {
+    if (name === "confirm" || name === "overwrite" || name === "json") {
       values.set(name, true);
       continue;
     }
@@ -225,10 +226,50 @@ function isOperation(value: string): value is Operation {
 
 if (process.argv[1]?.endsWith("agent-memory-admin.js"))
   runAgentMemoryAdmin(process.argv.slice(2), process.env, process.cwd())
-    .then((result) => process.stdout.write(`${JSON.stringify(result)}\n`))
+    .then((result) => {
+      const json = process.argv.includes("--json");
+      const output = result.operation === "doctor" && !json
+        ? formatDoctor(result)
+        : JSON.stringify(result, null, json ? 2 : undefined);
+      process.stdout.write(`${output}\n`);
+    })
     .catch((error: unknown) => {
       process.stderr.write(
         `agent-memory admin: ${error instanceof Error ? error.message : String(error)}\n`,
       );
       process.exitCode = 1;
     });
+
+function formatDoctor(result: Record<string, unknown>): string {
+  const healthy = result.healthy === true;
+  const lines = [
+    `Agent Memory · ${healthy ? "Todo en orden" : "Revisar configuración"}`,
+    `Proyecto: ${String(result.projectId ?? "desconocido")}`,
+    `Base de datos: ${String(result.database ?? "desconocida")}`,
+  ];
+  if (typeof result.node === "string") lines.push(`Node.js: ${result.node}`);
+  const checks = Array.isArray(result.checks) ? result.checks : [];
+  if (checks.length === 0 && healthy)
+    lines.push("", "Verificaciones:", "  ✓ Base de datos: SQLite y su esquema se pueden leer.");
+  if (checks.length > 0) {
+    lines.push("", "Verificaciones:");
+    for (const raw of checks) {
+      if (!raw || typeof raw !== "object") continue;
+      const check = raw as Record<string, unknown>;
+      const status = String(check.status ?? "unknown");
+      const icon = status === "ok" ? "✓" : status === "missing" || status === "invalid" ? "✗" : "·";
+      lines.push(`  ${icon} ${String(check.name ?? "verificación")}: ${String(check.message ?? status)}`);
+    }
+  }
+  const lifecycle = result.lifecycle;
+  if (lifecycle && typeof lifecycle === "object") {
+    const value = lifecycle as Record<string, unknown>;
+    const byStatus = value.byStatus && typeof value.byStatus === "object"
+      ? value.byStatus as Record<string, unknown>
+      : {};
+    lines.push("", "Memorias:");
+    lines.push(`  Total: ${String(value.total ?? 0)} · Activas: ${String(byStatus.active ?? 0)} · Para revisar: ${String(byStatus.needs_review ?? 0)} · Archivadas: ${String(byStatus.archived ?? 0)}`);
+    lines.push(`  Futuras: ${String(value.future ?? 0)} · Vencidas: ${String(value.expired ?? 0)} · Revisión pendiente: ${String(value.dueForReview ?? 0)}`);
+  }
+  return lines.join("\n");
+}

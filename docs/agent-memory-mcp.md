@@ -126,7 +126,10 @@ Las herramientas validan tamaños, tipos y cardinalidades antes de llegar al dom
 
 ## Operación y recuperación
 
-`ytk-memory-admin doctor` informa el alcance resuelto, la versión de Node y el lifecycle de la base; no crea una base ausente. Para realizar operaciones de recuperación:
+`ytk-memory-admin doctor` muestra un resumen legible del proyecto, la base,
+las verificaciones y el lifecycle; no crea una base ausente. Usá `--json` para
+obtener el reporte estructurado. El runtime nativo ofrece el mismo formato con
+`ytk-memory doctor` y `ytk-memory doctor --json`. Para realizar operaciones de recuperación:
 
 ```text
 ytk-memory-admin backup --to .ytk-memory/backup.sqlite

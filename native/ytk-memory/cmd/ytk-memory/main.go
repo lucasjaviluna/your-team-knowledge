@@ -69,6 +69,7 @@ func run(args []string) error {
 	currentTo := fs.String("backup-current-to", "", "rollback safety backup")
 	confirm := fs.Bool("confirm", false, "confirm rollback")
 	overwrite := fs.Bool("overwrite", false, "replace existing backup")
+	jsonOutput := fs.Bool("json", false, "print machine-readable JSON")
 	if err := fs.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -88,16 +89,16 @@ func run(args []string) error {
 		return surface.NewService(store, surface.Config{ProjectID: cfg.project, Area: cfg.area}).Server().Run(context.Background(), &mcp.StdioTransport{})
 	}
 	if command == "doctor" {
-		return doctor(cfg)
+		return doctor(cfg, *jsonOutput)
 	}
 	if command == "backup" {
-		return doBackup(cfg, *to, *overwrite)
+		return doBackup(cfg, *to, *overwrite, *jsonOutput)
 	}
 	if command == "upgrade" {
-		return doUpgrade(cfg, *backupTo, *overwrite)
+		return doUpgrade(cfg, *backupTo, *overwrite, *jsonOutput)
 	}
 	if command == "rollback" {
-		return doRollback(cfg, *from, *currentTo, *confirm)
+		return doRollback(cfg, *from, *currentTo, *confirm, *jsonOutput)
 	}
 	return fmt.Errorf("unknown operation: %s", command)
 }
@@ -113,6 +114,7 @@ func runSetup(command string, args []string) error {
 	area := fs.String("area", "", "memory area")
 	instructions := fs.String("instructions", "local", "local, global, or both")
 	dryRun := fs.Bool("dry-run", false, "preview changes")
+	jsonOutput := fs.Bool("json", false, "print machine-readable JSON")
 	portable := fs.Bool("portable", false, "write generic MCP manifest")
 	remove := fs.Bool("uninstall", false, "remove setup owned by Codex")
 	if err := fs.Parse(args[1:]); err != nil {
@@ -174,7 +176,47 @@ func runSetup(command string, args []string) error {
 	if err != nil {
 		return err
 	}
+	if !*jsonOutput {
+		return printSetupResult(result)
+	}
 	return json.NewEncoder(os.Stdout).Encode(result)
+}
+
+func printSetupResult(result setup.Result) error {
+	operation := "Instalación"
+	if result.Uninstall {
+		operation = "Desinstalación"
+	}
+	mode := "Completada"
+	if result.DryRun {
+		mode = "Vista previa"
+	}
+	fmt.Fprintf(os.Stdout, "%s · %s\nProyecto: %s\nCliente: Codex\nAlcance de instrucciones: %s\n", operation, mode, result.ProjectID, result.InstructionScope)
+	if len(result.Changes) == 0 {
+		fmt.Fprintln(os.Stdout, "\nNo se requieren cambios; la configuración ya está al día.")
+		return nil
+	}
+	heading := "Cambios aplicados:"
+	if result.DryRun {
+		heading = "Archivos que cambiarían:"
+	}
+	fmt.Fprintf(os.Stdout, "\n%s\n", heading)
+	for _, change := range result.Changes {
+		action := change.Action
+		switch action {
+		case "create":
+			action = "crear"
+		case "update":
+			action = "actualizar"
+		case "remove":
+			action = "eliminar"
+		}
+		fmt.Fprintf(os.Stdout, "  • %s — %s\n", action, change.File)
+	}
+	if result.DryRun {
+		fmt.Fprintln(os.Stdout, "\nLa vista previa no modificó archivos.")
+	}
+	return nil
 }
 func resolve(project, database, area string) (config, error) {
 	cwd, err := os.Getwd()
@@ -256,9 +298,10 @@ func slug(s string) string {
 	}
 	return s
 }
-func doctor(c config) error {
+func doctor(c config, jsonOutput bool) error {
 	if _, err := os.Stat(c.database); os.IsNotExist(err) {
-		return json.NewEncoder(os.Stdout).Encode(map[string]any{"operation": "doctor", "healthy": false, "projectId": c.project, "database": c.database, "checks": []any{map[string]string{"name": "database", "status": "missing", "message": "Run the MCP server once or restore a backup."}}})
+		result := map[string]any{"operation": "doctor", "healthy": false, "projectId": c.project, "database": c.database, "checks": []any{map[string]string{"name": "database", "status": "missing", "message": "Run the MCP server once or restore a backup."}}}
+		return printDoctor(result, jsonOutput)
 	}
 	s, err := core.Open(c.database, nil)
 	if err != nil {
@@ -278,7 +321,42 @@ func doctor(c config) error {
 			healthy = false
 		}
 	}
-	return json.NewEncoder(os.Stdout).Encode(map[string]any{"operation": "doctor", "healthy": healthy, "projectId": c.project, "database": c.database, "lifecycle": life, "go": runtime.Version(), "checks": checks})
+	result := map[string]any{"operation": "doctor", "healthy": healthy, "projectId": c.project, "database": c.database, "lifecycle": life, "go": runtime.Version(), "checks": checks}
+	return printDoctor(result, jsonOutput)
+}
+
+func printDoctor(result map[string]any, jsonOutput bool) error {
+	if jsonOutput {
+		return json.NewEncoder(os.Stdout).Encode(result)
+	}
+	healthy := result["healthy"] == true
+	title := "Agent Memory · Revisar configuración"
+	if healthy {
+		title = "Agent Memory · Todo en orden"
+	}
+	fmt.Fprintln(os.Stdout, title)
+	fmt.Fprintf(os.Stdout, "Proyecto: %v\nBase de datos: %v\n", result["projectId"], result["database"])
+	if value, ok := result["go"]; ok {
+		fmt.Fprintf(os.Stdout, "Go: %v\n", value)
+	}
+	if checks, ok := result["checks"].([]map[string]string); ok && len(checks) > 0 {
+		fmt.Fprintln(os.Stdout, "\nVerificaciones:")
+		for _, check := range checks {
+			icon := "·"
+			if check["status"] == "ok" {
+				icon = "✓"
+			} else if check["status"] == "invalid" || check["status"] == "missing" {
+				icon = "✗"
+			}
+			fmt.Fprintf(os.Stdout, "  %s %s: %s\n", icon, check["name"], check["message"])
+		}
+	}
+	if lifecycle, ok := result["lifecycle"].(core.Lifecycle); ok {
+		fmt.Fprintln(os.Stdout, "\nMemorias:")
+		fmt.Fprintf(os.Stdout, "  Total: %d · Activas: %d · Para revisar: %d · Archivadas: %d\n", lifecycle.Total, lifecycle.ByStatus["active"], lifecycle.ByStatus["needs_review"], lifecycle.ByStatus["archived"])
+		fmt.Fprintf(os.Stdout, "  Futuras: %d · Vencidas: %d · Revisión pendiente: %d\n", lifecycle.Future, lifecycle.Expired, lifecycle.DueForReview)
+	}
+	return nil
 }
 
 func inspectCodexSetup(filename, projectID, database string) map[string]string {
@@ -312,13 +390,13 @@ func inspectCodexSetup(filename, projectID, database string) map[string]string {
 	}
 	return map[string]string{"name": "codex_mcp", "status": "ok", "message": "Native MCP executable is registered and available."}
 }
-func doBackup(c config, target string, overwrite bool) error {
+func doBackup(c config, target string, overwrite, jsonOutput bool) error {
 	if target == "" {
 		return errors.New("--to is required.")
 	}
-	return backup(c.database, target, c.project, overwrite, "backup")
+	return backup(c.database, target, c.project, overwrite, "backup", jsonOutput)
 }
-func doUpgrade(c config, target string, overwrite bool) error {
+func doUpgrade(c config, target string, overwrite, jsonOutput bool) error {
 	if target == "" {
 		return errors.New("--backup-to is required.")
 	}
@@ -334,9 +412,15 @@ func doUpgrade(c config, target string, overwrite bool) error {
 		return err
 	}
 	s.Close()
-	return json.NewEncoder(os.Stdout).Encode(map[string]any{"operation": "upgrade", "projectId": c.project, "database": c.database, "backup": backupPath, "schema": "current"})
+	result := map[string]any{"operation": "upgrade", "projectId": c.project, "database": c.database, "backup": backupPath, "schema": "current"}
+	if jsonOutput {
+		return json.NewEncoder(os.Stdout).Encode(result)
+	}
+	fmt.Fprintln(os.Stdout, "Actualización completada")
+	fmt.Fprintf(os.Stdout, "Proyecto: %s\nBase de datos: %s\nBackup previo: %s\nEsquema: %s\n", c.project, c.database, backupPath, result["schema"])
+	return nil
 }
-func doRollback(c config, source, current string, confirmed bool) error {
+func doRollback(c config, source, current string, confirmed, jsonOutput bool) error {
 	if !confirmed {
 		return errors.New("Rollback requires --confirm.")
 	}
@@ -383,14 +467,26 @@ func doRollback(c config, source, current string, confirmed bool) error {
 	if err = os.Rename(restore, dst); err != nil {
 		return err
 	}
-	return json.NewEncoder(os.Stdout).Encode(map[string]string{"operation": "rollback", "database": dst, "restoredFrom": src, "backupCurrentTo": safeBackup.DestinationFile})
+	result := map[string]string{"operation": "rollback", "database": dst, "restoredFrom": src, "backupCurrentTo": safeBackup.DestinationFile}
+	if jsonOutput {
+		return json.NewEncoder(os.Stdout).Encode(result)
+	}
+	fmt.Fprintln(os.Stdout, "Restauración completada")
+	fmt.Fprintf(os.Stdout, "Base restaurada: %s\nCopia restaurada: %s\nRespaldo de la base anterior: %s\n", result["database"], result["restoredFrom"], result["backupCurrentTo"])
+	return nil
 }
-func backup(database, target, project string, overwrite bool, operation string) error {
+func backup(database, target, project string, overwrite bool, operation string, jsonOutput bool) error {
 	p, err := makeBackup(database, target, overwrite)
 	if err != nil {
 		return err
 	}
-	return json.NewEncoder(os.Stdout).Encode(map[string]any{"operation": operation, "projectId": project, "destinationFile": p.DestinationFile, "totalPages": p.TotalPages, "remainingPages": p.RemainingPages})
+	result := map[string]any{"operation": operation, "projectId": project, "destinationFile": p.DestinationFile, "totalPages": p.TotalPages, "remainingPages": p.RemainingPages}
+	if jsonOutput {
+		return json.NewEncoder(os.Stdout).Encode(result)
+	}
+	fmt.Fprintln(os.Stdout, "Copia de seguridad completada")
+	fmt.Fprintf(os.Stdout, "Proyecto: %s\nArchivo: %s\nPáginas copiadas: %d\n", project, p.DestinationFile, p.TotalPages-p.RemainingPages)
+	return nil
 }
 func makeBackup(database, target string, overwrite bool) (core.BackupResult, error) {
 	src, _ := filepath.Abs(database)

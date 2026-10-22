@@ -98,7 +98,7 @@ try {
 }
 
 function cli(args, env = process.env) {
-  const result = spawnSync(executable, args, {
+  const result = spawnSync(executable, [...args, "--json"], {
     cwd: project,
     env,
     encoding: "utf8",

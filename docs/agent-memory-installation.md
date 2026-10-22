@@ -52,8 +52,12 @@ Desde la raíz del repositorio de trabajo, revisá primero el cambio:
 ytk-memory setup codex --instructions local --dry-run
 ```
 
-La salida JSON enumera los archivos administrados y las acciones previstas.
-Cuando el plan sea correcto, aplicalo:
+La vista previa resume el proyecto y enumera los archivos que se crearían,
+actualizarían o eliminarían. Usá `--json` para conservar la salida estructurada
+en automatizaciones.
+
+La salida estructurada enumera los archivos administrados y las acciones
+previstas. Cuando el plan sea correcto, aplicalo:
 
 ```text
 ytk-memory setup codex --instructions local
@@ -146,6 +150,10 @@ ytk-memory rollback \
 
 Los destinos existentes se rechazan por defecto. Para reemplazar uno de forma
 explícita agregá `--overwrite` cuando el comando lo permita.
+
+`setup`, `backup`, `upgrade` y `rollback` muestran un resumen legible al
+ejecutarse en una terminal. Agregá `--json` para obtener el resultado
+estructurado en automatizaciones.
 
 ## 6. Desinstalar la integración
 

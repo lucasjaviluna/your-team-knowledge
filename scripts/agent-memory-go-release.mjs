@@ -280,7 +280,7 @@ async function validateCleanInstall(binary, platform) {
 }
 
 function cli(binary, cwd, args) {
-  return JSON.parse(cliText(binary, cwd, args));
+  return JSON.parse(cliText(binary, cwd, [...args, "--json"]));
 }
 
 function cliText(binary, cwd, args) {
