@@ -417,7 +417,7 @@ func doUpgrade(c config, target string, overwrite, jsonOutput bool) error {
 		return json.NewEncoder(os.Stdout).Encode(result)
 	}
 	fmt.Fprintln(os.Stdout, "Actualización completada")
-	fmt.Fprintf(os.Stdout, "Proyecto: %s\nBase de datos: %s\nBackup previo: %s\nEsquema: %s\n", c.project, c.database, backupPath, result["schema"])
+	fmt.Fprintf(os.Stdout, "Proyecto: %s\nBase de datos: %s\nBackup previo: %s\nEsquema: %s\n", c.project, c.database, backupPath.DestinationFile, result["schema"])
 	return nil
 }
 func doRollback(c config, source, current string, confirmed, jsonOutput bool) error {
