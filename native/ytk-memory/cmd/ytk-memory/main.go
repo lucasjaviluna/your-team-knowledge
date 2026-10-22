@@ -266,7 +266,7 @@ func doctor(c config) error {
 	checks := []map[string]string{{"name": "database", "status": "ok", "message": "SQLite schema is readable."}}
 	healthy := true
 	if cwd, cwdErr := os.Getwd(); cwdErr == nil {
-		setupCheck := inspectCodexSetup(filepath.Join(cwd, ".codex", "config.toml"))
+		setupCheck := inspectCodexSetup(filepath.Join(cwd, ".codex", "config.toml"), c.project, c.database)
 		checks = append(checks, setupCheck)
 		if setupCheck["status"] == "invalid" {
 			healthy = false
@@ -275,7 +275,7 @@ func doctor(c config) error {
 	return json.NewEncoder(os.Stdout).Encode(map[string]any{"operation": "doctor", "healthy": healthy, "projectId": c.project, "database": c.database, "lifecycle": life, "go": runtime.Version(), "checks": checks})
 }
 
-func inspectCodexSetup(filename string) map[string]string {
+func inspectCodexSetup(filename, projectID, database string) map[string]string {
 	contents, err := os.ReadFile(filename)
 	if os.IsNotExist(err) {
 		return map[string]string{"name": "codex_mcp", "status": "not_configured", "message": "Run ytk-memory setup codex to register the native MCP server."}
@@ -292,6 +292,11 @@ func inspectCodexSetup(filename string) map[string]string {
 		return map[string]string{"name": "codex_mcp", "status": "invalid", "message": "Managed Codex MCP block is incomplete."}
 	}
 	block := text[begin:end]
+	projectValue, _ := json.Marshal(projectID)
+	databaseValue, _ := json.Marshal(database)
+	if !strings.Contains(block, string(projectValue)) || !strings.Contains(block, string(databaseValue)) {
+		return map[string]string{"name": "codex_mcp", "status": "not_configured", "message": "No native Codex MCP registration was found for this project scope."}
+	}
 	match := regexp.MustCompile(`(?m)^command\s*=\s*"([^"]+)"\s*$`).FindStringSubmatch(block)
 	if len(match) != 2 {
 		return map[string]string{"name": "codex_mcp", "status": "invalid", "message": "Managed Codex MCP command is missing."}
