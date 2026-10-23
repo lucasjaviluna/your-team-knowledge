@@ -60,16 +60,17 @@ verificado y el comando `upgrade` del proyecto.
 Desde la raíz del repositorio:
 
 ```powershell
-ytk-memory setup codex --instructions local
+ytk-memory setup codex
 ytk-memory doctor
 ```
 
 `setup` resuelve el proyecto, crea la configuración y la base local, registra
-el servidor MCP y agrega instrucciones administradas. Antes de una instalación
-real se puede revisar el cambio:
+una vez el servidor MCP genérico en `CODEX_HOME/config.toml` y agrega
+instrucciones locales administradas. Antes de una instalación real se puede
+revisar el cambio:
 
 ```powershell
-ytk-memory setup codex --instructions local --dry-run
+ytk-memory setup codex --dry-run
 ```
 
 Después de `doctor`, confiá el proyecto en Codex si corresponde y abrí una
@@ -109,9 +110,10 @@ de la base actual antes de reemplazarla.
 ## Retirar la integración
 
 ```powershell
-ytk-memory uninstall codex --instructions local
+ytk-memory uninstall codex
 ```
 
-El desinstalador retira la configuración e instrucciones administradas. La base
-SQLite se conserva hasta que la persona responsable la archive o elimine por
-separado.
+El desinstalador retira las instrucciones locales administradas y conserva el
+registro MCP global para otros proyectos. En una terminal ofrece eliminarlo;
+en automatizaciones usá `--remove-global-mcp`. La base SQLite se conserva hasta
+que la persona responsable la archive o elimine por separado.

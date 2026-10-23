@@ -19,8 +19,8 @@ El estado es **alpha interna**. La implementación y los contratos están bastan
 
 - **Agent Memory:** SQLite, contrato `AgentMemoryProvider`, protocolo de sesión, MCP `stdio`, aislamiento por proyecto, guardado idempotente, lifecycle/revisión/retención y CLI `doctor`, backup, upgrade y rollback.
 - **Runtime Go nativo de Agent Memory:** Core SQLite sin cgo; cinco herramientas MCP compatibles; `doctor`, backup, upgrade y rollback; prueba E2E de dos procesos consumidores y fixture Core compartido. La Fase 4 añade paquetes Windows/Linux, manifiestos, SHA-256, firma Ed25519 y validación de instalación limpia.
-- **Setup nativo Codex:** `setup codex`, `--dry-run`, alcances local/global/ambos y desinstalación selectiva. Preserva TOML y Markdown preexistentes, genera la base SQLite y permite a `doctor` comprobar el registro MCP nativo.
-- **Instalación:** inicializador con adaptador Codex, configuración MCP local, instrucciones/skill y operaciones repetibles con `dry-run`/desinstalación.
+- **Setup nativo Codex:** `setup codex` registra un MCP genérico en `CODEX_HOME/config.toml` y activa cada proyecto con instrucciones/skill locales. `--dry-run` y desinstalación selectiva preservan TOML y Markdown preexistentes; `--remove-global-mcp` permite quitar el registro global de forma explícita.
+- **Instalación:** inicializador con adaptador Codex, configuración MCP global, activación local y operaciones repetibles con `dry-run`/desinstalación.
 - **RAG:** ingesta Markdown, `EmbeddingProvider`, PostgreSQL/pgvector, retrieval lexical/vectorial/híbrido, ACL dentro de la consulta y citas/provenance. `Xenova/multilingual-e5-small` y 384 dimensiones siguen siendo provisionales.
 - **Contexto y API:** `ContextOrchestrator`, consulta/ingesta HTTP y `POST /v1/context`, cliente TypeScript, autorización inicial y auditoría.
 - **Calidad automatizada:** el workflow configura Node 22 y matriz Ubuntu/Windows, ejecuta formato, typecheck, lint, build, suite, evaluación de contexto, contratos de paquete/release/migración, smokes, release nativo y artefactos de release. La última ejecución remota fue confirmada como verde por el equipo.

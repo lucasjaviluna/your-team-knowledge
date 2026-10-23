@@ -70,9 +70,9 @@ cada comando. El binario debe reservar `stdout` para MCP cuando se ejecuta
    sesión conservan el comportamiento actual.
 3. **MCP:** las cinco herramientas actuales, sus validaciones y sus respuestas
    estructuradas son la superficie mínima compatible.
-4. **Proyecto consumidor:** `.ytk-memory.json`, `.ytk-memory/`, los bloques
-   administrados en `.codex/config.toml` y `AGENTS.md` siguen siendo
-   reconocibles y reversibles.
+4. **Proyecto consumidor:** `.ytk-memory.json`, `.ytk-memory/`, el bloque MCP
+   administrado en `CODEX_HOME/config.toml` y los bloques locales de
+   `AGENTS.md`/skill siguen siendo reconocibles y reversibles.
 5. **Operación:** backup, upgrade y rollback siguen siendo explícitos y nunca
    reemplazan una base sin una copia verificable.
 
@@ -133,14 +133,14 @@ el binario Go.
 **Objetivo:** instalar Agent Memory en un checkout de forma segura y
 repetible.
 
-- Implementar `setup codex`, `--dry-run`, `--uninstall` y alcances
-  `local|global|both`.
+- Implementar `setup codex`, `--dry-run`, `--uninstall` y la limpieza global
+  explícita del MCP mediante `--remove-global-mcp`.
 - Preservar y validar TOML/Markdown preexistentes; detectar conflictos sin
   sobrescribir configuraciones ajenas.
 - Generar instrucciones y fallback portable desde una única plantilla.
 - Extender `doctor` para comprobar versión, ejecutable registrado, TOML,
   rutas, acceso SQLite, esquema y disponibilidad MCP.
-- Probar con `AGENTS.md` y `.codex/config.toml` preexistentes.
+- Probar con `AGENTS.md` y `CODEX_HOME/config.toml` preexistentes.
 
 **Criterio de salida:** un checkout limpio queda listo para Codex con una orden
 y el desinstalador revierte solamente lo propio.
@@ -235,14 +235,15 @@ Go. El runtime TypeScript sigue intacto y continúa siendo el runtime activo
 hasta completar la migración y el piloto de la Fase 5.
 
 La Fase 3 está completada: `ytk-memory setup codex` crea la base local,
-registra el binario nativo en `.codex/config.toml`, genera la skill y el
-fallback portable desde una plantilla común y admite `--dry-run`,
-`--instructions local|global|both` y `setup codex --uninstall` (o
-`uninstall codex`). El instalador conserva el contenido ajeno y rechaza
-colisiones antes de escribir. `doctor` verifica el esquema SQLite y el
-registro MCP administrado. `npm run test:agent-memory-go-setup` cubre un
-checkout con TOML y `AGENTS.md` preexistentes, repetición, desinstalación y
-guía global. TypeScript continúa activo durante toda la transición.
+registra una vez el binario nativo genérico en `CODEX_HOME/config.toml` y
+genera la skill, el bloque local de `AGENTS.md` y el fallback portable desde
+una plantilla común. `uninstall codex` retira sólo la activación del proyecto y
+ofrece eliminar el MCP global; `--remove-global-mcp` permite hacerlo sin
+interacción. El instalador conserva el contenido ajeno y rechaza colisiones
+antes de escribir. `doctor` verifica el esquema SQLite y el registro MCP
+administrado. `npm run test:agent-memory-go-setup` cubre configuración global
+preexistente, repetición y ambas modalidades de desinstalación. TypeScript
+continúa activo durante toda la transición.
 
 La Fase 4 está completada: `scripts/agent-memory-go-release.mjs` construye el
 binario nativo con `CGO_ENABLED=0`, genera el archivo comprimido de la

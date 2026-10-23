@@ -15,23 +15,12 @@ const (
 	configEnd      = "# END ytk-memory-init:codex"
 	localStart     = "<!-- BEGIN ytk-memory-init:codex -->"
 	localEnd       = "<!-- END ytk-memory-init:codex -->"
-	globalStart    = "<!-- BEGIN ytk-memory-init:codex-global -->"
-	globalEnd      = "<!-- END ytk-memory-init:codex-global -->"
 	portableMarker = "<!-- Managed by ytk-memory-init -->"
 	skillMarker    = "<!-- Managed by ytk-memory-init:codex-skill -->"
 )
 
-type Scope string
-
-const (
-	Local  Scope = "local"
-	Global Scope = "global"
-	Both   Scope = "both"
-)
-
 type Context struct {
 	Root, Home, Executable, ProjectID, Database, Area string
-	Scope                                             Scope
 }
 type Change struct {
 	File   string `json:"file"`
@@ -40,7 +29,7 @@ type Change struct {
 type Result struct {
 	ProjectID        string   `json:"projectId"`
 	Agent            string   `json:"agent"`
-	InstructionScope Scope    `json:"instructionScope"`
+	InstructionScope string   `json:"instructionScope"`
 	DryRun           bool     `json:"dryRun"`
 	Uninstall        bool     `json:"uninstall"`
 	Files            []string `json:"files"`
@@ -61,23 +50,17 @@ func Install(ctx Context, dryRun, portable bool) (Result, error) {
 	}
 	return apply(ctx, changes, dryRun, false)
 }
-func Uninstall(ctx Context, dryRun bool) (Result, error) {
+func Uninstall(ctx Context, dryRun, removeGlobalMCP bool) (Result, error) {
 	if err := valid(ctx); err != nil {
 		return Result{}, err
 	}
-	changes, err := uninstallChanges(ctx)
+	changes, err := uninstallChanges(ctx, removeGlobalMCP)
 	if err != nil {
 		return Result{}, err
 	}
 	return apply(ctx, changes, dryRun, true)
 }
 func valid(ctx Context) error {
-	if ctx.Scope != "" && ctx.Scope != Local && ctx.Scope != Global && ctx.Scope != Both {
-		return errors.New("--instructions must be local, global, or both.")
-	}
-	if ctx.Scope == "" {
-		return errors.New("instruction scope is required")
-	}
 	if strings.TrimSpace(ctx.Root) == "" || strings.TrimSpace(ctx.ProjectID) == "" || strings.TrimSpace(ctx.Database) == "" || strings.TrimSpace(ctx.Executable) == "" {
 		return errors.New("setup context is incomplete")
 	}
@@ -99,18 +82,27 @@ func installChanges(ctx Context, portable bool) ([]change, error) {
 		return nil, err
 	}
 	portableContent := string(encoded) + "\n"
-	configPath := filepath.Join(ctx.Root, ".codex", "config.toml")
-	args := []string{"mcp", "--project", ctx.ProjectID, "--database", ctx.Database}
-	if ctx.Area != "" {
-		args = append(args, "--area", ctx.Area)
-	}
+	configPath := filepath.Join(ctx.Home, "config.toml")
+	args := []string{"mcp"}
 	jsonArgs, _ := json.Marshal(args)
-	block := strings.Join([]string{configStart, "[mcp_servers.ytk_memory]", "command = " + quote(ctx.Executable), "args = " + string(jsonArgs), "cwd = " + quote(ctx.Root), configEnd}, "\n")
+	block := strings.Join([]string{configStart, "[mcp_servers.ytk_memory]", "command = " + quote(ctx.Executable), "args = " + string(jsonArgs), configEnd}, "\n")
 	managed, err := replaceConfig(read(configPath), block, configPath)
 	if err != nil {
 		return nil, err
 	}
 	changes := []change{{configFile, &portableContent}, {configPath, &managed}}
+	legacyConfigPath := filepath.Join(ctx.Root, ".codex", "config.toml")
+	legacyCurrent := read(legacyConfigPath)
+	legacyConfig, err := removeBlock(legacyCurrent, configStart, configEnd, legacyConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	if legacyConfig != nil && strings.Contains(*legacyConfig, "[mcp_servers.ytk_memory]") {
+		return nil, fmt.Errorf("%s already defines mcp_servers.ytk_memory; resolve the collision manually.", legacyConfigPath)
+	}
+	if legacyCurrent != legacyConfig {
+		changes = append(changes, change{legacyConfigPath, legacyConfig})
+	}
 	instructions := renderPortable(ctx.ProjectID)
 	instructionsFile := filepath.Join(ctx.Root, ".ytk-memory", "YTK-MEMORY.md")
 	if err := managedFile(read(instructionsFile), portableMarker, instructionsFile); err != nil {
@@ -125,63 +117,54 @@ func installChanges(ctx Context, portable bool) ([]change, error) {
 		}
 		changes = append(changes, change{mcpFile, &mcp})
 	}
-	if local(ctx.Scope) {
-		agents := filepath.Join(ctx.Root, "AGENTS.md")
-		text, err := replaceBlock(read(agents), localInstructions(ctx.ProjectID), localStart, localEnd, agents)
-		if err != nil {
-			return nil, err
-		}
-		changes = append(changes, change{agents, text})
-		skill := filepath.Join(ctx.Root, ".agents", "skills", "ytk-memory", "SKILL.md")
-		if err := managedFile(read(skill), skillMarker, skill); err != nil {
-			return nil, err
-		}
-		rendered := renderSkill(ctx.ProjectID)
-		changes = append(changes, change{skill, &rendered})
+	agents := filepath.Join(ctx.Root, "AGENTS.md")
+	text, err := replaceBlock(read(agents), localInstructions(ctx.ProjectID), localStart, localEnd, agents)
+	if err != nil {
+		return nil, err
 	}
-	if global(ctx.Scope) {
-		agents := filepath.Join(ctx.Home, "AGENTS.md")
-		text, err := replaceBlock(read(agents), globalInstructions(), globalStart, globalEnd, agents)
-		if err != nil {
-			return nil, err
-		}
-		changes = append(changes, change{agents, text})
+	changes = append(changes, change{agents, text})
+	skill := filepath.Join(ctx.Root, ".agents", "skills", "ytk-memory", "SKILL.md")
+	if err := managedFile(read(skill), skillMarker, skill); err != nil {
+		return nil, err
 	}
+	rendered := renderSkill(ctx.ProjectID)
+	changes = append(changes, change{skill, &rendered})
 	return changes, nil
 }
-func uninstallChanges(ctx Context) ([]change, error) {
+func uninstallChanges(ctx Context, removeGlobalMCP bool) ([]change, error) {
 	changes := []change{}
-	if local(ctx.Scope) {
-		config := filepath.Join(ctx.Root, ".codex", "config.toml")
+	if removeGlobalMCP {
+		config := filepath.Join(ctx.Home, "config.toml")
 		text, err := removeBlock(read(config), configStart, configEnd, config)
 		if err != nil {
 			return nil, err
 		}
 		changes = append(changes, change{config, text})
-		agents := filepath.Join(ctx.Root, "AGENTS.md")
-		text, err = removeBlock(read(agents), localStart, localEnd, agents)
-		if err != nil {
-			return nil, err
-		}
-		changes = append(changes, change{agents, text})
-		skill := filepath.Join(ctx.Root, ".agents", "skills", "ytk-memory", "SKILL.md")
-		current := read(skill)
-		if current != nil && strings.Contains(*current, skillMarker) {
-			changes = append(changes, change{skill, nil})
-		}
 	}
-	if global(ctx.Scope) {
-		agents := filepath.Join(ctx.Home, "AGENTS.md")
-		text, err := removeBlock(read(agents), globalStart, globalEnd, agents)
-		if err != nil {
-			return nil, err
-		}
-		changes = append(changes, change{agents, text})
+	legacyConfig := filepath.Join(ctx.Root, ".codex", "config.toml")
+	legacyCurrent := read(legacyConfig)
+	legacyText, err := removeBlock(legacyCurrent, configStart, configEnd, legacyConfig)
+	if err != nil {
+		return nil, err
+	}
+	if legacyCurrent != legacyText {
+		changes = append(changes, change{legacyConfig, legacyText})
+	}
+	agents := filepath.Join(ctx.Root, "AGENTS.md")
+	text, err := removeBlock(read(agents), localStart, localEnd, agents)
+	if err != nil {
+		return nil, err
+	}
+	changes = append(changes, change{agents, text})
+	skill := filepath.Join(ctx.Root, ".agents", "skills", "ytk-memory", "SKILL.md")
+	current := read(skill)
+	if current != nil && strings.Contains(*current, skillMarker) {
+		changes = append(changes, change{skill, nil})
 	}
 	return changes, nil
 }
 func apply(ctx Context, changes []change, dry, uninstall bool) (Result, error) {
-	result := Result{ProjectID: ctx.ProjectID, Agent: "codex", InstructionScope: ctx.Scope, DryRun: dry, Uninstall: uninstall, Files: []string{}, Changes: []Change{}}
+	result := Result{ProjectID: ctx.ProjectID, Agent: "codex", InstructionScope: "local", DryRun: dry, Uninstall: uninstall, Files: []string{}, Changes: []Change{}}
 	pending := []change{}
 	for _, c := range changes {
 		before := read(c.file)
@@ -254,8 +237,6 @@ func read(file string) *string {
 	return &text
 }
 func quote(value string) string { encoded, _ := json.Marshal(value); return string(encoded) }
-func local(scope Scope) bool    { return scope == Local || scope == Both }
-func global(scope Scope) bool   { return scope == Global || scope == Both }
 func managedFile(current *string, marker, file string) error {
 	if current != nil && !strings.Contains(*current, marker) {
 		return fmt.Errorf("%s exists without an installer marker; resolve the collision manually.", file)
@@ -326,7 +307,4 @@ func protocol(project string) string {
 }
 func localInstructions(project string) string {
 	return localStart + "\n## YTK Memory\n\nProject: `" + project + "`. Apply the `ytk-memory` skill for every meaningful coding session. If the skill is unavailable, follow `.ytk-memory/YTK-MEMORY.md`. Never store secrets.\n" + localEnd
-}
-func globalInstructions() string {
-	return globalStart + "\n## YTK Memory\n\nWhen YTK Memory tools are available in the current project, apply its `ytk-memory` skill. If unavailable, follow `.ytk-memory/YTK-MEMORY.md`. Do not store secrets.\n" + globalEnd
 }

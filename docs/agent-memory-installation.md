@@ -49,7 +49,7 @@ ytk-memory --version
 Desde la raíz del repositorio de trabajo, revisá primero el cambio:
 
 ```text
-ytk-memory setup codex --instructions local --dry-run
+ytk-memory setup codex --dry-run
 ```
 
 La vista previa resume el proyecto y enumera los archivos que se crearían,
@@ -60,7 +60,7 @@ La salida estructurada enumera los archivos administrados y las acciones
 previstas. Cuando el plan sea correcto, aplicalo:
 
 ```text
-ytk-memory setup codex --instructions local
+ytk-memory setup codex
 ```
 
 El comando crea o actualiza únicamente sus bloques administrados en:
@@ -70,23 +70,22 @@ El comando crea o actualiza únicamente sus bloques administrados en:
 - `.ytk-memory/YTK-MEMORY.md`: instrucciones portables.
 - `.ytk-memory/mcp.json`: manifiesto MCP portable si se usa `--portable`.
 - `AGENTS.md` y `.agents/skills/ytk-memory/SKILL.md`: instrucciones locales.
-- `.codex/config.toml`: registro MCP local de Codex.
+- `CODEX_HOME/config.toml`: registro MCP global de Codex, sin proyecto ni base
+  fijados.
 
 Para una configuración portable adicional:
 
 ```text
-ytk-memory setup codex --instructions local --portable
-```
-
-Para instalar las instrucciones locales y globales:
-
-```text
-ytk-memory setup codex --instructions both
+ytk-memory setup codex --portable
 ```
 
 La instalación es repetible. Si encuentra un archivo existente sin el marcador
 administrado o una definición conflictiva, se detiene y pide resolver la
 colisión manualmente.
+
+El registro MCP global arranca el binario en el proyecto abierto por Codex. El
+servidor sólo opera si encuentra `.ytk-memory.json` en ese proyecto o uno de
+sus directorios padre; así un proyecto sin setup local no crea ni usa memoria.
 
 ## 3. Verificar la instalación
 
@@ -106,9 +105,9 @@ También podés comprobar explícitamente el proyecto y el área:
 ytk-memory doctor --project mi-repositorio --area plataforma
 ```
 
-El proceso MCP recibe el proyecto y la base de forma explícita. Cada proceso
-genera un owner de sesión propio; una sesión no puede ser cerrada por otro
-proceso o por otro proyecto.
+El proceso MCP resuelve el proyecto y la base desde `.ytk-memory.json` del
+proyecto abierto. Cada proceso genera un owner de sesión propio; una sesión no
+puede ser cerrada por otro proceso o por otro proyecto.
 
 ## 4. Uso por parte del agente
 
@@ -160,12 +159,15 @@ estructurado en automatizaciones.
 Para retirar solo la configuración administrada y conservar la base:
 
 ```text
-ytk-memory uninstall codex --instructions local
+ytk-memory uninstall codex
 ```
 
-La desinstalación también admite `--dry-run`. No elimina automáticamente la
-base SQLite ni los backups; archivá o eliminá esos archivos según la política
-del repositorio.
+La desinstalación también admite `--dry-run`. Elimina los bloques locales de
+`AGENTS.md` y la skill local, pero conserva el registro MCP global para otros
+proyectos. En una terminal pregunta si también debe quitar ese registro; para
+automatizaciones usá `--remove-global-mcp`. No elimina automáticamente la base
+SQLite ni los backups; archivá o eliminá esos archivos según la política del
+repositorio.
 
 ## Archivos y responsabilidades
 
@@ -173,7 +175,7 @@ del repositorio.
 | ------------------------------------ | ------------------------------------------------- |
 | `.ytk-memory.json`                   | Identidad del proyecto, base y área por defecto.  |
 | `.ytk-memory/ytk-memory.sqlite`      | Sesiones, memorias, relaciones y lifecycle.       |
-| `.codex/config.toml`                 | Registro MCP administrado para Codex.             |
+| `CODEX_HOME/config.toml`             | Registro MCP global administrado para Codex.      |
 | `AGENTS.md`                          | Instrucciones locales del agente.                 |
 | `.agents/skills/ytk-memory/SKILL.md` | Procedimiento operativo de memoria.               |
 | `.ytk-memory/mcp.json`               | Configuración portable opcional para otros hosts. |

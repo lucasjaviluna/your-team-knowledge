@@ -75,23 +75,25 @@ El contrato provider-neutral `AgentMemoryProvider` separa al consumidor del alma
 
 El servidor MCP es un adaptador sobre ese contrato. Cada proceso queda fijado a un único `projectId` al iniciar y sus herramientas no aceptan otro proyecto, de modo que un cliente no puede cambiar el scope por parámetros. Los adaptadores con nombres de consumidores concretos se conservan únicamente por compatibilidad y quedan fuera del contrato neutral.
 
-El inicializador separa la resolución común de proyecto, base y ejecutable de adaptadores de instalación por cliente. El primer adaptador configura Codex mediante bloques propios en `.codex/config.toml` y `AGENTS.md`; los demás clientes pueden añadirse sin cambiar el contrato MCP ni el almacenamiento. Los cambios se planifican antes de escribir y se revierten si una escritura falla.
+El inicializador separa la resolución común de proyecto, base y ejecutable de adaptadores de instalación por cliente. El adaptador nativo de Codex registra MCP en `CODEX_HOME/config.toml` y activa cada proyecto mediante bloques propios en `AGENTS.md` y la skill local; los demás clientes pueden añadirse sin cambiar el contrato MCP ni el almacenamiento. Los cambios se planifican antes de escribir y se revierten si una escritura falla.
 
-El binario nativo implementa el mismo límite mediante `setup codex` y
-`uninstall codex`. El registro MCP queda siempre en el checkout; las
-instrucciones pueden instalarse localmente, globalmente o en ambos alcances.
-La configuración TOML, Markdown y la skill se actualizan sólo mediante bloques
-marcados. Antes de aplicar una instalación, el binario valida todas las
-colisiones; luego crea la SQLite local y aplica los cambios administrados. La
-desinstalación conserva la base, el archivo de proyecto y cualquier contenido
-que no pertenezca a esos bloques.
+El binario nativo instala el registro MCP genérico de Codex una vez en
+`CODEX_HOME/config.toml` mediante `setup codex`; no contiene proyecto, base ni
+directorio de trabajo. Cada proyecto se activa localmente con
+`.ytk-memory.json`, el bloque de `AGENTS.md` y la skill local. Al iniciar MCP,
+el binario exige esa configuración local antes de abrir SQLite. La configuración
+TOML, Markdown y la skill se actualizan sólo mediante bloques marcados y las
+colisiones ajenas detienen la instalación. `uninstall codex` retira sólo la
+activación local; en una terminal ofrece borrar también el registro MCP global
+y `--remove-global-mcp` lo habilita para automatizaciones. La base, el archivo
+de proyecto y cualquier contenido no administrado se conservan.
 
 Cada cliente nuevo implementa `AgentInstallerAdapter` en `src/installer/` y se registra por nombre en el CLI. Su adaptador define únicamente los archivos y bloques específicos del host; la resolución del proyecto y la aplicación de cambios siguen en el núcleo común.
 
-El alcance de las instrucciones es parte del contexto común del instalador:
-`local`, `global` o `both`. La configuración MCP y sus rutas quedan en el
-checkout; las instrucciones globales no incluyen proyecto ni rutas locales y
-deben ser condicionales a la disponibilidad de las herramientas del host.
+El registro MCP global es específico de Codex; las instrucciones y la skill no
+se instalan globalmente. La activación local determina cuándo el agente usa la
+memoria y evita que el servidor global cree una base en un proyecto no
+configurado.
 
 El paquete expone `KnowledgeHttpClient` y `PiHarnessKnowledgeAdapter` para consumidores externos. El adaptador traduce operaciones de búsqueda/ingesta y definiciones de herramientas, conservando las citas y dejando la integración con el registro nativo del consumidor como una capa final.
 

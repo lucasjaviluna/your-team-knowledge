@@ -24,9 +24,10 @@ const project = join(temporary, "consumer");
 const codexHome = join(temporary, "codex-home");
 
 try {
-  mkdirSync(join(project, ".codex"), { recursive: true });
+  mkdirSync(project, { recursive: true });
+  mkdirSync(codexHome, { recursive: true });
   writeFileSync(
-    join(project, ".codex", "config.toml"),
+    join(codexHome, "config.toml"),
     'model = "gpt-6"\n\n[mcp_servers.other]\nurl = "https://example.org/mcp"\n',
   );
   writeFileSync(
@@ -40,16 +41,17 @@ try {
     { ...process.env, GOCACHE: join(tmpdir(), "ytk-memory-go-build-cache") },
   );
 
+  const setupEnvironment = { ...process.env, CODEX_HOME: codexHome };
   const args = ["setup", "codex", "--project", "consumer", "--area", "backend"];
-  const preview = cli(args.concat("--dry-run"));
+  const preview = cli(args.concat("--dry-run"), setupEnvironment);
   assert.equal(preview.dryRun, true);
   assert.equal(existsSync(join(project, ".ytk-memory.json")), false);
-  const installed = cli(args);
+  const installed = cli(args, setupEnvironment);
   assert.equal(installed.changes.length, 5);
-  const config = readFileSync(join(project, ".codex", "config.toml"), "utf8");
+  const config = readFileSync(join(codexHome, "config.toml"), "utf8");
   assert.match(config, /\[mcp_servers\.other\]/);
   assert.match(config, /\[mcp_servers\.ytk_memory\]/);
-  assert.match(config, /"mcp","--project","consumer"/);
+  assert.match(config, /"mcp"/);
   assert.match(
     readFileSync(join(project, "AGENTS.md"), "utf8"),
     /Keep existing rules/,
@@ -61,37 +63,40 @@ try {
     ),
     /memory_session_finish/,
   );
-  const doctor = cli(["doctor", "--project", "consumer"]);
+  const doctor = cli(["doctor", "--project", "consumer"], setupEnvironment);
   assert.equal(
     doctor.checks.find((check) => check.name === "codex_mcp")?.status,
     "ok",
   );
-  assert.equal(cli(args).changes.length, 0);
-  assert.equal(cli(["setup", "codex", "--uninstall"]).uninstall, true);
+  assert.equal(cli(args, setupEnvironment).changes.length, 0);
   assert.equal(
-    readFileSync(join(project, ".codex", "config.toml"), "utf8"),
-    'model = "gpt-6"\n\n[mcp_servers.other]\nurl = "https://example.org/mcp"\n',
+    cli(["setup", "codex", "--uninstall"], setupEnvironment).uninstall,
+    true,
+  );
+  assert.match(
+    readFileSync(join(codexHome, "config.toml"), "utf8"),
+    /\[mcp_servers\.ytk_memory\]/,
   );
   assert.equal(
     readFileSync(join(project, "AGENTS.md"), "utf8"),
     "# Team guidance\n\nKeep existing rules.\n",
   );
 
-  const global = cli(
-    ["setup", "codex", "--project", "consumer", "--instructions", "global"],
-    { ...process.env, CODEX_HOME: codexHome },
+  const restored = cli(args, setupEnvironment);
+  assert.equal(restored.changes.length, 2);
+  assert.equal(
+    cli(["uninstall", "codex", "--remove-global-mcp"], setupEnvironment)
+      .uninstall,
+    true,
   );
-  assert.equal(global.instructionScope, "global");
-  const globalAgents = readFileSync(join(codexHome, "AGENTS.md"), "utf8");
-  assert.match(globalAgents, /tools are available/);
-  assert.doesNotMatch(globalAgents, /Project: `consumer`/);
-  cli(["uninstall", "codex", "--instructions", "global"], {
-    ...process.env,
-    CODEX_HOME: codexHome,
-  });
-  assert.equal(existsSync(join(codexHome, "AGENTS.md")), false);
+  const cleanedGlobalConfig = readFileSync(
+    join(codexHome, "config.toml"),
+    "utf8",
+  );
+  assert.doesNotMatch(cleanedGlobalConfig, /\[mcp_servers\.ytk_memory\]/);
+  assert.match(cleanedGlobalConfig, /\[mcp_servers\.other\]/);
   process.stdout.write(
-    `${JSON.stringify({ setup: true, dryRun: true, repeatable: true, uninstall: true, globalInstructions: true, status: "passed" }, null, 2)}\n`,
+    `${JSON.stringify({ setup: true, dryRun: true, repeatable: true, uninstall: true, globalMcp: true, status: "passed" }, null, 2)}\n`,
   );
 } finally {
   rmSync(temporary, { recursive: true, force: true });

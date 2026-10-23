@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -33,5 +35,30 @@ func TestWriteDoctorExplainsMissingConfiguration(t *testing.T) {
 		if !strings.Contains(text, expected) {
 			t.Errorf("doctor output does not contain %q:\n%s", expected, text)
 		}
+	}
+}
+
+func TestResolveRequiresLocalProjectConfiguration(t *testing.T) {
+	root := t.TempDir()
+	previous, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(previous) })
+	if _, err := resolve("", "", "", true); err == nil || !strings.Contains(err.Error(), "not configured") {
+		t.Fatalf("expected missing local configuration error, got %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".ytk-memory.json"), []byte(`{"project_slug":"sample","database":".ytk-memory/ytk-memory.sqlite"}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := resolve("", "", "", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolved.project != "sample" {
+		t.Fatalf("got project %q, want sample", resolved.project)
 	}
 }

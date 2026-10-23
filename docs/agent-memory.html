@@ -701,40 +701,36 @@
 ytk-memory --version
 
 # Revisar cambios
-ytk-memory setup codex --instructions local --dry-run
+ytk-memory setup codex --dry-run
 
 # Aplicar configuración
-ytk-memory setup codex --instructions local
+ytk-memory setup codex
 
 # Verificar base, registro MCP y ejecutable
 ytk-memory doctor</code></pre>
           <div class="callout good">
             <strong>Resultado:</strong> se crea
             <code>.ytk-memory/ytk-memory.sqlite</code>, se registra el servidor
-            en <code>.codex/config.toml</code> y se instalan instrucciones
-            administradas. Reiniciá el host MCP para que cargue la
+            en <code>CODEX_HOME/config.toml</code> y se instalan instrucciones
+            locales administradas. Reiniciá el host MCP para que cargue la
             configuración.
           </div>
-          <h3>Ámbitos</h3>
+          <h3>Configuración</h3>
           <table>
             <thead>
               <tr>
-                <th>Opción</th>
+                <th>Ubicación</th>
                 <th>Uso</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td><code>--instructions local</code></td>
-                <td>Instrucciones y skill en el repositorio actual.</td>
+                <td><code>CODEX_HOME/config.toml</code></td>
+                <td>Registro MCP global y genérico de Codex.</td>
               </tr>
               <tr>
-                <td><code>--instructions global</code></td>
-                <td>Instrucciones globales del usuario.</td>
-              </tr>
-              <tr>
-                <td><code>--instructions both</code></td>
-                <td>Ambos ámbitos.</td>
+                <td>Repositorio actual</td>
+                <td>Instrucciones en <code>AGENTS.md</code> y skill local.</td>
               </tr>
               <tr>
                 <td><code>--portable</code></td>
@@ -759,19 +755,19 @@ ytk-memory upgrade --backup-to .ytk-memory/pre-upgrade.sqlite
 ytk-memory rollback   --from .ytk-memory/pre-upgrade.sqlite   --backup-current-to .ytk-memory/current.sqlite   --confirm
 
 # Retirar sólo la integración administrada
-ytk-memory uninstall codex --instructions local</code></pre>
+ytk-memory uninstall codex</code></pre>
           <p>
             <code>doctor</code> comprueba que la base sea legible y que el
-            registro administrado corresponda al proyecto y a la ruta de base
-            actuales. Los destinos de backup existentes se rechazan salvo que se
-            indique <code>--overwrite</code>.
+            registro MCP global esté disponible y que el proyecto tenga una
+            configuración local válida. Los destinos de backup existentes se
+            rechazan salvo que se indique <code>--overwrite</code>.
           </p>
           <div class="grid two">
             <article class="card">
               <h3>Configuración creada</h3>
               <p>
-                <code>.ytk-memory.json</code>, <code>.codex/config.toml</code>,
-                <code>AGENTS.md</code>,
+                <code>.ytk-memory.json</code>,
+                <code>CODEX_HOME/config.toml</code>, <code>AGENTS.md</code>,
                 <code>.agents/skills/ytk-memory/SKILL.md</code> y,
                 opcionalmente, <code>.ytk-memory/mcp.json</code>.
               </p>
@@ -779,9 +775,9 @@ ytk-memory uninstall codex --instructions local</code></pre>
             <article class="card">
               <h3>Reversibilidad</h3>
               <p>
-                El desinstalador quita sólo bloques con marcadores
-                administrados. Conserva la base y los backups para permitir una
-                decisión posterior.
+                El desinstalador quita la activación local y conserva la base,
+                los backups y el MCP global. En una terminal ofrece quitar
+                también el registro global.
               </p>
             </article>
           </div>

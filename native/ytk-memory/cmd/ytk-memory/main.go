@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -77,7 +78,8 @@ func run(args []string) error {
 	if fs.NArg() != 0 {
 		return fmt.Errorf("unexpected argument: %s", fs.Arg(0))
 	}
-	cfg, err := resolve(*project, *database, *area)
+	requireLocalConfig := command == "mcp"
+	cfg, err := resolve(*project, *database, *area, requireLocalConfig)
 	if err != nil {
 		return err
 	}
@@ -106,25 +108,25 @@ func run(args []string) error {
 
 func runSetup(command string, args []string) error {
 	if len(args) == 0 || args[0] != "codex" {
-		return errors.New("usage: ytk-memory setup codex [--instructions local|global|both] [--dry-run] [--portable]")
+		return errors.New("usage: ytk-memory setup codex [--dry-run] [--portable]")
 	}
 	fs := flag.NewFlagSet(command, flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	project := fs.String("project", "", "project id")
 	database := fs.String("database", "", "SQLite path")
 	area := fs.String("area", "", "memory area")
-	instructions := fs.String("instructions", "local", "local, global, or both")
 	dryRun := fs.Bool("dry-run", false, "preview changes")
 	jsonOutput := fs.Bool("json", false, "print machine-readable JSON")
 	portable := fs.Bool("portable", false, "write generic MCP manifest")
 	remove := fs.Bool("uninstall", false, "remove setup owned by Codex")
+	removeGlobalMCP := fs.Bool("remove-global-mcp", false, "also remove the global Codex MCP registration")
 	if err := fs.Parse(args[1:]); err != nil {
 		return err
 	}
 	if fs.NArg() != 0 {
 		return fmt.Errorf("unexpected argument: %s", fs.Arg(0))
 	}
-	cfg, err := resolve(*project, *database, *area)
+	cfg, err := resolve(*project, *database, *area, false)
 	if err != nil {
 		return err
 	}
@@ -140,22 +142,21 @@ func runSetup(command string, args []string) error {
 	if err != nil {
 		return err
 	}
-	home := os.Getenv("CODEX_HOME")
-	if home == "" {
-		userHome, homeErr := os.UserHomeDir()
-		if homeErr != nil {
-			return homeErr
-		}
-		home = filepath.Join(userHome, ".codex")
-	}
-	home, err = filepath.Abs(home)
+	home, err := codexHome()
 	if err != nil {
 		return err
 	}
-	context := setup.Context{Root: cwd, Home: home, Executable: executable, ProjectID: cfg.project, Database: cfg.database, Area: cfg.area, Scope: setup.Scope(*instructions)}
+	context := setup.Context{Root: cwd, Home: home, Executable: executable, ProjectID: cfg.project, Database: cfg.database, Area: cfg.area}
 	var result setup.Result
 	if command == "uninstall" || *remove {
-		result, err = setup.Uninstall(context, *dryRun)
+		removeGlobal := *removeGlobalMCP
+		if !removeGlobal && !*dryRun && !*jsonOutput {
+			removeGlobal, err = confirmGlobalMCPRemoval()
+			if err != nil {
+				return err
+			}
+		}
+		result, err = setup.Uninstall(context, *dryRun, removeGlobal)
 	} else if *dryRun {
 		result, err = setup.Install(context, *dryRun, *portable)
 	} else {
@@ -181,6 +182,18 @@ func runSetup(command string, args []string) error {
 		return printSetupResult(result)
 	}
 	return json.NewEncoder(os.Stdout).Encode(result)
+}
+
+func codexHome() (string, error) {
+	home := os.Getenv("CODEX_HOME")
+	if home == "" {
+		userHome, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		home = filepath.Join(userHome, ".codex")
+	}
+	return filepath.Abs(home)
 }
 
 func printSetupResult(result setup.Result) error {
@@ -219,13 +232,35 @@ func printSetupResult(result setup.Result) error {
 	}
 	return nil
 }
-func resolve(project, database, area string) (config, error) {
+
+func confirmGlobalMCPRemoval() (bool, error) {
+	info, err := os.Stdin.Stat()
+	if err != nil {
+		return false, err
+	}
+	if info.Mode()&os.ModeCharDevice == 0 {
+		return false, nil
+	}
+	fmt.Fprint(os.Stdout, "El registro MCP global de Codex puede ser usado por otros proyectos. ¿Querés eliminarlo también? [y/N] ")
+	answer, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	if err != nil && len(answer) == 0 {
+		return false, err
+	}
+	switch strings.ToLower(strings.TrimSpace(answer)) {
+	case "y", "yes", "s", "si", "sí":
+		return true, nil
+	default:
+		return false, nil
+	}
+}
+func resolve(project, database, area string, requireLocalConfig bool) (config, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return config{}, err
 	}
 	root := cwd
 	var configured configFile
+	configuredFile := ""
 	for dir := cwd; ; dir = filepath.Dir(dir) {
 		p := filepath.Join(dir, ".ytk-memory.json")
 		b, e := os.ReadFile(p)
@@ -234,11 +269,15 @@ func resolve(project, database, area string) (config, error) {
 				return config{}, fmt.Errorf("Invalid JSON in %s.", p)
 			}
 			root = dir
+			configuredFile = p
 			break
 		}
 		if dir == filepath.Dir(dir) {
 			break
 		}
+	}
+	if requireLocalConfig && configuredFile == "" {
+		return config{}, errors.New("Agent Memory is not configured for this project. Run `ytk-memory setup codex` from the project root.")
 	}
 	if project == "" {
 		project = os.Getenv("YTK_MEMORY_PROJECT_ID")
@@ -315,10 +354,10 @@ func doctor(c config, jsonOutput bool) error {
 	}
 	checks := []map[string]string{{"name": "database", "status": "ok", "message": "SQLite schema is readable."}}
 	healthy := true
-	if cwd, cwdErr := os.Getwd(); cwdErr == nil {
-		setupCheck := inspectCodexSetup(filepath.Join(cwd, ".codex", "config.toml"), c.project, c.database)
+	if home, homeErr := codexHome(); homeErr == nil {
+		setupCheck := inspectCodexSetup(filepath.Join(home, "config.toml"))
 		checks = append(checks, setupCheck)
-		if setupCheck["status"] == "invalid" {
+		if setupCheck["status"] != "ok" {
 			healthy = false
 		}
 	}
@@ -366,7 +405,7 @@ func writeDoctor(output io.Writer, result map[string]any, jsonOutput bool) error
 	return nil
 }
 
-func inspectCodexSetup(filename, projectID, database string) map[string]string {
+func inspectCodexSetup(filename string) map[string]string {
 	contents, err := os.ReadFile(filename)
 	if os.IsNotExist(err) {
 		return map[string]string{"name": "codex_mcp", "status": "not_configured", "message": "Run ytk-memory setup codex to register the native MCP server."}
@@ -383,10 +422,8 @@ func inspectCodexSetup(filename, projectID, database string) map[string]string {
 		return map[string]string{"name": "codex_mcp", "status": "invalid", "message": "Managed Codex MCP block is incomplete."}
 	}
 	block := text[begin:end]
-	projectValue, _ := json.Marshal(projectID)
-	databaseValue, _ := json.Marshal(database)
-	if !strings.Contains(block, string(projectValue)) || !strings.Contains(block, string(databaseValue)) {
-		return map[string]string{"name": "codex_mcp", "status": "not_configured", "message": "No native Codex MCP registration was found for this project scope."}
+	if !strings.Contains(block, `args = ["mcp"]`) {
+		return map[string]string{"name": "codex_mcp", "status": "invalid", "message": "The global Codex MCP registration must use the generic `mcp` command."}
 	}
 	match := regexp.MustCompile(`(?m)^command\s*=\s*"([^"]+)"\s*$`).FindStringSubmatch(block)
 	if len(match) != 2 {

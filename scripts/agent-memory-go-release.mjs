@@ -227,13 +227,7 @@ async function validateCleanInstall(binary, platform) {
   const database = join(clean, ".ytk-memory", "ytk-memory.sqlite");
   try {
     assert.equal(cliText(binary, clean, ["--version"]).trim(), version);
-    cli(binary, clean, [
-      "setup",
-      "codex",
-      "--instructions",
-      "local",
-      "--portable",
-    ]);
+    cli(binary, clean, ["setup", "codex", "--portable"]);
     const doctor = cli(binary, clean, ["doctor"]);
     assert.equal(doctor.healthy, true);
     const backup = join(clean, ".ytk-memory", "backup.sqlite");
@@ -284,7 +278,11 @@ function cli(binary, cwd, args) {
 }
 
 function cliText(binary, cwd, args) {
-  const result = spawnSync(binary, args, { cwd, encoding: "utf8" });
+  const result = spawnSync(binary, args, {
+    cwd,
+    env: { ...process.env, CODEX_HOME: join(cwd, ".codex-global") },
+    encoding: "utf8",
+  });
   if (result.error) throw result.error;
   if (result.status !== 0)
     throw new Error(`${args[0]} failed: ${result.stderr}`);

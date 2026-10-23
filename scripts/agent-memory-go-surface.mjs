@@ -1,7 +1,13 @@
 /* global process */
 
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -20,8 +26,13 @@ const database = join(temporary, "memory.sqlite");
 const backup = join(temporary, "memory.backup.sqlite");
 const upgradeBackup = join(temporary, "memory.upgrade.sqlite");
 const currentBackup = join(temporary, "memory.current.sqlite");
+const codexHome = join(temporary, "codex-home");
 
 try {
+  writeFileSync(
+    join(temporary, ".ytk-memory.json"),
+    `${JSON.stringify({ project_slug: "surface-a", database }, null, 2)}\n`,
+  );
   run(
     goCommand(),
     ["build", "-o", executable, "./cmd/ytk-memory"],
@@ -30,6 +41,11 @@ try {
       ...process.env,
       GOCACHE: join(tmpdir(), "ytk-memory-go-build-cache"),
     },
+  );
+  mkdirSync(codexHome, { recursive: true });
+  writeFileSync(
+    join(codexHome, "config.toml"),
+    `# BEGIN ytk-memory-init:codex\n[mcp_servers.ytk_memory]\ncommand = ${JSON.stringify(executable)}\nargs = ["mcp"]\n# END ytk-memory-init:codex\n`,
   );
   const first = await connect("surface-a");
   try {
@@ -161,6 +177,7 @@ async function connect(project) {
   const transport = new StdioClientTransport({
     command: executable,
     args: ["mcp", "--project", project, "--database", database],
+    cwd: temporary,
   });
   await client.connect(transport);
   return { client, transport };
@@ -175,6 +192,7 @@ function output(result) {
 
 function cli(operation, args) {
   const result = spawnSync(executable, [operation, ...args, "--json"], {
+    env: { ...process.env, CODEX_HOME: codexHome },
     encoding: "utf8",
   });
   if (result.error) throw result.error;
