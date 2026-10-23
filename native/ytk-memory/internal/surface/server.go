@@ -90,10 +90,6 @@ func (s *Service) start(ctx context.Context, _ *mcp.CallToolRequest, in startInp
 	if err := validate(in.Query, 2000, false); err != nil {
 		return toolResult(nil, err)
 	}
-	session, err := s.Store.StartSession(ctx, newID(), s.ProjectID, &s.OwnerID)
-	if err != nil {
-		return toolResult(nil, err)
-	}
 	entries := []entry{}
 	if strings.TrimSpace(in.Query) != "" {
 		found, e := s.find(ctx, in.Query, in.Limit, in.MaxChars)
@@ -102,6 +98,8 @@ func (s *Service) start(ctx context.Context, _ *mcp.CallToolRequest, in startInp
 		}
 		entries = found
 	}
+	session, err := s.Store.StartSession(ctx, newID(), s.ProjectID, &s.OwnerID)
+	if err != nil { return toolResult(nil, err) }
 	return toolResult(map[string]any{"sessionId": session.ID, "entries": entries}, nil)
 }
 func (s *Service) search(ctx context.Context, _ *mcp.CallToolRequest, in searchInput) (*mcp.CallToolResult, map[string]any, error) {
@@ -255,19 +253,7 @@ func (s *Service) finish(ctx context.Context, _ *mcp.CallToolRequest, in finishI
 	if err != nil {
 		return toolResult(nil, err)
 	}
-	stored := false
-	if summary != nil {
-		tags := []string{"source:agent-memory:sqlite"}
-		if s.Area != "" {
-			tags = append(tags, "area:"+s.Area)
-		}
-		_, err = s.Store.Save(ctx, core.SaveInput{ID: newID(), WorkspaceID: s.ProjectID, SessionID: &session.ID, OwnerID: &s.OwnerID, Type: "summary", Title: "Session summary", Content: *summary, SubjectKey: stringPtr("session/" + session.ID), Tags: tags})
-		if err != nil {
-			return toolResult(nil, err)
-		}
-		stored = true
-	}
-	return toolResult(map[string]any{"sessionId": session.ID, "summaryStored": stored}, nil)
+	return toolResult(map[string]any{"sessionId": session.ID, "summaryStored": summary != nil}, nil)
 }
 func validate(v string, max int, required bool) error {
 	v = strings.TrimSpace(v)

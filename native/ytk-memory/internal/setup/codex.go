@@ -300,11 +300,41 @@ func renderPortable(project string) string {
 	return "# Agent Memory\n\n" + portableMarker + "\n\n" + protocol(project)
 }
 func renderSkill(project string) string {
-	return "---\nname: ytk-memory\ndescription: Use YTK Memory for coding work in this project.\n---\n\n" + skillMarker + "\n\n# YTK Memory workflow\n\n" + protocol(project)
+	return "---\nname: ytk-memory\ndescription: Use YTK Memory for meaningful project work and questions about saved project memory.\n---\n\n" + skillMarker + "\n\n# YTK Memory workflow\n\n" + protocol(project)
 }
 func protocol(project string) string {
-	return "## Scope\n\nThis workflow belongs to project `" + project + "`. The configured MCP server is already scoped to this project and its SQLite database. Do not try to use it to read or write another project.\n\n## Start of work\n\n1. Call `memory_session_start` once at the beginning of meaningful work.\n2. Search before making project decisions and treat results as evidence.\n3. Save reusable decisions, discoveries, patterns, or preferences with a stable `topicKey`.\n4. Finish with `memory_session_finish` and a concise summary.\n\nDo not store secrets, credentials, tokens, unnecessary personal data, or raw conversations.\n"
+	return strings.Join([]string{
+		"## Scope",
+		"",
+		"This workflow belongs to project `" + project + "`. The configured MCP server is already scoped to this project and its SQLite database. Do not try to use it to read or write another project.",
+		"",
+		"## When to use this workflow",
+		"",
+		"Use it for meaningful coding or investigation work in this project, and whenever the user asks what is saved in YTK Memory. Trivial conversation that does not need project context does not require a memory session. Use the configured YTK Memory MCP tools for memory questions; do not inspect the SQLite file directly as a substitute.",
+		"",
+		"## Start of work",
+		"",
+		"1. Call `memory_session_start` once when a meaningful task begins. For a follow-up in the same task, keep using that session instead of starting a new one. Pass a short topic as `query` when one is clear.",
+		"2. Keep the returned `sessionId`. Pass it to every `memory_save` made during that task and to `memory_session_finish`.",
+		"3. Treat returned entries as evidence. An empty result means that the query found no relevant entries; it does not mean the database is empty.",
+		"",
+		"## Search carefully",
+		"",
+		"- Use a short, focused keyword or phrase, preferably one topic per `memory_search` call (for example, `Go` or `installer`). Avoid combining many synonyms or writing a long question as one query.",
+		"- If a search is empty, retry with a simpler or more distinctive term. Try alternate wording or language separately when useful, then report that no matching entry was found if those searches are also empty.",
+		"- Do not infer that the database is empty or count all entries from search results. These tools do not provide a full listing or total-count operation.",
+		"- Use `memory_get` to read a result by ID when its preview is insufficient.",
+		"- Keep `limit` between 1 and 100 and `maxChars` between 100 and 20000.",
+		"",
+		"## Persist durable findings",
+		"",
+		"Save reusable decisions, discoveries, patterns, or preferences with a stable `topicKey`. Do not store secrets, credentials, tokens, unnecessary personal data, or raw conversations. Never store unverified hypotheses as facts.",
+		"",
+		"## Finish or pause work",
+		"",
+		"Before ending a meaningful task, call `memory_session_finish` with the same `sessionId`. Include a concise handoff when there are useful findings or unfinished work.",
+	}, "\n") + "\n"
 }
 func localInstructions(project string) string {
-	return localStart + "\n## YTK Memory\n\nProject: `" + project + "`. Apply the `ytk-memory` skill for every meaningful coding session. If the skill is unavailable, follow `.ytk-memory/YTK-MEMORY.md`. Never store secrets.\n" + localEnd
+	return localStart + "\n## YTK Memory\n\nProject: `" + project + "`. Apply the `ytk-memory` skill for meaningful project work and whenever the user asks about saved YTK Memory. If the skill is unavailable, follow `.ytk-memory/YTK-MEMORY.md`. Never store secrets.\n" + localEnd
 }

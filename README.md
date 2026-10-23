@@ -1,7 +1,8 @@
 # Agent Memory
 
-Runtime local para sesiones agenticas, con SQLite/FTS5, MCP y distribución
-nativa Go. El alcance vigente está documentado en [ADR 0009](docs/adr/0009-agent-memory-only-scope.md).
+Repositorio de referencia para Agent Memory: runtime local para sesiones
+agenticas, con SQLite/FTS5, MCP y distribución nativa Go. El alcance está
+documentado en [ADR 0009](docs/adr/0009-agent-memory-only-scope.md).
 
 ## Runtime nativo Go
 
@@ -35,5 +36,4 @@ protocolo reusable está en [docs/agent-memory-protocol.md](docs/agent-memory-pr
 Consultá [docs/local-development.md](docs/local-development.md) para los checks
 locales y [docs/current-status.md](docs/current-status.md) para el siguiente
 trabajo. RAG y conocimiento documental fueron retirados para concentrar el
-producto en la paridad agentica con Engram; su contexto de recuperación está en
-el ADR 0009.
+producto en Agent Memory. El contexto de esa decisión está en el ADR 0009.

@@ -145,7 +145,7 @@ function localInstructions(context: { projectId: string }): string {
     instructionsStart,
     "## YTK Memory",
     "",
-    `Project: \`${context.projectId}\`. Apply the \`ytk-memory\` skill for every meaningful coding session. It defines the required memory workflow for start, retrieval, durable writes, and session handoff. If the skill is unavailable, follow \`.ytk-memory/YTK-MEMORY.md\`. Never store secrets.`,
+    `Project: \`${context.projectId}\`. Apply the \`ytk-memory\` skill for meaningful project work and whenever the user asks about saved YTK Memory. It defines the required session, search, persistence, and handoff workflow. If the skill is unavailable, follow \`.ytk-memory/YTK-MEMORY.md\`. Never store secrets.`,
     instructionsEnd,
   ].join("\n");
 }
@@ -155,7 +155,7 @@ function globalInstructions(): string {
     globalInstructionsStart,
     "## YTK Memory",
     "",
-    "When the YTK Memory tools are available in the current project, apply its `ytk-memory` skill. If that skill is unavailable, follow `.ytk-memory/YTK-MEMORY.md`. Do not store secrets. If the tools are unavailable, continue without YTK Memory.",
+    "When the YTK Memory tools are available in the current project, apply its `ytk-memory` skill for meaningful project work and whenever the user asks about saved memory. If that skill is unavailable, follow `.ytk-memory/YTK-MEMORY.md`. Do not store secrets. If the tools are unavailable, continue without YTK Memory.",
     globalInstructionsEnd,
   ].join("\n");
 }

@@ -10,8 +10,8 @@ El repositorio nació como una plataforma que combinaba Agent Memory local,
 Corporate Knowledge RAG y un orquestador de contexto. La implementación RAG
 creció alrededor de PostgreSQL/pgvector, embeddings, ingesta documental, API
 HTTP y adaptadores de conocimiento. Sin embargo, el objetivo inmediato del
-producto es madurar las sesiones agenticas con el runtime nativo Go y alcanzar
-paridad funcional con Engram.
+producto es madurar las sesiones agenticas con el runtime nativo Go y validar
+su uso en repositorios consumidores.
 
 Mantener ambos productos en el mismo núcleo aumenta el costo de build, las
 dependencias opcionales, la superficie de despliegue y la cantidad de contratos

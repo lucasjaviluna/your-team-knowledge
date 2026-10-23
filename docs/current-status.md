@@ -1,7 +1,7 @@
 # Estado actual y punto de continuación
 
 **Revisado:** 2026-10-22
-**Alcance:** Agent Memory y runtime nativo Go.
+**Alcance:** referencia de Agent Memory y runtime nativo Go.
 
 ## Decisión vigente
 
@@ -22,9 +22,11 @@ proyecto separado están en [ADR 0009](adr/0009-agent-memory-only-scope.md).
 
 ## Siguiente trabajo
 
-Ejecutar el piloto del binario Go en repositorios consumidores y validar la
-paridad funcional con Engram en hosts MCP reales. El plan operativo está en
+Ejecutar el piloto del binario Go en repositorios consumidores y validar su
+funcionamiento en hosts MCP reales. El plan operativo está en
 [agent-memory-go-migration-plan.md](agent-memory-go-migration-plan.md).
+El análisis del estado actual y la secuencia de mejoras están en
+[agent-memory-roadmap-2026-10-22.md](agent-memory-roadmap-2026-10-22.md).
 
 ## Verificación
 

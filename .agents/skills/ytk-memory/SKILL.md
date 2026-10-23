@@ -1,6 +1,6 @@
 ---
 name: ytk-memory
-description: Use YTK Memory for a coding task in this project: start a memory session, recover relevant context before technical decisions, persist durable findings, and close the session with a handoff.
+description: Use YTK Memory for meaningful project work and questions about saved project memory. Start and finish sessions, search with focused terms, and treat empty results as no matches rather than an empty database.
 ---
 
 <!-- Managed by ytk-memory-init:codex-skill -->
@@ -23,15 +23,40 @@ read or write another project.
 | `memory_save` | Create or update a durable finding. A stable `topicKey` makes the write idempotent. |
 | `memory_session_finish` | Close the active session and optionally persist its handoff summary. |
 
+## When to use this workflow
+
+Use it for meaningful coding or investigation work in this project, and whenever
+the user asks what is saved in YTK Memory. Trivial conversation that does not
+need project context does not require a memory session. Use the configured YTK
+Memory MCP tools for memory questions; do not inspect the SQLite file directly
+as a substitute.
+
 ## Start of work
 
-1. Call `memory_session_start` once at the beginning of a meaningful task. Pass a short query when the task has a clear topic so the tool can return relevant context.
-2. Keep the returned `sessionId`. Pass it to every `memory_save` made during that task and to `memory_session_finish`.
-3. Treat returned entries as evidence. If no memory is returned, continue normally; the project may be new or have no relevant history.
+1. Call `memory_session_start` once when a meaningful task begins. For a
+   follow-up in the same task, keep using that session instead of starting a new
+   one. Pass a short topic as `query` when one is clear.
+2. Keep the returned `sessionId`. Pass it to every `memory_save` made during
+   that task and to `memory_session_finish`.
+3. Treat returned entries as evidence. An empty result means that the query
+   found no relevant entries; it does not mean the database is empty.
+
+## Search carefully
+
+- Use a short, focused keyword or phrase, preferably one topic per
+  `memory_search` call (for example, `Go` or `installer`). Avoid combining
+  many synonyms or writing a long question as one query.
+- If a search is empty, retry with a simpler or more distinctive term. Try
+  alternate wording or language separately when useful, then report that no
+  matching entry was found if those searches are also empty.
+- Do not infer that the database is empty or count all entries from search
+  results. These tools do not provide a full listing or total-count operation.
+- Use `memory_get` to read a result by ID when its preview is insufficient.
+- Keep `limit` between 1 and 100 and `maxChars` between 100 and 20000.
 
 ## Recover context before decisions
 
-Before deciding about architecture, conventions, a bug, a recurring pattern, or a durable team constraint, call `memory_search` with the concrete question or task terms.
+Before deciding about architecture, conventions, a bug, a recurring pattern, or a durable team constraint, call `memory_search` with focused terms for that topic.
 
 Use `memory_get` only for a result whose full content is needed. Read only the evidence required for the current task. Distinguish recovered facts from your own inference and from information that still needs verification.
 

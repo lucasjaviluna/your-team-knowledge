@@ -182,7 +182,29 @@ func (s *Store) EndOwnedSession(ctx context.Context, sessionID, workspaceID, own
 	if err != nil {
 		return Session{}, err
 	}
-	return s.EndSession(ctx, sessionID, summary)
+	if summary != nil && hasSensitiveContent(*summary) {
+		return Session{}, errors.New("Sensitive content detected in memory.")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil { return Session{}, err }
+	defer tx.Rollback()
+	endedAt := formatTime(s.now())
+	result, err := tx.ExecContext(ctx, `UPDATE sessions SET ended_at = ?, summary = ? WHERE id = ? AND workspace_id = ? AND owner_id = ? AND ended_at IS NULL`, endedAt, summary, sessionID, workspaceID, ownerID)
+	if err != nil { return Session{}, err }
+	changed, err := result.RowsAffected()
+	if err != nil { return Session{}, err }
+	if changed != 1 { return Session{}, fmt.Errorf("Session '%s' was not found or is already closed.", sessionID) }
+	if summary != nil {
+		tags, _ := json.Marshal([]string{"source:agent-memory:sqlite"})
+		now := endedAt
+		_, err = tx.ExecContext(ctx, `INSERT INTO memory_items (id,workspace_id,session_id,type,title,content,subject_key,tags_json,status,created_at,updated_at,valid_from,expires_at,review_at,archived_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, "session-summary-"+sessionID, workspaceID, sessionID, "summary", "Session summary", *summary, "session/"+sessionID, string(tags), "active", now, now, now, nil, nil, nil)
+		if err != nil { return Session{}, err }
+		_, err = tx.ExecContext(ctx, `INSERT INTO memory_items_fts (memory_id,title,content,tags,subject_key) VALUES (?,?,?,?,?)`, "session-summary-"+sessionID, "Session summary", *summary, string(tags), "session/"+sessionID)
+		if err != nil { return Session{}, err }
+	}
+	if err := tx.Commit(); err != nil { return Session{}, err }
+	existing.EndedAt, existing.Summary = &endedAt, summary
+	return existing, nil
 }
 
 // Get returns an item only when it belongs to the requested workspace.

@@ -1,7 +1,7 @@
 # Plan de implementación
 
-El objetivo vigente es madurar Agent Memory y alcanzar paridad funcional con
-Engram mediante el runtime nativo Go.
+Este plan documenta los pasos pendientes del repositorio de referencia de Agent
+Memory: madurar el runtime nativo Go y validarlo en repositorios consumidores.
 
 ## Completado
 
@@ -14,10 +14,13 @@ Engram mediante el runtime nativo Go.
 
 ## Próximo tramo
 
+El estado actual, las mejoras y los criterios de salida están en
+[Hoja de ruta de Agent Memory](agent-memory-roadmap-2026-10-22.md).
+
 1. Ejecutar el piloto en repositorios consumidores.
-2. Comparar herramientas, aislamiento, persistencia y recuperación contra Engram.
+2. Evaluar herramientas, aislamiento, persistencia y recuperación en tareas reales.
 3. Endurecer instalación, actualización, diagnóstico y recuperación.
-4. Documentar las diferencias restantes y cerrar la paridad funcional.
+4. Documentar los resultados del piloto y cerrar las brechas funcionales.
 
 ## Fuera de alcance
 

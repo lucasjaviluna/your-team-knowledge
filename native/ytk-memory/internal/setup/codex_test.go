@@ -53,6 +53,32 @@ func TestInstallUsesGlobalMCPAndLocalInstructions(t *testing.T) {
 	if _, err := Install(ctx, false, false); err != nil {
 		t.Fatal(err)
 	}
+	agentsContents, err := os.ReadFile(agents)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(agentsContents), "whenever the user asks about saved YTK Memory") {
+		t.Fatalf("project instructions do not activate YTK Memory for memory questions: %s", agentsContents)
+	}
+	for _, artifact := range []string{
+		filepath.Join(ctx.Root, ".agents", "skills", "ytk-memory", "SKILL.md"),
+		filepath.Join(ctx.Root, ".ytk-memory", "YTK-MEMORY.md"),
+	} {
+		generated, err := os.ReadFile(artifact)
+		if err != nil {
+			t.Fatal(err)
+		}
+		normalized := strings.Join(strings.Fields(string(generated)), " ")
+		for _, required := range []string{
+			"An empty result means that the query found no relevant entries; it does not mean the database is empty.",
+			"These tools do not provide a full listing or total-count operation.",
+			"do not inspect the SQLite file directly as a substitute",
+		} {
+			if !strings.Contains(normalized, required) {
+				t.Errorf("%s does not contain %q", artifact, required)
+			}
+		}
+	}
 	result, err := Install(ctx, true, false)
 	if err != nil {
 		t.Fatal(err)

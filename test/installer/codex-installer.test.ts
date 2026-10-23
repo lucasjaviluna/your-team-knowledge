@@ -66,7 +66,7 @@ describe("Codex Agent Memory installer", () => {
       "Keep the existing rules.",
     );
     expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toContain(
-      "Apply the `ytk-memory` skill",
+      "Apply the `ytk-memory` skill for meaningful project work and whenever the user asks about saved YTK Memory",
     );
     expect(
       readFileSync(join(root, ".ytk-memory", "YTK-MEMORY.md"), "utf8"),
@@ -77,6 +77,13 @@ describe("Codex Agent Memory installer", () => {
     );
     expect(skill).toContain("name: ytk-memory");
     expect(skill).toContain("memory_session_finish");
+    const normalizedSkill = skill.replace(/\s+/gu, " ");
+    expect(normalizedSkill).toContain(
+      "An empty result means that the query found no relevant entries; it does not mean the database is empty.",
+    );
+    expect(normalizedSkill).toContain(
+      "These tools do not provide a full listing or total-count operation.",
+    );
     expect(initializeAgentMemory(args, {}, root).files).toEqual([]);
 
     initializeAgentMemory(["--agent", "codex", "--uninstall"], {}, root);
@@ -184,6 +191,7 @@ describe("Codex Agent Memory installer", () => {
     );
     expect(globalInstructions).toContain("Personal guidance");
     expect(globalInstructions).toContain("tools are available");
+    expect(globalInstructions).toContain("asks about saved memory");
     expect(globalInstructions).not.toContain("Project: `sample`");
 
     initializeAgentMemory(
