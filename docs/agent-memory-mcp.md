@@ -122,8 +122,6 @@ Las herramientas validan tamaños, tipos y cardinalidades antes de llegar al dom
 
 `npm run test:mcp-smoke` compila el paquete, arranca el binario mediante el cliente MCP oficial y verifica descubrimiento, sesión, guardado, búsqueda, lectura, resumen y aislamiento entre dos proyectos sobre la misma base.
 
-`npm run test:agent-memory-e2e` valida el recorrido completo con dos consumidores MCP independientes: el segundo recupera y continúa el trabajo del primero; no puede apropiarse de su sesión; y una reanudación posterior recupera el resumen creado tras compactar ambas memorias.
-
 ## Operación y recuperación
 
 `ytk-memory-admin doctor` muestra un resumen legible del proyecto, la base,

@@ -2,15 +2,15 @@
 
 ## Architecture
 
-- Preserve the boundaries between `src/domain`, `src/application`, `src/infrastructure`, and transport/consumer adapters (`src/api`, `src/mcp`, `src/adapters`). Keep domain and application behavior independent of storage and transport details; use the existing contracts.
-- Read [docs/architecture.md](docs/architecture.md) before changing subsystem boundaries, memory lifecycle, retrieval, access control, or embedding behavior. Record significant architecture changes there and add/update an ADR when a durable decision changes.
-- Keep authorization filters in the retrieval query, and preserve sensitive-content checks before persistence or embedding. See [docs/api.md](docs/api.md) and the relevant architecture sections for the full contracts.
+- Preserve the boundaries between `src/domain`, `src/application`, `src/infrastructure`, and transport/consumer adapters (`src/mcp`, `src/adapters`). Keep domain and application behavior independent of storage and transport details; use the existing contracts.
+- Read [docs/architecture.md](docs/architecture.md) before changing subsystem boundaries or memory lifecycle. Record significant architecture changes there and add/update an ADR when a durable decision changes.
+- Preserve sensitive-content checks before persistence. See [docs/architecture.md](docs/architecture.md) and the relevant Agent Memory contracts for the full scope.
 
 ## TypeScript and Tests
 
 - Use the existing strict TypeScript, ESM, and `NodeNext` conventions. Relative source imports use `.js` extensions; retain precise optional and indexed-access typing.
-- Add or update Vitest tests under `test/`, mirroring the source area. Prefer fake providers/repositories for deterministic application tests; keep service-dependent integrations opt-in.
-- Node.js 22+ is required. Common checks: `npm run typecheck`, `npm run lint`, `npm run format`, `npm run build`, and `npm test`. Run the narrowest relevant test first; PostgreSQL and embedding benchmark checks require the setup described in [docs/local-development.md](docs/local-development.md).
+- Add or update Vitest tests under `test/`, mirroring the source area. Prefer fake providers/repositories for deterministic Agent Memory tests.
+- Node.js 22+ is required. Common checks: `npm run typecheck`, `npm run lint`, `npm run format`, `npm run build`, and `npm test`. Run the narrowest relevant test first.
 
 ## Project References
 

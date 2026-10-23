@@ -35,12 +35,6 @@ for (const binary of ["ytk-memory-init", "ytk-memory-admin"]) {
   if (typeof packageJson.bin?.[binary] !== "string")
     failures.push(`package.bin must expose ${binary}`);
 }
-for (const optionalPeer of ["pg", "@huggingface/transformers"]) {
-  if (packageJson.peerDependenciesMeta?.[optionalPeer]?.optional !== true) {
-    failures.push(`peer dependency ${optionalPeer} must remain optional`);
-  }
-}
-
 if (failures.length > 0) {
   throw new Error(JSON.stringify({ packageContract: "failed", failures }));
 }

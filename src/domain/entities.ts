@@ -57,17 +57,3 @@ export interface MemoryRelation {
   relation: MemoryRelationType;
   createdAt: Date;
 }
-
-export interface SourceCitation {
-  sourceId: string;
-  documentId: string;
-  chunkId: string;
-  title: string;
-  uri?: string;
-  sourceKind?: string;
-  sourceName?: string;
-  documentVersion?: string;
-  chunkOrdinal?: number;
-  excerpt?: string;
-  score?: number;
-}

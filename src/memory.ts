@@ -1,6 +1,6 @@
 /**
  * Minimal runtime entrypoint for consumers that only need local Agent Memory.
- * Keep this module free of RAG, PostgreSQL and embedding imports.
+ * Keep this module free of transport and storage-specific imports.
  */
 export { MemoryService } from "./application/memory/memory-service.js";
 export {

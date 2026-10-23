@@ -1,16 +1,4 @@
 export {
-  KnowledgeHttpClient,
-  KnowledgeApiError,
-  type KnowledgeClient,
-  type KnowledgeHttpClientOptions,
-  type KnowledgeHttpQueryInput,
-  type KnowledgeHttpContextInput,
-} from "./knowledge-http-client.js";
-export {
-  PiHarnessKnowledgeAdapter,
-  type PiHarnessToolDefinition,
-} from "./pi-harness-knowledge.js";
-export {
   SqliteAgentMemoryProvider,
   type AgentMemoryContext,
   type AgentMemoryEntry,

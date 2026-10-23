@@ -1,4 +1,4 @@
-# ADR 0006: Dimensión provisional de embeddings e índice vectorial
+﻿# Estado histórico\n\n> Este ADR queda supersedido por [ADR 0009](0009-agent-memory-only-scope.md). Se conserva únicamente como contexto para un futuro proyecto RAG.\n\n# ADR 0006: Dimensión provisional de embeddings e índice vectorial
 
 ## Estado
 

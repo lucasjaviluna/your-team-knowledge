@@ -7,8 +7,7 @@ repositorio de trabajo pueda activar sin instalar Node.js, npm, Docker ni una
 base de datos externa. El primer flujo soportado será Codex; el servidor MCP
 seguirá permitiendo integrar otros hosts.
 
-El alcance es Agent Memory. Corporate Knowledge RAG, PostgreSQL, embeddings y
-la API HTTP corporativa siguen en TypeScript.
+El alcance es Agent Memory. Corporate Knowledge RAG, PostgreSQL, embeddings y la API HTTP fueron retirados de este repositorio y se retomarán, si corresponde, en un proyecto separado.
 
 ## Resultado esperado
 
@@ -200,14 +199,14 @@ deben retrasar el piloto ni sustituir checksums, firma y `doctor`.
 
 ## Riesgos y controles
 
-| Riesgo                                     | Control                                                         |
-| ------------------------------------------ | --------------------------------------------------------------- |
-| Diferencia semántica entre runtimes        | Suite de conformidad y fixtures compartidos.                    |
-| Corrupción o migración incompleta          | Backup obligatorio, validación y rollback probado.              |
-| Instalador que modifica archivos ajenos    | Bloques marcados, `dry-run`, detección de conflicto y rollback. |
-| Binario sin soporte real en una plataforma | Pruebas nativas por artefacto y publicación gradual.            |
-| Pérdida de consumidores Node               | Periodo de transición y configuración compatible.               |
-| Scope creep hacia RAG                      | Módulo Go separado; RAG sigue en TypeScript.                    |
+| Riesgo                                     | Control                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------- |
+| Diferencia semántica entre runtimes        | Suite de conformidad y fixtures compartidos.                        |
+| Corrupción o migración incompleta          | Backup obligatorio, validación y rollback probado.                  |
+| Instalador que modifica archivos ajenos    | Bloques marcados, `dry-run`, detección de conflicto y rollback.     |
+| Binario sin soporte real en una plataforma | Pruebas nativas por artefacto y publicación gradual.                |
+| Pérdida de consumidores Node               | Periodo de transición y configuración compatible.                   |
+| Scope creep hacia RAG                      | Mantener RAG fuera de este repositorio; retomarlo en otro proyecto. |
 
 ## Próximo incremento
 

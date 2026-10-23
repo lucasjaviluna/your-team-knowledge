@@ -30,4 +30,4 @@ El borde de persistencia rechaza contenido con patrones sensibles. Los consumido
 
 ## Implementación incluida
 
-`SqliteAgentMemoryProvider` adapta este contrato a `MemoryService` y `SqliteAgentMemoryRepository`. El entrypoint liviano `@corporate-knowledge/platform/memory` publica el contrato, la fachada y la implementación local sin cargar el subsistema RAG.
+`SqliteAgentMemoryProvider` adapta este contrato a `MemoryService` y `SqliteAgentMemoryRepository`. El entrypoint liviano `@corporate-knowledge/platform/memory` publica el contrato, la fachada y la implementación local.

@@ -2,7 +2,7 @@
   "name": "@corporate-knowledge/platform",
   "version": "0.1.0",
   "private": true,
-  "description": "Corporate knowledge platform with local agent memory and document retrieval.",
+  "description": "Local agent memory for durable agent sessions.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -36,17 +36,13 @@
   },
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
-    "start": "node dist/server.js",
     "demo:agent-memory": "npm run build && node scripts/agent-memory-demo.mjs",
     "start:mcp": "npm run build && node dist/mcp-server.js",
     "pack:check": "npm pack --dry-run",
     "package:check": "node scripts/package-contract-check.mjs",
     "release:check": "node scripts/release-contract-check.mjs",
-    "migrations:check": "node scripts/migration-contract-check.mjs",
-    "test:consumer": "npm run build && node scripts/consumer-smoke.mjs",
     "test:maintenance-smoke": "npm run build && node scripts/agent-memory-maintenance-smoke.mjs",
     "test:mcp-smoke": "npm run build && node scripts/agent-memory-mcp-smoke.mjs",
-    "test:agent-memory-e2e": "npm run build && node scripts/agent-memory-e2e.mjs",
     "test:agent-memory-conformance": "npm run build && node scripts/agent-memory-conformance.mjs",
     "test:agent-memory-conformance-adapter": "npm run build && node scripts/agent-memory-conformance-adapter-smoke.mjs",
     "test:agent-memory-go-conformance": "npm run build && node scripts/agent-memory-go-conformance.mjs",
@@ -54,15 +50,12 @@
     "test:agent-memory-go-setup": "node scripts/agent-memory-go-setup.mjs",
     "test:agent-memory-go-release": "node scripts/agent-memory-go-release.mjs",
     "release:native": "node scripts/agent-memory-go-release.mjs",
-    "test:agent-memory-surface-conformance": "npm run build && node scripts/agent-memory-surface-conformance.mjs",
     "release:internal": "npm run release:check && npm run package:check && npm run build && node -e \"require('fs').mkdirSync('artifacts', { recursive: true })\" && npm pack --pack-destination artifacts",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "eslint .",
     "format": "prettier --check . --end-of-line auto",
     "format:write": "prettier --write . --end-of-line auto",
     "test": "vitest run",
-    "test:context-evaluation": "vitest run test/application/context-evaluation.test.ts",
-    "test:embedding-benchmark": "vitest run test/infrastructure/embedding-benchmark.integration.test.ts",
     "test:watch": "vitest"
   },
   "devDependencies": {
@@ -70,7 +63,6 @@
     "@modelcontextprotocol/client": "^2.3.1",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.10.2",
-    "@types/pg": "^8.23.1",
     "eslint": "^9.39.1",
     "prettier": "^3.5.3",
     "typescript": "^5.7.3",
@@ -81,17 +73,5 @@
     "@modelcontextprotocol/server": "^2.3.1",
     "better-sqlite3": "^13.0.3",
     "zod": "^4.6.7"
-  },
-  "peerDependencies": {
-    "@huggingface/transformers": "^4.3.1",
-    "pg": "^8.23.1"
-  },
-  "peerDependenciesMeta": {
-    "@huggingface/transformers": {
-      "optional": true
-    },
-    "pg": {
-      "optional": true
-    }
   }
 }
