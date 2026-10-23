@@ -72,3 +72,78 @@ func TestSearchExpandsAuthenticationSynonyms(t *testing.T) {
 		t.Fatalf("unexpected search result: %#v", items)
 	}
 }
+
+func TestSaveRollsBackWhenIndexingFails(t *testing.T) {
+	store, err := Open(filepath.Join(t.TempDir(), "memory.sqlite"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if _, err := store.db.Exec(`DROP TABLE memory_items_fts`); err != nil {
+		t.Fatal(err)
+	}
+	_, err = store.Save(context.Background(), SaveInput{ID: "atomic-save", WorkspaceID: "workspace-a", Type: "decision", Title: "Atomic save", Content: "The item and its index must commit together."})
+	if err == nil {
+		t.Fatal("Save succeeded despite the injected database failure")
+	}
+	var count int
+	if err := store.db.QueryRow(`SELECT COUNT(*) FROM memory_items WHERE id='atomic-save'`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("memory item persisted after failed Save: %d", count)
+	}
+}
+
+func TestCompactRollsBackSummaryWhenRelationFails(t *testing.T) {
+	store, err := Open(filepath.Join(t.TempDir(), "memory.sqlite"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	for _, id := range []string{"source-one", "source-two"} {
+		if _, err := store.Save(context.Background(), SaveInput{ID: id, WorkspaceID: "workspace-a", Type: "decision", Title: id, Content: "Source memory."}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := store.db.Exec(`CREATE TRIGGER reject_relation BEFORE INSERT ON memory_relations BEGIN SELECT RAISE(ABORT, 'injected failure'); END`); err != nil {
+		t.Fatal(err)
+	}
+	_, err = store.Compact(context.Background(), CompactInput{ID: "compact-summary", WorkspaceID: "workspace-a", Title: "Compacted", MemoryIDs: []string{"source-one", "source-two"}, MaxChars: 1000, ArchiveSources: true})
+	if err == nil {
+		t.Fatal("Compact succeeded despite the injected database failure")
+	}
+	var summaryCount, archivedCount int
+	if err := store.db.QueryRow(`SELECT COUNT(*) FROM memory_items WHERE id='compact-summary'`).Scan(&summaryCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.db.QueryRow(`SELECT COUNT(*) FROM memory_items WHERE status='archived'`).Scan(&archivedCount); err != nil {
+		t.Fatal(err)
+	}
+	if summaryCount != 0 || archivedCount != 0 {
+		t.Fatalf("Compact left partial state: summary=%d archived=%d", summaryCount, archivedCount)
+	}
+}
+
+func TestEndOwnedSessionRejectsSensitiveSummaryWithoutClosing(t *testing.T) {
+	store, err := Open(filepath.Join(t.TempDir(), "memory.sqlite"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	owner := "owner-a"
+	if _, err := store.StartSession(context.Background(), "session-a", "workspace-a", &owner); err != nil {
+		t.Fatal(err)
+	}
+	summary := "api_key=abcdefghijklmnopqrstuvwxyz123456"
+	if _, err := store.EndOwnedSession(context.Background(), "session-a", "workspace-a", owner, &summary); err == nil {
+		t.Fatal("EndOwnedSession accepted sensitive summary")
+	}
+	session, err := store.findSession(context.Background(), "session-a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if session.EndedAt != nil || session.Summary != nil {
+		t.Fatalf("session was modified after rejected summary: %#v", session)
+	}
+}

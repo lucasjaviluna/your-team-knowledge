@@ -186,23 +186,37 @@ func (s *Store) EndOwnedSession(ctx context.Context, sessionID, workspaceID, own
 		return Session{}, errors.New("Sensitive content detected in memory.")
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil { return Session{}, err }
+	if err != nil {
+		return Session{}, err
+	}
 	defer tx.Rollback()
 	endedAt := formatTime(s.now())
 	result, err := tx.ExecContext(ctx, `UPDATE sessions SET ended_at = ?, summary = ? WHERE id = ? AND workspace_id = ? AND owner_id = ? AND ended_at IS NULL`, endedAt, summary, sessionID, workspaceID, ownerID)
-	if err != nil { return Session{}, err }
+	if err != nil {
+		return Session{}, err
+	}
 	changed, err := result.RowsAffected()
-	if err != nil { return Session{}, err }
-	if changed != 1 { return Session{}, fmt.Errorf("Session '%s' was not found or is already closed.", sessionID) }
+	if err != nil {
+		return Session{}, err
+	}
+	if changed != 1 {
+		return Session{}, fmt.Errorf("Session '%s' was not found or is already closed.", sessionID)
+	}
 	if summary != nil {
 		tags, _ := json.Marshal([]string{"source:agent-memory:sqlite"})
 		now := endedAt
 		_, err = tx.ExecContext(ctx, `INSERT INTO memory_items (id,workspace_id,session_id,type,title,content,subject_key,tags_json,status,created_at,updated_at,valid_from,expires_at,review_at,archived_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, "session-summary-"+sessionID, workspaceID, sessionID, "summary", "Session summary", *summary, "session/"+sessionID, string(tags), "active", now, now, now, nil, nil, nil)
-		if err != nil { return Session{}, err }
+		if err != nil {
+			return Session{}, err
+		}
 		_, err = tx.ExecContext(ctx, `INSERT INTO memory_items_fts (memory_id,title,content,tags,subject_key) VALUES (?,?,?,?,?)`, "session-summary-"+sessionID, "Session summary", *summary, string(tags), "session/"+sessionID)
-		if err != nil { return Session{}, err }
+		if err != nil {
+			return Session{}, err
+		}
 	}
-	if err := tx.Commit(); err != nil { return Session{}, err }
+	if err := tx.Commit(); err != nil {
+		return Session{}, err
+	}
 	existing.EndedAt, existing.Summary = &endedAt, summary
 	return existing, nil
 }
@@ -247,6 +261,22 @@ func (s *Store) Backup(ctx context.Context, destination string) (BackupResult, e
 }
 
 func (s *Store) Save(ctx context.Context, input SaveInput) (Memory, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return Memory{}, err
+	}
+	defer tx.Rollback()
+	item, err := s.save(ctx, tx, input)
+	if err != nil {
+		return Memory{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return Memory{}, err
+	}
+	return item, nil
+}
+
+func (s *Store) save(ctx context.Context, db queryExecutor, input SaveInput) (Memory, error) {
 	workspaceID := required(input.WorkspaceID, "workspaceId")
 	title, content := required(input.Title, "title"), required(input.Content, "content")
 	if hasSensitiveContent(title + "\n" + content) {
@@ -295,20 +325,24 @@ func (s *Store) Save(ctx context.Context, input SaveInput) (Memory, error) {
 		return Memory{}, err
 	}
 	if existing == nil {
-		_, err := s.db.ExecContext(ctx, `INSERT INTO memory_items (id, workspace_id, session_id, type, title, content, subject_key, tags_json, status, created_at, updated_at, valid_from, expires_at, review_at, archived_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, memoryValues(item)...)
+		_, err := db.ExecContext(ctx, `INSERT INTO memory_items (id, workspace_id, session_id, type, title, content, subject_key, tags_json, status, created_at, updated_at, valid_from, expires_at, review_at, archived_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, memoryValues(item)...)
 		if err != nil {
 			return Memory{}, err
 		}
 	} else {
-		_, err := s.db.ExecContext(ctx, `UPDATE memory_items SET session_id=?, type=?, title=?, content=?, subject_key=?, tags_json=?, status=?, updated_at=?, valid_from=?, expires_at=?, review_at=?, archived_at=? WHERE id=?`, updateMemoryValues(item)...)
+		_, err := db.ExecContext(ctx, `UPDATE memory_items SET session_id=?, type=?, title=?, content=?, subject_key=?, tags_json=?, status=?, updated_at=?, valid_from=?, expires_at=?, review_at=?, archived_at=? WHERE id=?`, updateMemoryValues(item)...)
 		if err != nil {
 			return Memory{}, err
 		}
 	}
-	if err := s.index(ctx, item); err != nil {
+	if err := index(ctx, db, item); err != nil {
 		return Memory{}, err
 	}
 	return item, nil
+}
+
+type queryExecutor interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
 }
 
 type SaveInput struct {
@@ -675,23 +709,32 @@ func (s *Store) Compact(ctx context.Context, input CompactInput) (CompactResult,
 	for _, source := range sources {
 		tags = append(tags, source.Tags...)
 	}
-	summary, err := s.Save(ctx, SaveInput{ID: input.ID, WorkspaceID: input.WorkspaceID, Type: "summary", Title: title, Content: compactContent(sources, input.MaxChars), SubjectKey: &key, Tags: tags})
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return CompactResult{}, err
+	}
+	defer tx.Rollback()
+	summary, err := s.save(ctx, tx, SaveInput{ID: input.ID, WorkspaceID: input.WorkspaceID, Type: "summary", Title: title, Content: compactContent(sources, input.MaxChars), SubjectKey: &key, Tags: tags})
 	if err != nil {
 		return CompactResult{}, err
 	}
 	for _, source := range sources {
-		if _, err := s.AddRelation(ctx, summary.ID, source.ID, "related"); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO memory_relations (source_memory_id, target_memory_id, relation, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(source_memory_id, target_memory_id, relation) DO NOTHING`, summary.ID, source.ID, "related", formatTime(s.now())); err != nil {
 			return CompactResult{}, err
 		}
 	}
 	archived := []string{}
 	if input.ArchiveSources {
+		now := formatTime(s.now())
 		for _, source := range sources {
-			if _, err := s.Transition(ctx, source.ID, "archived", ""); err != nil {
+			if _, err := tx.ExecContext(ctx, `UPDATE memory_items SET status='archived', archived_at=COALESCE(archived_at, ?), updated_at=? WHERE id=?`, now, now, source.ID); err != nil {
 				return CompactResult{}, err
 			}
 			archived = append(archived, source.ID)
 		}
+	}
+	if err := tx.Commit(); err != nil {
+		return CompactResult{}, err
 	}
 	return CompactResult{Summary: summary, ArchivedSourceIDs: archived, Reused: reused}, nil
 }
@@ -792,10 +835,14 @@ func (s *Store) queryMemory(ctx context.Context, query string, args ...any) (Mem
 }
 
 func (s *Store) index(ctx context.Context, item Memory) error {
-	if _, err := s.db.ExecContext(ctx, `DELETE FROM memory_items_fts WHERE memory_id=?`, item.ID); err != nil {
+	return index(ctx, s.db, item)
+}
+
+func index(ctx context.Context, db queryExecutor, item Memory) error {
+	if _, err := db.ExecContext(ctx, `DELETE FROM memory_items_fts WHERE memory_id=?`, item.ID); err != nil {
 		return err
 	}
-	_, err := s.db.ExecContext(ctx, `INSERT INTO memory_items_fts (memory_id, title, content, tags, subject_key) VALUES (?, ?, ?, ?, ?)`, item.ID, item.Title, item.Content, strings.Join(item.Tags, " "), valueOrEmpty(item.SubjectKey))
+	_, err := db.ExecContext(ctx, `INSERT INTO memory_items_fts (memory_id, title, content, tags, subject_key) VALUES (?, ?, ?, ?, ?)`, item.ID, item.Title, item.Content, strings.Join(item.Tags, " "), valueOrEmpty(item.SubjectKey))
 	return err
 }
 
