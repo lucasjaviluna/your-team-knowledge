@@ -10,7 +10,7 @@ jobs:
       matrix:
         # Keep Windows on the VS 2022 image. windows-latest currently resolves
         # to an image with Visual Studio 18, which node-gyp does not recognize.
-        os: [ubuntu-latest, windows-2022]
+        os: [ubuntu-latest, windows-2022, macos-26]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -51,6 +51,9 @@ jobs:
           - os: windows-2022
             goos: windows
             goarch: amd64
+          - os: macos-26
+            goos: darwin
+            goarch: arm64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -75,6 +78,21 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $publicKey = (Get-Content (Join-Path $env:RUNNER_TEMP 'release' '*.pub') -Raw).Trim()
           if ($publicKey -cne $env:YTK_MEMORY_SIGNING_PUBLIC_KEY.Trim()) { throw 'Release public key does not match YTK_MEMORY_SIGNING_PUBLIC_KEY.' }
+      - name: Validate packaged binary
+        shell: pwsh
+        run: |
+          $artifact = Get-ChildItem (Join-Path $env:RUNNER_TEMP 'release') -File | Where-Object { $_.Name -match '\.(zip|tar\.gz)$' } | Select-Object -First 1
+          if (-not $artifact) { throw 'Release artifact is missing.' }
+          $extract = Join-Path $env:RUNNER_TEMP 'release-smoke'
+          if ($artifact.Extension -eq '.zip') {
+            Expand-Archive -LiteralPath $artifact.FullName -DestinationPath $extract
+          } else {
+            tar -xzf $artifact.FullName -C $extract
+          }
+          $binary = Get-ChildItem $extract -File | Where-Object { $_.Name -match '^ytk-memory(\.exe)?$' } | Select-Object -First 1
+          if (-not $binary) { throw 'Packaged ytk-memory binary is missing.' }
+          $actual = (& $binary.FullName version).Trim()
+          if ($actual -ne $env:GITHUB_REF_NAME.TrimStart('v')) { throw "Packaged binary version '$actual' does not match tag '$env:GITHUB_REF_NAME'." }
       - uses: actions/upload-artifact@v4
         with:
           name: ytk-memory-${{ matrix.goos }}-${{ matrix.goarch }}

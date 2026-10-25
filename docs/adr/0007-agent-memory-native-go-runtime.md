@@ -18,8 +18,8 @@ Agent Memory se implementa y distribuye exclusivamente mediante el binario Go
 retención, compactación, backup, servidor MCP, configuración de consumidores,
 diagnóstico, actualización, rollback y desinstalación.
 
-El runtime usa SQLite sin cgo con FTS5. Las plataformas iniciales son Windows
-x64 y Linux x64; macOS arm64 se agregará después de una validación equivalente.
+El runtime usa SQLite sin cgo con FTS5. Las plataformas soportadas son Windows
+x64, Linux x64 y macOS arm64; cada una se valida en CI antes de publicar.
 
 Los contratos que se preservan son el formato y la semántica de SQLite, los
 nombres y esquemas MCP, `.ytk-memory.json`, `.ytk-memory/`, los bloques

@@ -12,12 +12,12 @@ release y smoke.
 - Sesiones, resúmenes, relaciones, lifecycle, revisión, retención y
   compactación.
 - MCP por `stdio` con nueve herramientas y un proceso fijado a un proyecto.
-- `doctor`, backup, upgrade, rollback, setup y uninstall de Codex.
-- Compilación nativa para Windows x64 y Linux x64.
+- `doctor`, backup, upgrade, rollback y setup/uninstall para Codex, Claude Code, Pi y OpenCode.
+- Compilación y paquetes validados para Windows x64, Linux x64 y macOS arm64.
 
 ## Verificación
 
-La CI ejecuta en Windows y Linux:
+La CI ejecuta en Windows, Linux y macOS arm64:
 
 ```text
 gofmt

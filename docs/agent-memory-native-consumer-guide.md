@@ -23,7 +23,7 @@ Agent Memory local.
 | ----------- | ----------------------------------------------------- |
 | Windows x64 | Soportada y validada nativamente.                     |
 | Linux x64   | Soportada y validada nativamente.                     |
-| macOS arm64 | Se incorpora después de contar con validación nativa. |
+| macOS arm64 | Soportada y validada en runner macOS arm64 nativo.    |
 
 Cuando exista un canal de release, debe especificar las plataformas soportadas,
 SHA-256, firma y versión mínima compatible del esquema SQLite.

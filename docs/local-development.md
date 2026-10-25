@@ -48,7 +48,8 @@ ytk-memory release verify \
 apto para distribución. El workflow de tags `v*` exige el secreto persistente,
 la variable pública `YTK_MEMORY_SIGNING_PUBLIC_KEY`, sube el artefacto con su
 manifiesto, firma, clave pública y checksum, y publica el release sólo después
-de validar Windows y Linux y verificar cada firma. Consultá la
+de validar Windows, Linux y macOS arm64, verificar cada firma y ejecutar el
+binario empaquetado. Consultá la
 [política de firma, rotación y revocación](release-policy.md) antes del primer
 tag aprobado.
 

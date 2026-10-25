@@ -45,9 +45,9 @@ el registro global de Codex. La secuencia de hosts priorizada quedó completa.
 ## Verificación
 
 La CI ejecuta `gofmt`, `go vet`, `go test` y `go build` sobre el módulo Go en
-Windows y Linux. Los tags aprobados además construyen, firman y verifican los
-artefactos antes de publicarlos. No requiere Node.js, PostgreSQL, pgvector ni
-modelos de embeddings.
+Windows, Linux y macOS arm64. Los tags aprobados además construyen, firman,
+verifican y ejecutan el binario empaquetado en cada plataforma antes de
+publicarlo. No requiere Node.js, PostgreSQL, pgvector ni modelos de embeddings.
 
 El briefing, lifecycle y la evaluación de recuperación están implementados en
 código. El corpus sintético y el comando `ytk-memory evaluate` aportan métricas

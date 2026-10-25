@@ -74,6 +74,26 @@ func TestDoctorReportsUnreadableSQLiteAsStructuredFailure(t *testing.T) {
 	}
 }
 
+func TestDoctorResolveFailureReportsInvalidProjectConfiguration(t *testing.T) {
+	var output bytes.Buffer
+	if err := writeDoctor(&output, map[string]any{
+		"healthy":   false,
+		"state":     "invalid_configuration",
+		"projectId": "sample",
+		"database":  "unresolved",
+		"checks": []map[string]string{{
+			"name":    "project_config",
+			"status":  "invalid",
+			"message": "Invalid JSON in .ytk-memory.json.",
+		}},
+	}, false); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), "project_config") || !strings.Contains(output.String(), "Invalid JSON") {
+		t.Fatalf("project configuration failure was not actionable: %s", output.String())
+	}
+}
+
 func TestResolveRequiresLocalProjectConfiguration(t *testing.T) {
 	root := t.TempDir()
 	previous, err := os.Getwd()

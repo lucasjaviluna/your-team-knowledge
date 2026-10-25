@@ -97,6 +97,9 @@ func run(args []string) error {
 	requireLocalConfig := command == "mcp"
 	cfg, err := resolve(*project, *database, *area, requireLocalConfig)
 	if err != nil {
+		if command == "doctor" {
+			return doctorResolveFailure(*project, *database, err, *jsonOutput, *host)
+		}
 		return err
 	}
 	if command == "mcp" {
@@ -458,6 +461,41 @@ func slug(s string) string {
 	}
 	return s
 }
+
+func doctorResolveFailure(project, database string, cause error, jsonOutput bool, host string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		cwd = "."
+	}
+	project = strings.TrimSpace(project)
+	if project == "" {
+		project = slug(filepath.Base(cwd))
+	}
+	database = strings.TrimSpace(database)
+	if database == "" {
+		database = "unresolved"
+	}
+	state := "invalid_configuration"
+	status := "invalid"
+	if strings.Contains(strings.ToLower(cause.Error()), "not configured") {
+		state, status = "missing_configuration", "missing"
+	}
+	result := map[string]any{
+		"operation": "doctor",
+		"healthy":   false,
+		"state":     state,
+		"host":      host,
+		"projectId": project,
+		"database":  database,
+		"checks": []map[string]string{{
+			"name":    "project_config",
+			"status":  status,
+			"message": cause.Error(),
+		}},
+	}
+	return printDoctor(result, jsonOutput)
+}
+
 func doctor(c config, jsonOutput bool, host string) error {
 	if _, err := os.Stat(c.database); os.IsNotExist(err) {
 		result := map[string]any{"operation": "doctor", "healthy": false, "state": "missing_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "missing", "message": "No se encontró la base de datos. Ejecutá `ytk-memory setup codex` para crearla o restaurá un backup."}}}

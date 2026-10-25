@@ -21,8 +21,8 @@ pertenecen a este canal.
 
 1. Configurar primero el secreto y la variable pública correspondiente.
 2. Ejecutar un tag semántico `vMAJOR.MINOR.PATCH` desde un commit validado.
-3. La CI valida Windows y Linux, empaqueta ambos artefactos y compara la clave
-   pública emitida con la variable configurada.
+3. La CI valida Windows, Linux y macOS arm64, empaqueta cada artefacto y compara
+   la clave pública emitida con la variable configurada.
 4. Antes de publicar, la CI verifica checksum y firma de cada artefacto.
 5. El release publica juntos el archivo, manifiesto, firma, clave pública y
    checksum. La nota del release declara la huella SHA-256 de la clave pública.

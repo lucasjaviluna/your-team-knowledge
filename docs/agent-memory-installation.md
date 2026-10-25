@@ -158,6 +158,8 @@ legible, una comprobación `quick_check` de integridad y el registro MCP
 disponible para el proyecto actual. Para comprobar el
 campo estructurado `"healthy": true`, ejecutá `ytk-memory doctor --json`.
 Si la base no existe, ejecutá el setup nuevamente o restaurá un backup válido.
+Si `.ytk-memory.json` está dañado, `doctor --json` devuelve un check
+`project_config` para corregirlo antes de abrir la base.
 
 También podés comprobar explícitamente el proyecto y el área:
 
