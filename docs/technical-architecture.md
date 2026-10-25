@@ -1,7 +1,8 @@
 # Arquitectura técnica de Agent Memory
 
-**Revisado:** 2026-10-25  
-**Runtime:** Go, módulo `native/ytk-memory`  
+**Revisado:** 2026-10-25
+
+**Runtime:** Go, módulo `native/ytk-memory`
 **Audiencia:** ingeniería, SRE, seguridad y mantenedores de integraciones.
 
 Este documento explica qué implementa el código vigente, cómo se conectan sus

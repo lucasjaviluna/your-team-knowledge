@@ -1,54 +1,61 @@
 # Estado actual y punto de continuación
 
 **Revisado:** 2026-10-25
-**Alcance:** referencia de Agent Memory y runtime nativo Go.
 
-## Decisión vigente
+**Alcance:** Agent Memory y runtime nativo Go.
 
-El repositorio queda dedicado a sesiones agenticas con Agent Memory. RAG,
+## Alcance vigente
+
+El repositorio se dedica a memoria durable local de agentes. RAG,
 PostgreSQL/pgvector, embeddings, API documental y Context Orchestrator fueron
-retirados del alcance vigente. La decisión y el contexto para retomarlos en un
-proyecto separado están en [ADR 0009](adr/0009-agent-memory-only-scope.md).
+retirados del alcance; ver [ADR 0009](adr/0009-agent-memory-only-scope.md).
 
 ## Implementado
 
-- Core SQLite/FTS5 y lifecycle de memorias.
-- Sesiones, resúmenes, relaciones, revisión y retención.
-- MCP `stdio` con aislamiento por proyecto.
-- Briefing inicial compacto de memorias activas en `memory_session_start`, con límites configurables y prioridad explícita.
-- Herramientas MCP para listar/completar revisiones, corregir memorias con historial de versiones, consultar relaciones y consolidar memorias con vista previa y confirmación explícita.
-- CLI `doctor` con validación completa del TOML de Codex, diagnóstico de rutas/acceso SQLite y detección de un ejecutable MCP registrado incompatible; backup, upgrade y rollback incluyen cobertura de restauración heredada.
-- Setup/uninstall de Codex con MCP global y activación local, y de Claude Code, Pi y OpenCode por proyecto.
-- Compilación y pruebas en Windows/Linux desde GitHub Actions.
-- Suite de pruebas Go para core, MCP y setup.
+- Core Go con SQLite/FTS5; sesiones, memorias, `subjectKey`, relaciones,
+  lifecycle, revisión, retención y consolidación.
+- MCP `stdio` con once herramientas y proceso ligado a un proyecto; briefing
+  compacto, búsqueda lexical, corrección versionada y consolidación confirmada.
+- Setup/uninstall para Codex, Claude Code, Pi y OpenCode. Codex registra MCP en
+  `CODEX_HOME/config.toml` y activa instrucciones por proyecto; los otros hosts
+  usan registros de proyecto.
+- CLI doctor, backup, upgrade y rollback. Doctor valida TOML Codex, acceso y
+  tipo de ruta SQLite, integridad `quick_check` y registro/ejecutable del host.
+- Evaluación sintética de retrieval y conformance; salida JSON con métricas
+  reproducibles.
+- CI en Windows x64, Linux x64 y macOS arm64 con formato, vet, pruebas y build.
+- Canal de release implementado: paquetes, manifiesto, SHA-256, firma Ed25519,
+  verificación de artefactos y smoke test por tag.
+- Documentación técnica integral en
+  [technical-architecture.md](technical-architecture.md).
 
-## Runtime Go
+El usuario confirmó el piloto en Windows. La validación manual Linux está
+aplazada; la CI Linux se acepta como gate. El harness sintético no representa
+una medición de relevancia o adopción en tareas reales.
 
-El usuario confirmó que el piloto del
-[runbook](agent-memory-pilot-runbook.md) se completó correctamente en Windows.
-La validación manual en Linux queda aplazada; por ahora, que pasen los checks
-Linux de GitHub Actions es suficiente. Go es el único runtime de Agent Memory.
+## Pendiente
 
-El canal de release confiable está implementado inicialmente: el binario Go
-genera artefactos reproducibles con manifiesto, SHA-256 y firma Ed25519, y
-ofrece verificación antes de instalar. Quedan pendientes la custodia real de
-la clave y ejecutar el primer tag aprobado. La política de rotación/revocación
-y la comprobación de la clave pública esperada en CI ya están documentadas.
-La secuencia de mejoras está en
-[la hoja de ruta](agent-memory-roadmap-2026-10-22.md).
+1. **Activar el release firmado:** falta verificar/configurar la clave Ed25519
+   persistente como secreto de GitHub Actions y la clave pública como variable,
+   luego crear el primer tag semántico aprobado. El workflow exige ambos valores
+   y falla antes de empaquetar/publicar si no están configurados.
+2. **Reparar índices FTS legados:** `Open` crea la tabla FTS5 pero la migración
+   no reindexa filas antiguas cuando esa tabla no existía. Implementar rebuild
+   seguro y testear búsqueda después de migración.
+3. **Validar en consumidores reales:** medir calidad del briefing/búsqueda y
+   comprobar cada host cuando haya repositorios disponibles.
+4. **Caracterizar concurrencia y reintentos** con más de un proceso SQLite.
 
-Claude Code, Pi y OpenCode son hosts automatizados por proyecto: Claude usa
-`.mcp.json`/`CLAUDE.md`, Pi usa `.pi/mcp.json`/`AGENTS.md`, y OpenCode usa
-`opencode.json[c]`/`AGENTS.md`. Se preservan configuraciones ajenas y no se toca
-el registro global de Codex. La secuencia de hosts priorizada quedó completa.
+La CI está definida en `.github/workflows/ci.yml`; la custodia y procedimiento
+de firma están en [release-policy.md](release-policy.md). La activación de
+GitHub no pudo verificarse desde este entorno: no están presentes las variables
+de firma locales ni el CLI `gh`; por tanto el estado de secrets/variables remotos
+es desconocido y no se creó un tag.
 
-## Verificación
+## Verificación y referencias
 
-La CI ejecuta `gofmt`, `go vet`, `go test` y `go build` sobre el módulo Go en
-Windows, Linux y macOS arm64. Los tags aprobados además construyen, firman,
-verifican y ejecutan el binario empaquetado en cada plataforma antes de
-publicarlo. No requiere Node.js, PostgreSQL, pgvector ni modelos de embeddings.
-
-El briefing, lifecycle y la evaluación de recuperación están implementados en
-código. El corpus sintético y el comando `ytk-memory evaluate` aportan métricas
-reproducibles de recall, precisión, latencia local y tamaño de contexto.
+La CI ejecuta `gofmt`, `go vet ./...`, `go test ./...` y build en Windows,
+Linux y macOS arm64. Para estado priorizado y criterios, ver
+[agent-memory-roadmap](agent-memory-roadmap-2026-10-22.md) y
+[implementation-plan](implementation-plan.md). Para el detalle de diseño,
+ver [technical-architecture](technical-architecture.md).

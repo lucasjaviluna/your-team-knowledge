@@ -2,39 +2,41 @@
 
 ## Decisión completada
 
-Agent Memory usa exclusivamente el runtime nativo Go `ytk-memory`. Se retiraron
-el runtime TypeScript, sus dependencias Node, sus pruebas y sus utilidades de
-release y smoke.
+Agent Memory usa exclusivamente el runtime nativo Go `ytk-memory`. El runtime
+TypeScript, Node dependencies, pruebas y utilidades de release/smoke fueron
+retirados.
 
-## Capacidades disponibles
+## Capacidades implementadas
 
-- SQLite y FTS5 locales, sin cgo.
-- Sesiones, resúmenes, relaciones, lifecycle, revisión, retención y
-  compactación.
-- MCP por `stdio` con once herramientas y un proceso fijado a un proyecto.
-- `doctor`, backup, upgrade, rollback y setup/uninstall para Codex, Claude Code, Pi y OpenCode.
-- Compilación y paquetes validados para Windows x64, Linux x64 y macOS arm64.
+- SQLite y FTS5 locales mediante driver pure Go, sin CGo.
+- Sesiones, resúmenes, memorias tipadas, `subjectKey`, relaciones, corrección
+  versionada, briefing, búsqueda lexical, lifecycle, revisión, retención y
+  consolidación con vista previa.
+- Once herramientas MCP sobre `stdio`, con proceso fijado a un proyecto.
+- CLI de setup/uninstall para Codex, Claude Code, Pi y OpenCode, además de
+  doctor, backup, upgrade, rollback, conformance, evaluate y release.
+- CI para Windows x64, Linux x64 y macOS arm64.
+- Paquetes firmados Ed25519, SHA-256, manifiesto y verificación. El workflow de
+  tags construye, smoke-testea y verifica antes de publicar.
+- Documentación técnica integral en
+  [technical-architecture.md](technical-architecture.md).
 
-## Verificación
+## Validación
 
-La CI ejecuta en Windows, Linux y macOS arm64:
+La CI ejecuta `gofmt`, `go vet ./...`, `go test ./...` y build en las tres
+plataformas. El piloto manual se confirmó en Windows; la prueba manual Linux
+queda aplazada y el gate Linux de CI es suficiente por ahora. La evaluación
+sintética entrega baseline lexical, no resultados de tareas reales.
 
-```text
-gofmt
-go vet ./...
-go test ./...
-go build ./cmd/ytk-memory
-```
+## Pendiente
 
-El piloto se completó en Windows según la confirmación del usuario. La prueba
-manual de Linux queda aplazada; los checks Linux de GitHub Actions son el gate
-aceptado por ahora. El comando `release` genera paquetes reproducibles,
-manifiesto, checksum y firma Ed25519; los tags aprobados requieren una clave
-persistente del job protegido.
+1. Activar el primer release firmado configurando de forma segura el secreto
+   `YTK_MEMORY_SIGNING_PRIVATE_KEY`, la variable pública
+   `YTK_MEMORY_SIGNING_PUBLIC_KEY` y ejecutando un tag semántico aprobado.
+2. Implementar reconstrucción del índice FTS para filas legadas cuando la
+   virtual table se crea por primera vez durante migración.
+3. Validar retrieval y hosts en repositorios consumidores y caracterizar
+   concurrencia/reintentos.
 
-## Trabajo posterior
-
-Las mejoras futuras deben extender el módulo Go: contexto inicial compacto,
-herramientas de lifecycle y corrección, evaluación de recuperación, diagnóstico
-más detallado y el primer release
-aprobado desde el canal firmado.
+Ver [release-policy.md](release-policy.md), [current-status.md](current-status.md)
+y la [hoja de ruta](agent-memory-roadmap-2026-10-22.md).

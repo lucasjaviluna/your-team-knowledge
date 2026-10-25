@@ -55,6 +55,26 @@ verificación sin dejar una referencia al aviso.
 
 ## Primer release
 
-Antes del primer tag aprobado, completar la configuración de secret y variable,
-registrar las huellas en la nota del release y ejecutar la checklist anterior.
-La clave privada no debe compartirse con este repositorio ni con agentes.
+El workflow de tags no puede configurar por sí mismo la custodia de claves. Antes
+del primer tag aprobado, una persona responsable debe:
+
+1. Generar el par Ed25519 fuera del repositorio y verificar que la clave pública
+   corresponda a la clave privada.
+2. Guardar una copia de recuperación cifrada fuera de GitHub y limitar quién
+   puede acceder al secreto de Actions.
+3. En **Settings → Secrets and variables → Actions** del repositorio, crear el
+   secret `YTK_MEMORY_SIGNING_PRIVATE_KEY` (64 bytes hex) y la variable
+   `YTK_MEMORY_SIGNING_PUBLIC_KEY` (32 bytes hex). La privada no debe colocarse
+   en archivos del repo, variables públicas, logs, issues ni conversación.
+4. Revisar que la huella pública coincide con la nota prevista del release.
+   El job compara automáticamente la clave pública del artefacto con la
+   variable y falla si difieren.
+5. Crear un tag semántico `vMAJOR.MINOR.PATCH` desde un commit revisado. La CI
+   valida tests/build, empaqueta las tres plataformas, verifica la firma y el
+   smoke test de versión; sólo después publica GitHub Release.
+6. Descargar los artefactos publicados y ejecutar `ytk-memory release verify`
+   antes de distribuirlos a repos consumidores.
+
+El workflow y el código de empaquetado ya están implementados. La activación
+real sólo se completa cuando el secret, la variable y el primer tag aprobado
+existen en el repositorio. No registrar material privado en este documento.
