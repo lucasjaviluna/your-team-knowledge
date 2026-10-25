@@ -16,7 +16,7 @@ proyecto separado están en [ADR 0009](adr/0009-agent-memory-only-scope.md).
 - Sesiones, resúmenes, relaciones, revisión y retención.
 - MCP `stdio` con aislamiento por proyecto.
 - Briefing inicial compacto de memorias activas en `memory_session_start`, con límites configurables y prioridad explícita.
-- Herramientas MCP para listar/completar revisiones, corregir memorias con historial de versiones y consultar relaciones.
+- Herramientas MCP para listar/completar revisiones, corregir memorias con historial de versiones, consultar relaciones y consolidar memorias con vista previa y confirmación explícita.
 - CLI `doctor`, backup, upgrade y rollback.
 - Setup/uninstall de Codex con MCP global y activación local.
 - Compilación y pruebas en Windows/Linux desde GitHub Actions.
@@ -29,8 +29,8 @@ El usuario confirmó que el piloto del
 La validación manual en Linux queda aplazada; por ahora, que pasen los checks
 Linux de GitHub Actions es suficiente. Go es el único runtime de Agent Memory.
 
-El siguiente incremento P1 es resolver conflictos y consolidación con control
-humano. La secuencia de mejoras está en
+El siguiente incremento es P2: definir el canal de release confiable. La
+secuencia de mejoras está en
 [la hoja de ruta](agent-memory-roadmap-2026-10-22.md).
 
 ## Verificación

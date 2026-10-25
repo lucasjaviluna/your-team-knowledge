@@ -6,7 +6,8 @@ El instalador mantiene el protocolo operativo en una única fuente y lo emite
 como `.ytk-memory/YTK-MEMORY.md`. El adaptador Codex lo emite también como
 `.agents/skills/ytk-memory/SKILL.md`; el bloque de `AGENTS.md` sólo activa la
 skill. La implementación MCP expone cinco herramientas base para sesiones y
-memorias, además de operaciones de revisión, corrección y relaciones/versiones.
+memorias, además de operaciones de revisión, corrección, relaciones/versiones
+y consolidación confirmada.
 
 ## Instrucciones para el agente
 
@@ -45,7 +46,7 @@ Al finalizar o pausar una tarea:
 
 ### Seguridad y alcance
 
-La memoria debe respetar el proyecto, workspace, permisos y área de la tarea actual. No mezcles contexto entre proyectos ni persistas información fuera del alcance autorizado. Las operaciones destructivas o de eliminación requieren confirmación explícita.
+La memoria debe respetar el proyecto, workspace, permisos y área de la tarea actual. No mezcles contexto entre proyectos ni persistas información fuera del alcance autorizado. Las operaciones destructivas o de eliminación requieren confirmación explícita. Antes de consolidar memorias potencialmente contradictorias, inspeccioná las relaciones existentes y obtené una vista previa; aplicá la consolidación sólo después de un veredicto humano explícito.
 
 ## Contrato abstracto esperado
 

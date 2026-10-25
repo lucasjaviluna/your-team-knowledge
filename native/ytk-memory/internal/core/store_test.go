@@ -125,6 +125,35 @@ func TestCompactRollsBackSummaryWhenRelationFails(t *testing.T) {
 	}
 }
 
+func TestPreviewConsolidationDoesNotWriteOrArchiveSources(t *testing.T) {
+	store, err := Open(filepath.Join(t.TempDir(), "memory.sqlite"), func() time.Time { return time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	for _, id := range []string{"source-one", "source-two"} {
+		if _, err := store.Save(context.Background(), SaveInput{ID: id, WorkspaceID: "workspace-a", Type: "decision", Title: id, Content: "Conflicting source memory."}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	preview, err := store.PreviewConsolidation(context.Background(), CompactInput{WorkspaceID: "workspace-a", Title: "Reviewed decision", MemoryIDs: []string{"source-one", "source-two"}, MaxChars: 1000, ArchiveSources: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.Title != "Reviewed decision" || len(preview.SourceIDs) != 2 || len(preview.ArchiveSourceIDs) != 2 {
+		t.Fatalf("unexpected preview: %#v", preview)
+	}
+	for _, id := range preview.SourceIDs {
+		item, ok, err := store.Get(context.Background(), id, "workspace-a")
+		if err != nil || !ok || item.Status != "active" {
+			t.Fatalf("preview modified source %s: item=%#v ok=%v err=%v", id, item, ok, err)
+		}
+	}
+	if _, ok, err := store.Get(context.Background(), "summary", "workspace-a"); err != nil || ok {
+		t.Fatalf("preview created a summary: ok=%v err=%v", ok, err)
+	}
+}
+
 func TestEndOwnedSessionRejectsSensitiveSummaryWithoutClosing(t *testing.T) {
 	store, err := Open(filepath.Join(t.TempDir(), "memory.sqlite"), nil)
 	if err != nil {

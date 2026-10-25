@@ -42,6 +42,8 @@ registrar en el host. También se puede configurar directamente:
 | `memory_review_complete`| Completa una revisión y agenda la siguiente.                              |
 | `memory_correct`         | Crea una versión corregida y conserva la relación con la anterior.        |
 | `memory_relations`       | Consulta memorias relacionadas y su historial de versiones.               |
+| `memory_consolidation_preview` | Muestra el resumen propuesto y las fuentes, sin escribir ni archivar. |
+| `memory_consolidate`     | Aplica una consolidación revisada sólo con `confirm: true`.                |
 
 Las respuestas usan contenido JSON y `structuredContent`. Los diagnósticos van
 a `stderr`; `stdout` queda reservado al protocolo MCP.
@@ -60,6 +62,16 @@ reciba una próxima fecha RFC3339 futura. `memory_correct` conserva la versión
 anterior como `superseded`, crea una revisión activa y registra la relación
 `supersedes` en una transacción; el título o contenido omitido se conserva.
 `memory_relations` devuelve las entradas relacionadas dentro del mismo proyecto.
+
+Para resolver una contradicción, el agente primero consulta
+`memory_relations` de las memorias candidatas y luego llama a
+`memory_consolidation_preview`. La vista previa devuelve las fuentes, el
+contenido exacto del resumen, los posibles archivos y un resumen existente que
+se reutilizaría, sin alterar la base. `memory_consolidate` rechaza la solicitud
+si `confirm` no es `true`; conserva las fuentes por defecto y sólo las archiva
+cuando `archiveSources: true` fue revisado y confirmado. Para elegir una sola
+versión canónica sin fusionar contenido se usa `memory_correct`, que mantiene
+la versión anterior y su relación `supersedes`.
 
 ## Operación y recuperación
 

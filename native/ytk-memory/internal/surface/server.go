@@ -39,6 +39,8 @@ func (s *Service) Server() *mcp.Server {
 	mcp.AddTool(server, add("memory_review_complete", "Complete a due memory review and schedule its next review.", false), s.reviewComplete)
 	mcp.AddTool(server, add("memory_correct", "Correct a memory while preserving and linking its previous version.", false), s.correct)
 	mcp.AddTool(server, add("memory_relations", "Inspect related memories and their version links in this project.", true), s.relations)
+	mcp.AddTool(server, add("memory_consolidation_preview", "Preview a human-reviewed consolidation without changing memories.", true), s.consolidationPreview)
+	mcp.AddTool(server, add("memory_consolidate", "Apply a reviewed consolidation only when explicitly confirmed.", false), s.consolidate)
 	return server
 }
 
@@ -87,6 +89,14 @@ type relationsInput struct {
 	MemoryID string `json:"memoryId"`
 	Limit    int    `json:"limit,omitempty"`
 	MaxChars int    `json:"maxChars,omitempty"`
+}
+type consolidationInput struct {
+	MemoryIDs      []string `json:"memoryIds"`
+	Title          string   `json:"title,omitempty"`
+	SubjectKey     string   `json:"subjectKey,omitempty"`
+	MaxChars       int      `json:"maxChars,omitempty"`
+	ArchiveSources bool     `json:"archiveSources,omitempty"`
+	Confirm        bool     `json:"confirm,omitempty"`
 }
 type entry struct {
 	ID         string   `json:"id"`
@@ -493,6 +503,66 @@ func (s *Service) relations(ctx context.Context, _ *mcp.CallToolRequest, in rela
 		}
 	}
 	return toolResult(map[string]any{"relations": entries}, nil)
+}
+
+func (s *Service) consolidationInput(ctx context.Context, in consolidationInput) (core.CompactInput, error) {
+	in.Title, in.SubjectKey = strings.TrimSpace(in.Title), strings.TrimSpace(in.SubjectKey)
+	if len(in.MemoryIDs) < 2 || len(in.MemoryIDs) > 100 {
+		return core.CompactInput{}, errors.New("memoryIds must contain between 2 and 100 memory ids.")
+	}
+	if len([]rune(in.Title)) > 500 || len([]rune(in.SubjectKey)) > 500 {
+		return core.CompactInput{}, errors.New("A consolidation field exceeds its maximum length.")
+	}
+	maxChars := in.MaxChars
+	if maxChars == 0 {
+		maxChars = 4000
+	}
+	if maxChars < 200 || maxChars > 20000 {
+		return core.CompactInput{}, errors.New("maxChars must be between 200 and 20000.")
+	}
+	ids := make([]string, len(in.MemoryIDs))
+	for index, id := range in.MemoryIDs {
+		id = strings.TrimSpace(id)
+		if err := validate(id, 200, true); err != nil {
+			return core.CompactInput{}, err
+		}
+		ids[index] = id
+		item, ok, err := s.Store.Get(ctx, id, s.ProjectID)
+		if err != nil {
+			return core.CompactInput{}, err
+		}
+		if !ok || (s.Area != "" && tagValue(item.Tags, "area") != "" && tagValue(item.Tags, "area") != s.Area) {
+			return core.CompactInput{}, errors.New("Memory was not found in this project.")
+		}
+	}
+	return core.CompactInput{ID: newID(), WorkspaceID: s.ProjectID, Title: in.Title, SubjectKey: in.SubjectKey, MemoryIDs: ids, MaxChars: maxChars, ArchiveSources: in.ArchiveSources}, nil
+}
+
+func (s *Service) consolidationPreview(ctx context.Context, _ *mcp.CallToolRequest, in consolidationInput) (*mcp.CallToolResult, map[string]any, error) {
+	input, err := s.consolidationInput(ctx, in)
+	if err != nil {
+		return toolResult(nil, err)
+	}
+	preview, err := s.Store.PreviewConsolidation(ctx, input)
+	if err != nil {
+		return toolResult(nil, err)
+	}
+	return toolResult(map[string]any{"preview": preview, "requiresConfirmation": true}, nil)
+}
+
+func (s *Service) consolidate(ctx context.Context, _ *mcp.CallToolRequest, in consolidationInput) (*mcp.CallToolResult, map[string]any, error) {
+	if !in.Confirm {
+		return toolResult(nil, errors.New("confirm must be true after reviewing memory_consolidation_preview."))
+	}
+	input, err := s.consolidationInput(ctx, in)
+	if err != nil {
+		return toolResult(nil, err)
+	}
+	result, err := s.Store.Compact(ctx, input)
+	if err != nil {
+		return toolResult(nil, err)
+	}
+	return toolResult(map[string]any{"verdict": "consolidated", "summaryId": result.Summary.ID, "archivedSourceIds": result.ArchivedSourceIDs, "reused": result.Reused}, nil)
 }
 
 func memoryEntry(item core.Memory, title, content, source, area string) entry {

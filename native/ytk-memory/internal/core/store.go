@@ -849,28 +849,45 @@ type CompactResult struct {
 	Reused            bool     `json:"reused"`
 }
 
-func (s *Store) Compact(ctx context.Context, input CompactInput) (CompactResult, error) {
-	if len(input.MemoryIDs) == 0 {
-		return CompactResult{}, errors.New("memoryIds must contain at least one memory id.")
+// ConsolidationPreview describes a compact operation without writing to the
+// store. Callers must obtain this preview before asking a person to confirm a
+// consolidation, particularly one that archives its sources.
+type ConsolidationPreview struct {
+	Title             string   `json:"title"`
+	SubjectKey        string   `json:"subjectKey"`
+	Content           string   `json:"content"`
+	SourceIDs         []string `json:"sourceIds"`
+	ArchiveSourceIDs  []string `json:"archiveSourceIds"`
+	ExistingSummaryID string   `json:"existingSummaryId,omitempty"`
+}
+
+// PreviewConsolidation validates and renders the exact summary that Compact
+// would create, without changing memories or relations.
+func (s *Store) PreviewConsolidation(ctx context.Context, input CompactInput) (ConsolidationPreview, error) {
+	if len(input.MemoryIDs) < 2 {
+		return ConsolidationPreview{}, errors.New("memoryIds must contain at least two memory ids.")
 	}
 	if input.MaxChars < 200 || input.MaxChars > 20000 {
-		return CompactResult{}, errors.New("maxChars must be an integer between 200 and 20000.")
+		return ConsolidationPreview{}, errors.New("maxChars must be an integer between 200 and 20000.")
 	}
 	ids := unique(input.MemoryIDs)
+	if len(ids) < 2 {
+		return ConsolidationPreview{}, errors.New("memoryIds must contain at least two distinct memory ids.")
+	}
 	sources := make([]Memory, 0, len(ids))
 	for _, id := range ids {
 		item, err := s.findMemory(ctx, id)
 		if errors.Is(err, sql.ErrNoRows) {
-			return CompactResult{}, fmt.Errorf("Memory '%s' was not found.", id)
+			return ConsolidationPreview{}, fmt.Errorf("Memory '%s' was not found.", id)
 		}
 		if err != nil {
-			return CompactResult{}, err
+			return ConsolidationPreview{}, err
 		}
 		if item.WorkspaceID != input.WorkspaceID {
-			return CompactResult{}, fmt.Errorf("Memory '%s' belongs to another workspace.", id)
+			return ConsolidationPreview{}, fmt.Errorf("Memory '%s' belongs to another workspace.", id)
 		}
 		if item.Status == "archived" {
-			return CompactResult{}, fmt.Errorf("Memory '%s' is archived and cannot be compacted.", id)
+			return ConsolidationPreview{}, fmt.Errorf("Memory '%s' is archived and cannot be compacted.", id)
 		}
 		sources = append(sources, item)
 	}
@@ -883,8 +900,31 @@ func (s *Store) Compact(ctx context.Context, input CompactInput) (CompactResult,
 		hash := sha256.Sum256([]byte(input.WorkspaceID + "\n" + title + "\n" + strings.Join(sorted(ids), ",")))
 		key = fmt.Sprintf("compaction/%x", hash[:12])
 	}
-	_, existingErr := s.findActiveBySubjectKey(ctx, input.WorkspaceID, key, formatTime(s.now()))
-	reused := existingErr == nil
+	preview := ConsolidationPreview{Title: title, SubjectKey: key, Content: compactContent(sources, input.MaxChars), SourceIDs: ids}
+	if input.ArchiveSources {
+		preview.ArchiveSourceIDs = append([]string{}, ids...)
+	}
+	if existing, err := s.findActiveBySubjectKey(ctx, input.WorkspaceID, key, formatTime(s.now())); err == nil {
+		preview.ExistingSummaryID = existing.ID
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return ConsolidationPreview{}, err
+	}
+	return preview, nil
+}
+
+func (s *Store) Compact(ctx context.Context, input CompactInput) (CompactResult, error) {
+	preview, err := s.PreviewConsolidation(ctx, input)
+	if err != nil {
+		return CompactResult{}, err
+	}
+	sources := make([]Memory, 0, len(preview.SourceIDs))
+	for _, id := range preview.SourceIDs {
+		item, err := s.findMemory(ctx, id)
+		if err != nil {
+			return CompactResult{}, err
+		}
+		sources = append(sources, item)
+	}
 	tags := append([]string{"compacted"}, input.Tags...)
 	for _, source := range sources {
 		tags = append(tags, source.Tags...)
@@ -894,7 +934,7 @@ func (s *Store) Compact(ctx context.Context, input CompactInput) (CompactResult,
 		return CompactResult{}, err
 	}
 	defer tx.Rollback()
-	summary, err := s.save(ctx, tx, SaveInput{ID: input.ID, WorkspaceID: input.WorkspaceID, Type: "summary", Title: title, Content: compactContent(sources, input.MaxChars), SubjectKey: &key, Tags: tags})
+	summary, err := s.save(ctx, tx, SaveInput{ID: input.ID, WorkspaceID: input.WorkspaceID, Type: "summary", Title: preview.Title, Content: preview.Content, SubjectKey: &preview.SubjectKey, Tags: tags})
 	if err != nil {
 		return CompactResult{}, err
 	}
@@ -916,7 +956,7 @@ func (s *Store) Compact(ctx context.Context, input CompactInput) (CompactResult,
 	if err := tx.Commit(); err != nil {
 		return CompactResult{}, err
 	}
-	return CompactResult{Summary: summary, ArchivedSourceIDs: archived, Reused: reused}, nil
+	return CompactResult{Summary: summary, ArchivedSourceIDs: archived, Reused: preview.ExistingSummaryID != ""}, nil
 }
 
 type CompactInput struct {
