@@ -2,15 +2,15 @@
 
 ## Architecture
 
-- Preserve the boundaries between `src/domain`, `src/application`, `src/infrastructure`, and transport/consumer adapters (`src/mcp`, `src/adapters`). Keep domain and application behavior independent of storage and transport details; use the existing contracts.
+- Preserve the boundaries in `native/ytk-memory` between core storage and rules, MCP transport, and consumer setup. Keep Agent Memory behavior independent of transport and SQLite details where the existing contracts permit it.
 - Read [docs/architecture.md](docs/architecture.md) before changing subsystem boundaries or memory lifecycle. Record significant architecture changes there and add/update an ADR when a durable decision changes.
 - Preserve sensitive-content checks before persistence. See [docs/architecture.md](docs/architecture.md) and the relevant Agent Memory contracts for the full scope.
 
-## TypeScript and Tests
+## Go and Tests
 
-- Use the existing strict TypeScript, ESM, and `NodeNext` conventions. Relative source imports use `.js` extensions; retain precise optional and indexed-access typing.
-- Add or update Vitest tests under `test/`, mirroring the source area. Prefer fake providers/repositories for deterministic Agent Memory tests.
-- Node.js 22+ is required. Common checks: `npm run typecheck`, `npm run lint`, `npm run format`, `npm run build`, and `npm test`. Run the narrowest relevant test first.
+- Use the Go conventions already established under `native/ytk-memory`. Keep MCP `stdout` protocol-only and diagnostics on `stderr`.
+- Add or update Go tests beside the affected package. Prefer deterministic stores and fixtures for Agent Memory tests.
+- Go 1.27+ is required. Common checks from `native/ytk-memory`: `gofmt -w`, `go vet ./...`, `go test ./...`, and `go build ./cmd/ytk-memory`.
 
 ## Project References
 

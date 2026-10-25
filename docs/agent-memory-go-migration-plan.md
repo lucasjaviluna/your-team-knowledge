@@ -1,262 +1,37 @@
-# Plan de migración de Agent Memory a Go y distribución nativa
+# Estado de migración de Agent Memory a Go
 
-## Objetivo
+## Decisión completada
 
-Entregar Agent Memory como un binario local, firmado y versionado, que un
-repositorio de trabajo pueda activar sin instalar Node.js, npm, Docker ni una
-base de datos externa. El primer flujo soportado será Codex; el servidor MCP
-seguirá permitiendo integrar otros hosts.
+Agent Memory usa exclusivamente el runtime nativo Go `ytk-memory`. Se retiraron
+el runtime TypeScript, sus dependencias Node, sus pruebas y sus utilidades de
+release y smoke.
 
-El alcance es Agent Memory. Corporate Knowledge RAG, PostgreSQL, embeddings y la API HTTP fueron retirados de este repositorio y se retomarán, si corresponde, en un proyecto separado.
+## Capacidades disponibles
 
-## Resultado esperado
+- SQLite y FTS5 locales, sin cgo.
+- Sesiones, resúmenes, relaciones, lifecycle, revisión, retención y
+  compactación.
+- MCP por `stdio` con cinco herramientas y un proceso fijado a un proyecto.
+- `doctor`, backup, upgrade, rollback, setup y uninstall de Codex.
+- Compilación nativa para Windows x64 y Linux x64.
 
-Un usuario descarga una versión del binario para su plataforma y, desde un
-checkout, ejecuta:
+## Verificación
 
-```text
-ytk-memory setup codex
-ytk-memory doctor
-```
-
-Después de reiniciar Codex, el agente recupera, guarda y resume memoria entre
-sesiones. La memoria queda en `.ytk-memory/ytk-memory.sqlite` dentro del
-repositorio y el usuario puede crear backups, actualizar o volver a una copia
-anterior mediante el mismo binario.
-
-La guía de uso y requisitos está en
-[agent-memory-native-consumer-guide.md](agent-memory-native-consumer-guide.md) y
-el procedimiento paso a paso en
-[agent-memory-installation.md](agent-memory-installation.md).
-
-## Arquitectura objetivo
+La CI ejecuta en Windows y Linux:
 
 ```text
-Codex u otro host MCP
-          |
-          | stdio
-          v
-  ytk-memory (binario Go)
-     |        |         |
-     |        |         +-- setup / doctor / backup / upgrade / rollback
-     |        +-- MCP: sesiones, search, get, save, finish
-     v
-SQLite + FTS5 en .ytk-memory/
+gofmt
+go vet ./...
+go test ./...
+go build ./cmd/ytk-memory
 ```
 
-El ejecutable inicial tendrá estos subcomandos:
+El piloto se completó en Windows según la confirmación del usuario. La prueba
+manual de Linux queda aplazada; los checks Linux de GitHub Actions son el gate
+aceptado por ahora.
 
-| Comando                       | Responsabilidad                                                   |
-| ----------------------------- | ----------------------------------------------------------------- |
-| `ytk-memory setup <host>`     | Configura MCP e instrucciones para un repositorio.                |
-| `ytk-memory mcp`              | Sirve Agent Memory por `stdio`.                                   |
-| `ytk-memory doctor`           | Verifica binario, proyecto, configuración, base y compatibilidad. |
-| `ytk-memory backup`           | Crea una copia consistente de SQLite.                             |
-| `ytk-memory upgrade`          | Migra el esquema con backup obligatorio.                          |
-| `ytk-memory rollback`         | Restaura una copia con confirmación explícita.                    |
-| `ytk-memory uninstall <host>` | Retira solo la configuración administrada.                        |
+## Trabajo posterior
 
-Los nombres, argumentos y salidas JSON deben especificarse antes de implementar
-cada comando. El binario debe reservar `stdout` para MCP cuando se ejecuta
-`mcp`; diagnósticos y errores de inicio van a `stderr`.
-
-## Contratos que no pueden cambiar durante la migración
-
-1. **Datos:** el runtime Go abre y migra bases SQLite creadas por la versión
-   TypeScript sin perder sesiones, memorias, relaciones, FTS ni lifecycle.
-2. **Semántica:** `subjectKey`, filtros de vigencia, transiciones de estado,
-   aislamiento por `projectId`/workspace, contenido sensible y ownership de
-   sesión conservan el comportamiento actual.
-3. **MCP:** las cinco herramientas actuales, sus validaciones y sus respuestas
-   estructuradas son la superficie mínima compatible.
-4. **Proyecto consumidor:** `.ytk-memory.json`, `.ytk-memory/`, el bloque MCP
-   administrado en `CODEX_HOME/config.toml` y los bloques locales de
-   `AGENTS.md`/skill siguen siendo reconocibles y reversibles.
-5. **Operación:** backup, upgrade y rollback siguen siendo explícitos y nunca
-   reemplazan una base sin una copia verificable.
-
-La suite TypeScript existente y nuevos fixtures de SQLite se convierten en una
-suite de conformidad. Cada caso se ejecuta contra ambos runtimes mientras dure
-la transición.
-
-## Plan por fases
-
-### Fase 0 — Contrato y línea base
-
-**Objetivo:** impedir una reimplementación guiada por documentación incompleta.
-
-- Aprobar ADR 0007.
-- Inventariar esquema SQLite, migraciones, FTS, consultas y archivos que crea
-  el instalador.
-- Convertir los tests de memoria, MCP, mantenimiento e instalador en escenarios
-  black-box independientes de Node.
-- Agregar fixtures de base: vacía, legacy, con relaciones, con lifecycle y con
-  datos sensibles rechazados.
-- Definir versión de protocolo MCP y política de compatibilidad de SQLite.
-
-**Salida:** una especificación ejecutable y fixtures compartidos.
-
-### Fase 1 — Núcleo SQLite en Go
-
-**Objetivo:** igualar persistencia y reglas de dominio sin exponer aún un
-binario a consumidores.
-
-- Crear un módulo Go aislado para dominio, repositorio SQLite y migraciones.
-- Usar SQLite sin cgo con FTS5 incluido.
-- Portar creación/lectura/actualización por `subjectKey`, búsqueda FTS y
-  expansión léxica configurada.
-- Portar sesiones, resúmenes, relaciones, lifecycle, revisión, retención,
-  compactación y detección sensible.
-- Comparar resultados y cambios de base contra la suite de conformidad.
-
-**Criterio de salida:** las fixtures existentes se comportan igual en Go y en
-TypeScript, incluidas bases creadas por versiones anteriores.
-
-### Fase 2 — MCP y CLI de operación
-
-**Objetivo:** hacer que el binario sustituya al servidor y CLI Node para el
-caso de uso principal.
-
-- Implementar `mcp` con las cinco herramientas compatibles.
-- Fijar el proceso a un proyecto y preservar ownership de sesión.
-- Implementar `doctor`, `backup`, `upgrade` y `rollback` con salidas JSON
-  estables para automatización.
-- Añadir pruebas de protocolo con el cliente MCP oficial y pruebas de
-  recuperación después de upgrade/rollback.
-
-**Criterio de salida:** el E2E de dos consumidores pasa exclusivamente contra
-el binario Go.
-
-### Fase 3 — Setup de repositorios consumidores
-
-**Objetivo:** instalar Agent Memory en un checkout de forma segura y
-repetible.
-
-- Implementar `setup codex`, `--dry-run`, `--uninstall` y la limpieza global
-  explícita del MCP mediante `--remove-global-mcp`.
-- Preservar y validar TOML/Markdown preexistentes; detectar conflictos sin
-  sobrescribir configuraciones ajenas.
-- Generar instrucciones y fallback portable desde una única plantilla.
-- Extender `doctor` para comprobar versión, ejecutable registrado, TOML,
-  rutas, acceso SQLite, esquema y disponibilidad MCP.
-- Probar con `AGENTS.md` y `CODEX_HOME/config.toml` preexistentes.
-
-**Criterio de salida:** un checkout limpio queda listo para Codex con una orden
-y el desinstalador revierte solamente lo propio.
-
-### Fase 4 — Empaquetado y releases
-
-**Objetivo:** producir artefactos verificables y consumibles sin toolchain.
-
-- Construir artefactos nativos primero para `windows/amd64` y `linux/amd64`.
-- Ejecutar pruebas nativas en cada plataforma; no publicar un artefacto solo
-  porque compile de forma cruzada.
-- Publicar un archivo comprimido por plataforma, un manifiesto de versión,
-  SHA-256 y firma del artefacto.
-- Definir un canal interno de releases con retención, soporte y procedimiento
-  de revocación. El canal concreto se decide antes de publicar; no depende de
-  npm.
-- Agregar pruebas que descarguen/instalen el artefacto en un directorio limpio
-  sin Node instalado y ejecuten `doctor`, MCP y mantenimiento.
-
-**Criterio de salida:** una máquina limpia instala y usa el binario sin npm ni
-Node, y puede verificar origen e integridad del artefacto.
-
-### Fase 5 — Piloto y transición
-
-**Objetivo:** demostrar consumo real antes de retirar el runtime actual.
-
-- Ejecutar el flujo completo en repositorios de trabajo con Codex real.
-- Validar al menos un segundo host MCP con configuración portable.
-- Ejercitar nueva sesión, compactación, actualización, rollback y
-  desinstalación.
-- Mantener el paquete Node como canal de compatibilidad durante al menos una
-  versión del binario estable.
-- Documentar migración desde tarball Node y comunicar fecha de retiro del
-  runtime TypeScript solo después de completar los criterios anteriores.
-
-**Criterio de salida:** dos repositorios consumidores y dos hosts recuperan
-memoria entre sesiones con el binario distribuido.
-
-## Estrategia de distribución
-
-La primera versión no tendrá autoactualización. El canal de release entrega un
-artefacto por plataforma, checksums y firma; el usuario o la herramienta de TI
-actualiza de manera explícita. Esto hace que upgrade y rollback sean auditables.
-
-Artefactos iniciales:
-
-```text
-ytk-memory_<version>_windows_amd64.zip
-ytk-memory_<version>_linux_amd64.tar.gz
-ytk-memory_<version>_checksums.txt
-ytk-memory_<version>_checksums.txt.sig
-```
-
-macOS arm64 se agrega cuando exista runner de CI y validación nativa. Gestores
-como WinGet, Homebrew o un instalador corporativo son mejoras posteriores: no
-deben retrasar el piloto ni sustituir checksums, firma y `doctor`.
-
-## Riesgos y controles
-
-| Riesgo                                     | Control                                                             |
-| ------------------------------------------ | ------------------------------------------------------------------- |
-| Diferencia semántica entre runtimes        | Suite de conformidad y fixtures compartidos.                        |
-| Corrupción o migración incompleta          | Backup obligatorio, validación y rollback probado.                  |
-| Instalador que modifica archivos ajenos    | Bloques marcados, `dry-run`, detección de conflicto y rollback.     |
-| Binario sin soporte real en una plataforma | Pruebas nativas por artefacto y publicación gradual.                |
-| Pérdida de consumidores Node               | Periodo de transición y configuración compatible.                   |
-| Scope creep hacia RAG                      | Mantener RAG fuera de este repositorio; retomarlo en otro proyecto. |
-
-## Próximo incremento
-
-La Fase 0 queda cerrada con el contrato observable, los fixtures compartidos y
-el comparador de procesos. La siguiente tarea es **Fase 1**: crear el módulo
-SQLite en Go y conectarlo al adaptador de conformidad. El runtime TypeScript y
-sus archivos permanecen operativos durante toda la implementación y validación
-de paridad.
-
-La Fase 1 está completada. El módulo vive en `native/ytk-memory`, usa
-`modernc.org/sqlite` sin cgo y expone por ahora el subcomando interno
-`ytk-memory conformance`. `npm run test:agent-memory-go-conformance` compila
-ese binario temporalmente y lo compara contra TypeScript con el fixture común.
-El fixture cubre persistencia, FTS con expansión léxica, sesiones, relaciones,
-lifecycle, revisiones, retención, compactación y contenido sensible. El Core
-abre también bases SQLite heredadas sin las columnas de lifecycle.
-
-La Fase 2 está completada: el binario Go sirve las cinco herramientas MCP por
-`stdio`, fija cada proceso a un proyecto, valida ownership de sesión y expone
-`doctor`, `backup`, `upgrade` y `rollback`. `npm run
-test:agent-memory-go-surface` ejerce dos procesos MCP independientes y los
-comandos operativos; `npm run test:agent-memory-go-conformance` mantiene la
-paridad del Core con el fixture TypeScript, y `go test ./...` cubre los paquetes
-Go. Durante esta fase, TypeScript seguía siendo el runtime activo; tras completar
-el piloto de la Fase 5, Go pasa a ser el runtime principal y TypeScript queda
-temporalmente como compatibilidad.
-
-La Fase 3 está completada: `ytk-memory setup codex` crea la base local,
-registra una vez el binario nativo genérico en `CODEX_HOME/config.toml` y
-genera la skill, el bloque local de `AGENTS.md` y el fallback portable desde
-una plantilla común. `uninstall codex` retira sólo la activación del proyecto y
-ofrece eliminar el MCP global; `--remove-global-mcp` permite hacerlo sin
-interacción. El instalador conserva el contenido ajeno y rechaza colisiones
-antes de escribir. `doctor` verifica el esquema SQLite y el registro MCP
-administrado. `npm run test:agent-memory-go-setup` cubre configuración global
-preexistente, repetición y ambas modalidades de desinstalación. TypeScript se
-conserva temporalmente como canal de compatibilidad durante la transición.
-
-La Fase 4 está completada: `scripts/agent-memory-go-release.mjs` construye el
-binario nativo con `CGO_ENABLED=0`, genera el archivo comprimido de la
-plataforma, manifiesto, SHA-256 y firma Ed25519. El workflow de CI ejecuta el
-flujo en runners Windows y Linux, publica los artefactos como artefactos de
-workflow y valida una instalación limpia con `setup`, `doctor`, MCP, backup y
-upgrade. Para un release confiable se puede proporcionar
-`YTK_MEMORY_SIGNING_PRIVATE_KEY` con una clave PEM; CI sin esa variable genera
-una firma efímera verificable para validar el pipeline.
-
-La Fase 5 se considera completada según la confirmación del usuario: el runbook
-se ejecutó correctamente en Windows. La validación manual del runbook en Linux
-queda aplazada; por ahora, los checks Linux de GitHub Actions son el gate
-aceptado. Go queda como runtime principal y TypeScript sigue temporalmente como
-canal de compatibilidad. El trabajo siguiente es completar la transición de
-consumidores al binario Go y retirar el runtime TypeScript al cerrar ese periodo.
+Las mejoras futuras deben extender el módulo Go: contexto inicial compacto,
+herramientas de lifecycle y corrección, evaluación de recuperación, diagnóstico
+más detallado y distribución firmada desde un canal de release aprobado.

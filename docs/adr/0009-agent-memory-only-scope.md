@@ -48,8 +48,7 @@ Memory.
 
 ## Consecuencias
 
-- El paquete Node queda reducido a contratos y compatibilidad de Agent Memory
-  durante la transición; el camino principal de distribución es el binario Go.
+- Agent Memory se implementa y distribuye únicamente con el runtime Go.
 - Los ADR y documentos históricos de RAG se conservan como registro de por qué
   se tomó la decisión, pero quedan fuera del alcance vigente.
 - Los consumidores que necesiten conocimiento documental deberán depender del

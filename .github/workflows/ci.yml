@@ -14,51 +14,25 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
       - uses: actions/setup-go@v5
         with:
           go-version-file: native/ytk-memory/go.mod
           cache-dependency-path: native/ytk-memory/go.sum
-      - run: npm ci
-        env:
-          # npm 11 rejects msvs_version as an npm option, but node-gyp reads
-          # this environment variable during native dependency installation.
-          npm_config_msvs_version: "2022"
-      - name: Check formatting
+      - name: Check Go formatting
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Continue'
-          Write-Host "Node: $(node --version)"
-          Write-Host "npm: $(npm --version)"
-          Write-Host "Prettier: $(npm exec -- prettier --version)"
-          npm run format -- --log-level debug
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "Prettier exited with code $LASTEXITCODE"
-            exit $LASTEXITCODE
+          $files = Get-ChildItem -Path native/ytk-memory -Filter *.go -Recurse |
+            ForEach-Object FullName
+          $unformatted = gofmt -l $files
+          if ($unformatted) {
+            $unformatted
+            exit 1
           }
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm run build
-      - run: npm test -- --run
-      - run: npm run package:check
-      - run: npm run release:check
-      - run: npm run pack:check
-      - run: npm run test:mcp-smoke
-      - run: npm run test:agent-memory-go-conformance
-      - run: npm run test:agent-memory-go-surface
-      - run: npm run test:agent-memory-go-setup
-      - run: npm run test:agent-memory-go-release
+      - run: go vet ./...
+        working-directory: native/ytk-memory
       - run: go test ./...
         working-directory: native/ytk-memory
-      - run: npm run release:internal
-      - uses: actions/upload-artifact@v4
-        with:
-          name: internal-release-${{ matrix.os }}
-          path: artifacts/*.tgz
-      - uses: actions/upload-artifact@v4
-        with:
-          name: native-release-${{ matrix.os }}
-          path: artifacts/native/*
+      - name: Build ytk-memory
+        shell: pwsh
+        run: go build -o (Join-Path $env:RUNNER_TEMP ytk-memory) ./cmd/ytk-memory
+        working-directory: native/ytk-memory

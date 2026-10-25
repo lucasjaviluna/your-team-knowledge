@@ -13,23 +13,10 @@ El binario `ytk-memory` ofrece:
 - aislamiento por proyecto;
 - `doctor`, `backup`, `upgrade` y `rollback`;
 - setup y uninstall de Codex con registro MCP global y activación local;
-- paquetes Windows/Linux con checksum y firma.
+- compilación y pruebas en Windows/Linux desde el módulo Go.
 
 La guía de instalación está en [docs/agent-memory-installation.md](docs/agent-memory-installation.md)
 y la guía de consumidores en [docs/agent-memory-native-consumer-guide.md](docs/agent-memory-native-consumer-guide.md).
-
-## Compatibilidad TypeScript
-
-El paquete Node mantiene los contratos de Agent Memory durante la transición:
-
-```text
-npm ci
-npm run build
-npm run test:agent-memory-conformance
-```
-
-La distribución principal para nuevos consumidores es el binario Go. El
-protocolo reusable está en [docs/agent-memory-protocol.md](docs/agent-memory-protocol.md).
 
 ## Desarrollo
 

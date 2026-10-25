@@ -44,12 +44,8 @@ persistencia durable y handoff de sesión.
 
 ## Runtime y distribución
 
-El runtime Go es la implementación principal y el destino único para Agent
-Memory. Mantiene compatibilidad de esquema y comportamiento con el runtime
-TypeScript durante la transición. El paquete TypeScript se conserva
-temporalmente como compatibilidad y se retirará al completarse la migración.
-El comando `ytk-memory` ofrece MCP, comandos administrativos y setup/uninstall
-de Codex.
+El runtime Go es la única implementación de Agent Memory. El comando
+`ytk-memory` ofrece MCP, comandos administrativos y setup/uninstall de Codex.
 
 `setup codex` registra un servidor MCP genérico en
 `CODEX_HOME/config.toml`; la activación de cada proyecto vive en
@@ -58,14 +54,10 @@ registro global salvo confirmación explícita o `--remove-global-mcp`.
 
 ## Capas
 
-- `src/domain`: entidades y reglas de Agent Memory.
-- `src/application/memory`: servicios y contratos independientes del storage.
-- `src/infrastructure/sqlite`: persistencia SQLite/FTS5 y mantenimiento.
-- `src/adapters` y `src/mcp`: contratos para consumidores y transporte MCP.
-- `native/ytk-memory`: runtime Go, CLI y distribución nativa.
-
-Las capas TypeScript se mantienen durante la transición; el estado final de
-Agent Memory elimina ese runtime y conserva Go como único runtime.
+- `native/ytk-memory/internal/core`: entidades, reglas y persistencia SQLite/FTS5.
+- `native/ytk-memory/internal/surface`: transporte MCP por `stdio`.
+- `native/ytk-memory/internal/setup`: configuración de consumidores Codex.
+- `native/ytk-memory/cmd/ytk-memory`: CLI y distribución nativa.
 
 No existe una API HTTP, una base corporativa ni un orquestador documental en el
 alcance vigente. La decisión de retirar RAG y retomarlo en otro proyecto está

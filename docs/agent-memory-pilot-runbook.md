@@ -152,4 +152,4 @@ Repetí las secciones 2 a 7 en otro repositorio real. Usá un `subjectKey` disti
 
 ## Cierre del piloto
 
-Documentá para cada fallo: paso, versión del binario, plataforma, host, mensaje de error, si la base se mantuvo íntegra y cómo se recuperó. Si todos los criterios pasan, actualizá el estado del proyecto y decidí si el runtime Go puede convertirse en el principal sin retirar todavía el canal TypeScript.
+Documentá para cada fallo: paso, versión del binario, plataforma, host, mensaje de error, si la base se mantuvo íntegra y cómo se recuperó. Si todos los criterios pasan, actualizá el estado del proyecto. Go es el único runtime de Agent Memory.

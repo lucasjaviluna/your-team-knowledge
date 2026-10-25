@@ -14,10 +14,10 @@ Este análisis distingue **implementado en código**, **cubierto por pruebas aut
 - El MCP Go expone cinco herramientas: `memory_session_start`, `memory_search`, `memory_get`, `memory_save` y `memory_session_finish`. El proceso fija proyecto y propietario de sesión; los tests de superficie verifican aislamiento, doctor, backup, upgrade y rollback.
 - El cierre de sesión rechaza contenido sensible antes de cualquier escritura y guarda el resumen y el cierre en una sola transacción. `Save` mantiene la memoria y el índice FTS en una transacción; `Compact` agrupa resumen, relaciones y archivado. Las pruebas inyectan fallos SQLite para comprobar que no queda estado parcial.
 - `setup codex` instala activación local y registro MCP global; `uninstall codex` conserva la base. El usuario confirmó que el piloto del runbook se completó correctamente en Windows; la validación manual en Linux queda aplazada y pasar los checks Linux de GitHub Actions es suficiente por ahora.
-- CI corre en Windows x64 y Linux x64. Construye paquetes nativos, checksum y firma Ed25519 y prueba una instalación limpia. Sin clave persistente configurada, la firma es efímera y **no constituye una cadena de confianza para un release distribuido**.
-- Go queda como runtime principal; TypeScript se conserva temporalmente como canal de compatibilidad y se retirará al completar la transición.
+- CI corre en Windows x64 y Linux x64. Formatea, analiza, prueba y compila el módulo Go. La automatización de artefactos firmados queda como trabajo posterior.
+- Go es el único runtime de Agent Memory.
 
-Evidencia: [estado actual](current-status.md), [arquitectura](architecture.md), [plan de migración](agent-memory-go-migration-plan.md), `native/ytk-memory/internal/core/store.go`, `native/ytk-memory/internal/surface/server.go`, `native/ytk-memory/internal/setup/codex.go`, `.github/workflows/ci.yml` y `scripts/agent-memory-go-release.mjs`.
+Evidencia: [estado actual](current-status.md), [arquitectura](architecture.md), [plan de migración](agent-memory-go-migration-plan.md), `native/ytk-memory/internal/core/store.go`, `native/ytk-memory/internal/surface/server.go`, `native/ytk-memory/internal/setup/codex.go` y `.github/workflows/ci.yml`.
 
 ## Brechas para el uso real
 
@@ -27,7 +27,7 @@ Evidencia: [estado actual](current-status.md), [arquitectura](architecture.md), 
 | Evolución del conocimiento | Upsert por `subjectKey`, relaciones y revisión en core; MCP permite guardar y leer.                                                                             | Exponer corrección, revisión y consulta de relaciones al agente.                                                    |
 | Seguridad y consistencia   | Aislamiento por proyecto/proceso, rechazo de patrones sensibles antes de persistir y operaciones compuestas transaccionales en cierre, guardado y compactación. | Ejercitar reintentos y concurrencia durante el piloto, y aplicar el mismo patrón a futuras operaciones compuestas.  |
 | Integraciones              | Setup Codex y configuración MCP manual para otros hosts.                                                                                                        | Validar otro host real y automatizar su setup si el piloto demuestra demanda.                                       |
-| Distribución               | Artefactos Windows/Linux x64 en CI, checksum, firma y prueba de instalación.                                                                                    | Definir clave confiable estable, política de publicación y soporte, piloto y plataformas adicionales según demanda. |
+| Distribución               | CI compila y prueba en Windows/Linux x64.                                                                                                                        | Definir empaquetado Go, clave confiable estable, política de publicación y soporte.                                |
 | Alcance de memoria         | Base local por repositorio, sin sincronización automática.                                                                                                      | Decidir si compartir entre repositorios o equipos aporta al objetivo antes de diseñarlo.                            |
 
 Las prioridades son la fiabilidad del ciclo de sesión, el contexto útil al iniciar, las operaciones de mantenimiento disponibles al agente, la validación en hosts reales y un release instalable con confianza verificable.
@@ -38,12 +38,12 @@ Las prioridades son la fiabilidad del ciclo de sesión, el contexto útil al ini
 
 1. **Fase 5 — completada según confirmación del usuario.** El runbook se ejecutó correctamente en Windows. La prueba manual en Linux queda aplazada y los checks Linux de GitHub Actions son suficientes por ahora.
 
-**Salida P0:** completada según la confirmación del usuario. Go queda como runtime principal; TypeScript se mantiene sólo temporalmente como compatibilidad.
+**Salida P0:** completada según la confirmación del usuario. Go es el único runtime.
 
 ### P1 — Capacidades de memoria para el agente
 
 4. **Añadir contexto inicial compacto.** Diseñar `memory_context` o ampliar la respuesta de inicio para ofrecer sesiones recientes, resúmenes y memorias prioritarias dentro de un presupuesto explícito de bytes. Medir utilidad y ruido frente a la búsqueda actual; mantener proyecto y área aislados.
-5. **Exponer lifecycle y corrección al agente.** Ofrecer revisión pendiente, marcar revisado, actualizar una memoria por ID con aserción de proyecto y consultar relaciones/versiones. Preservar el contrato de cinco herramientas existente; agregar herramientas nuevas con fixtures de conformidad TypeScript/Go o definir formalmente qué superficie queda sólo en Go.
+5. **Exponer lifecycle y corrección al agente.** Ofrecer revisión pendiente, marcar revisado, actualizar una memoria por ID con aserción de proyecto y consultar relaciones/versiones. Preservar el contrato de cinco herramientas existente y cubrir cualquier ampliación con pruebas Go.
 6. **Evaluar recuperación con tareas representativas.** Crear un corpus pequeño de decisiones, cambios de nombre, versiones contradictorias, términos exactos y paráfrasis. Medir recall@k, precisión del briefing, latencia y tamaño del contexto frente a la línea base de YTK. Priorizar mejoras léxicas/ranking y exposición de relaciones según errores observados; embeddings no entran por defecto.
 7. **Resolver conflictos y consolidación con control humano.** Primero mostrar candidatos y relaciones existentes; luego permitir veredictos y consolidación con vista previa y confirmación explícita. Evitar que un upsert o resumen borre evidencia histórica sin versión o rastro de revisión.
 
@@ -65,4 +65,4 @@ Las prioridades son la fiabilidad del ciclo de sesión, el contexto útil al ini
 
 ## Verificación de este análisis
 
-Se revisaron código, contratos, CI y documentación vigentes; pasaron `go test ./...` y la prueba `npm run test:agent-memory-go-surface`, que confirmó las cinco herramientas y las operaciones administrativas. El resultado no sustituye el piloto real.
+Se revisaron código, contratos, CI y documentación vigentes; `go test ./...` cubre core, MCP, setup y operaciones administrativas. El resultado no sustituye el piloto real.

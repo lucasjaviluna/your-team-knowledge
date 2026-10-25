@@ -2,22 +2,17 @@
 
 ## Requisitos
 
-- Node.js 22 o superior para la compatibilidad TypeScript.
-- npm 10 o superior.
-- Go según `native/ytk-memory/go.mod` para el runtime nativo.
+- Go según `native/ytk-memory/go.mod`.
 
 ## Inicio rápido
 
-1. Ejecutar `npm ci`.
-2. Ejecutar `npm run build`.
-3. Validar con `npm run lint`, `npm run typecheck` y `npm test`.
-4. Ejecutar `npm run test:mcp-smoke` para validar el transporte MCP.
-5. Ejecutar `npm run test:agent-memory-go-conformance` y `go test ./...` desde
-   `native/ytk-memory` para validar el runtime Go.
+1. Entrar en `native/ytk-memory`.
+2. Ejecutar `gofmt -w .` antes de enviar cambios de Go.
+3. Validar con `go vet ./...`, `go test ./...` y `go build ./cmd/ytk-memory`.
 
 El servidor MCP usa SQLite local y no requiere PostgreSQL, servicios externos,
 embeddings ni modelos descargables. Para probarlo manualmente, compilá y luego
-iniciá `node dist/mcp-server.js --project proyecto-prueba`.
+iniciá `./ytk-memory mcp --project proyecto-prueba`.
 
 ## Límites actuales
 

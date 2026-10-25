@@ -7,42 +7,23 @@ datos queda dentro del repositorio y no requiere red durante el uso diario.
 ## Requisitos
 
 - Windows x64 o Linux x64.
-- Un release aprobado de `ytk-memory` para la plataforma.
+- Un binario aprobado de `ytk-memory` para la plataforma.
 - Permiso de escritura en el checkout.
 - Un host MCP que pueda iniciar procesos por `stdio`.
 
 No se necesita Node.js, npm, Docker, PostgreSQL ni una cuenta externa para la
 memoria local.
 
-## 1. Descargar y verificar el release
+## 1. Obtener el binario
 
-Cada release contiene un archivo comprimido, un manifiesto, un archivo de
-checksums, una firma Ed25519 y una clave pública. Usá siempre el conjunto de
-archivos de la misma versión.
-
-En Windows:
-
-```powershell
-Expand-Archive .\ytk-memory_0.1.0_windows_amd64.zip -DestinationPath $env:LOCALAPPDATA\ytk-memory\0.1.0
-Get-FileHash .\ytk-memory_0.1.0_windows_amd64.zip -Algorithm SHA256
-Get-Content .\ytk-memory_0.1.0_checksums.txt
-```
-
-En Linux:
-
-```bash
-mkdir -p "$HOME/.local/ytk-memory/0.1.0"
-tar -xzf ytk-memory_0.1.0_linux_amd64.tar.gz -C "$HOME/.local/ytk-memory/0.1.0"
-sha256sum -c ytk-memory_0.1.0_checksums.txt
-```
-
-Verificá la firma con la herramienta aprobada por el canal interno. El
-manifiesto debe coincidir con la plataforma, arquitectura, versión y hash del
-artefacto. Agregá el directorio extraído al `PATH` y comprobá:
+Ubicá el binario en un directorio incluido en `PATH` y comprobá:
 
 ```text
 ytk-memory --version
 ```
+
+Cuando exista un canal de release firmado, verificá su checksum y firma según
+el procedimiento publicado por ese canal.
 
 ## 2. Preparar el repositorio
 

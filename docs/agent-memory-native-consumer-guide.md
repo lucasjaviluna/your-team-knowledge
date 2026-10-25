@@ -5,14 +5,14 @@ desde un repositorio de trabajo.
 
 ## Qué necesita un repositorio consumidor
 
-- Un binario `ytk-memory` firmado para su plataforma y agregado al `PATH`.
+- Un binario `ytk-memory` para su plataforma y agregado al `PATH`.
 - Permiso de escritura en el checkout para crear `.ytk-memory/`, actualizar la
   configuración MCP e instalar instrucciones administradas.
 - Un host compatible con MCP por `stdio`. La primera integración automatizada
   es Codex.
 - Espacio local para la base SQLite y backups.
-- Acceso al canal interno de releases solo para descargar o actualizar el
-  binario. El uso diario no requiere red.
+- Un mecanismo aprobado para distribuir o actualizar el binario. El uso diario
+  no requiere red.
 
 No necesita Node.js, npm, Docker, PostgreSQL ni credenciales corporativas para
 Agent Memory local.
@@ -25,35 +25,21 @@ Agent Memory local.
 | Linux x64   | Soportada y validada nativamente.                     |
 | macOS arm64 | Se incorpora después de contar con validación nativa. |
 
-Cada release especificará sus plataformas soportadas, SHA-256, firma y versión
-mínima compatible del esquema SQLite.
+Cuando exista un canal de release, debe especificar las plataformas soportadas,
+SHA-256, firma y versión mínima compatible del esquema SQLite.
 
 ## Instalar el binario
 
-Descargá el artefacto de la versión aprobada desde el canal interno. Junto al
-paquete deben estar el manifiesto, el archivo de SHA-256, la firma `.sig` y la
-clave pública del canal. Verificá el checksum y la firma según el procedimiento
-de ese canal. Descomprimí el binario en un directorio incluido en `PATH` y
-verificá:
+Obtené el binario aprobado para la plataforma y ubicalo en un directorio
+incluido en `PATH`. Cuando exista un canal de release firmado, verificá el
+checksum y la firma según su procedimiento. Comprobá la versión:
 
 ```powershell
 ytk-memory --version
 ```
 
-En Windows, una verificación de checksum con PowerShell puede hacerse así:
-
-```powershell
-Get-FileHash .\ytk-memory_0.1.0_windows_amd64.zip -Algorithm SHA256
-Get-Content .\ytk-memory_0.1.0_checksums.txt
-```
-
-El release de CI genera una firma efímera cuando no se configura una clave de
-release. Para publicar un release confiable, el canal debe proporcionar una
-clave Ed25519 estable y configurar `YTK_MEMORY_SIGNING_PRIVATE_KEY` únicamente
-en el job protegido de publicación.
-
-El binario no se actualiza solo. La actualización debe usar un release
-verificado y el comando `upgrade` del proyecto.
+El binario no se actualiza solo. La actualización debe preservar un backup y
+usar el comando `upgrade` del proyecto.
 
 ## Activar memoria en un repositorio Codex
 

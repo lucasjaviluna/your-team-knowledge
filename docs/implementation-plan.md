@@ -5,12 +5,12 @@ Memory: madurar el runtime nativo Go y validarlo en repositorios consumidores.
 
 ## Completado
 
-- Core SQLite/FTS5 compatible con el runtime TypeScript.
+- Core SQLite/FTS5 en Go.
 - Sesiones, búsqueda, guardado idempotente, relaciones y lifecycle.
 - Revisión, retención, backup, upgrade y rollback.
 - MCP `stdio` con aislamiento por proyecto.
 - Setup/uninstall de Codex y activación local.
-- Conformance, empaquetado y releases Windows/Linux.
+- Pruebas y compilación en Windows/Linux desde GitHub Actions.
 
 ## Próximo tramo
 
