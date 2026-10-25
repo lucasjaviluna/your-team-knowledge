@@ -1,6 +1,6 @@
 # Estado y hoja de ruta de Agent Memory
 
-**Fecha de análisis:** 2026-10-22
+**Fecha de análisis:** 2026-10-25
 
 ## Alcance y criterios de éxito
 
@@ -13,9 +13,9 @@ Este análisis distingue **implementado en código**, **cubierto por pruebas aut
 - `native/ytk-memory` implementa SQLite/FTS5, sesiones, `subjectKey`, búsqueda léxica, relaciones, revisión, retención y compactación. El guardado rechaza patrones de contenido sensible antes de persistir.
 - El MCP Go expone cinco herramientas: `memory_session_start`, `memory_search`, `memory_get`, `memory_save` y `memory_session_finish`. El proceso fija proyecto y propietario de sesión; los tests de superficie verifican aislamiento, doctor, backup, upgrade y rollback.
 - El cierre de sesión rechaza contenido sensible antes de cualquier escritura y guarda el resumen y el cierre en una sola transacción. `Save` mantiene la memoria y el índice FTS en una transacción; `Compact` agrupa resumen, relaciones y archivado. Las pruebas inyectan fallos SQLite para comprobar que no queda estado parcial.
-- `setup codex` instala activación local y registro MCP global; `uninstall codex` conserva la base. Existe configuración MCP portable para otros hosts, pero todavía no hay setup automatizado ni piloto documentado en un segundo host.
+- `setup codex` instala activación local y registro MCP global; `uninstall codex` conserva la base. El usuario confirmó que el piloto del runbook se completó correctamente en Windows; la validación manual en Linux queda aplazada y pasar los checks Linux de GitHub Actions es suficiente por ahora.
 - CI corre en Windows x64 y Linux x64. Construye paquetes nativos, checksum y firma Ed25519 y prueba una instalación limpia. Sin clave persistente configurada, la firma es efímera y **no constituye una cadena de confianza para un release distribuido**.
-- TypeScript sigue como canal de compatibilidad. El plan de migración marca las fases 0–4 completas y la fase 5, piloto y transición, pendiente.
+- Go queda como runtime principal; TypeScript se conserva temporalmente como canal de compatibilidad y se retirará al completar la transición.
 
 Evidencia: [estado actual](current-status.md), [arquitectura](architecture.md), [plan de migración](agent-memory-go-migration-plan.md), `native/ytk-memory/internal/core/store.go`, `native/ytk-memory/internal/surface/server.go`, `native/ytk-memory/internal/setup/codex.go`, `.github/workflows/ci.yml` y `scripts/agent-memory-go-release.mjs`.
 
@@ -36,9 +36,9 @@ Las prioridades son la fiabilidad del ciclo de sesión, el contexto útil al ini
 
 ### P0 — Cerrar riesgos de datos y demostrar el ciclo real
 
-1. **Ejecutar la fase 5 del piloto.** Usar el binario empaquetado en dos repositorios consumidores y dos hosts MCP reales, uno Codex y otro host elegido por el equipo. Probar sesión nueva, reinicio del host, recuperación al día siguiente, actualización de un tema, backup, upgrade, rollback y uninstall. Guardar resultados, versiones, plataforma, defectos y tiempos de tarea sin almacenar secretos ni transcripciones.
+1. **Fase 5 — completada según confirmación del usuario.** El runbook se ejecutó correctamente en Windows. La prueba manual en Linux queda aplazada y los checks Linux de GitHub Actions son suficientes por ahora.
 
-**Salida P0:** dos repositorios y dos hosts recuperan memoria tras reiniciar, usando artefactos de release. El piloto decide si Go puede pasar a runtime principal sin retirar TypeScript todavía.
+**Salida P0:** completada según la confirmación del usuario. Go queda como runtime principal; TypeScript se mantiene sólo temporalmente como compatibilidad.
 
 ### P1 — Capacidades de memoria para el agente
 

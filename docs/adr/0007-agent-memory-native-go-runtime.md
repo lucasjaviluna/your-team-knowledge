@@ -2,8 +2,11 @@
 
 ## Estado
 
-Aceptada; Fases 0–4 implementadas y verificadas en CI. La Fase 5 queda como
-piloto operativo antes de retirar el canal de compatibilidad.
+Aceptada; Fases 0–4 implementadas y verificadas en CI. El usuario confirmó
+que la Fase 5 se completó en Windows. La validación manual de Linux queda
+aplazada y los checks de GitHub Actions son suficientes por ahora. Go es el
+runtime principal; el paquete TypeScript permanece temporalmente como canal de
+compatibilidad y se retirará al completar la transición.
 
 ## Contexto
 
@@ -51,6 +54,8 @@ permanecen en TypeScript. No forman parte de esta migración.
   runtime TypeScript actual y Go durante la transición.
 - El paquete Node se mantiene como compatibilidad hasta completar una versión
   de transición y una migración de base demostrada.
+- El estado final de Agent Memory tendrá Go como único runtime; el runtime
+  TypeScript se elimina al completar la transición de consumidores.
 - El nuevo canal necesita artefactos firmados, checksums, política de versiones
   y validación en máquinas limpias por plataforma.
 

@@ -20,17 +20,21 @@ proyecto separado están en [ADR 0009](adr/0009-agent-memory-only-scope.md).
 - Paquetes nativos Windows/Linux, checksum, firma y prueba de instalación limpia.
 - Fixture de conformance compartido entre TypeScript y Go.
 
-## Siguiente trabajo
+## Transición a Go
 
-El usuario completó correctamente en Windows el piloto descrito en
-[agent-memory-pilot-runbook.md](agent-memory-pilot-runbook.md). La validación
-real en Linux queda aplazada. Mantener los checks de Linux en GitHub Actions;
-que pasen valida build, instalación y flujos automatizados, pero no sustituye
-una prueba manual con un host MCP real en Linux. Registrar esa validación si
-Linux entra en el alcance operativo del piloto. El plan operativo está en
-[agent-memory-go-migration-plan.md](agent-memory-go-migration-plan.md).
-El análisis del estado actual y la secuencia de mejoras están en
-[agent-memory-roadmap-2026-10-22.md](agent-memory-roadmap-2026-10-22.md).
+El usuario confirmó que el piloto del
+[runbook](agent-memory-pilot-runbook.md) se completó correctamente en Windows.
+La validación manual en Linux queda aplazada; por ahora, que pasen los checks
+Linux de GitHub Actions es suficiente. Go queda como runtime principal de
+Agent Memory. El paquete TypeScript se conserva temporalmente como
+compatibilidad durante la transición, con el objetivo final de retirar su
+runtime y dejar sólo Go.
+
+El siguiente trabajo es completar la transición de consumidores al binario Go
+y retirar el runtime TypeScript al cerrar el periodo de compatibilidad. El plan
+está en [migración y distribución](agent-memory-go-migration-plan.md); la
+secuencia de mejoras está en
+[la hoja de ruta](agent-memory-roadmap-2026-10-22.md).
 
 ## Verificación
 

@@ -230,8 +230,9 @@ La Fase 2 está completada: el binario Go sirve las cinco herramientas MCP por
 test:agent-memory-go-surface` ejerce dos procesos MCP independientes y los
 comandos operativos; `npm run test:agent-memory-go-conformance` mantiene la
 paridad del Core con el fixture TypeScript, y `go test ./...` cubre los paquetes
-Go. El runtime TypeScript sigue intacto y continúa siendo el runtime activo
-hasta completar la migración y el piloto de la Fase 5.
+Go. Durante esta fase, TypeScript seguía siendo el runtime activo; tras completar
+el piloto de la Fase 5, Go pasa a ser el runtime principal y TypeScript queda
+temporalmente como compatibilidad.
 
 La Fase 3 está completada: `ytk-memory setup codex` crea la base local,
 registra una vez el binario nativo genérico en `CODEX_HOME/config.toml` y
@@ -241,8 +242,8 @@ ofrece eliminar el MCP global; `--remove-global-mcp` permite hacerlo sin
 interacción. El instalador conserva el contenido ajeno y rechaza colisiones
 antes de escribir. `doctor` verifica el esquema SQLite y el registro MCP
 administrado. `npm run test:agent-memory-go-setup` cubre configuración global
-preexistente, repetición y ambas modalidades de desinstalación. TypeScript
-continúa activo durante toda la transición.
+preexistente, repetición y ambas modalidades de desinstalación. TypeScript se
+conserva temporalmente como canal de compatibilidad durante la transición.
 
 La Fase 4 está completada: `scripts/agent-memory-go-release.mjs` construye el
 binario nativo con `CGO_ENABLED=0`, genera el archivo comprimido de la
@@ -253,5 +254,9 @@ upgrade. Para un release confiable se puede proporcionar
 `YTK_MEMORY_SIGNING_PRIVATE_KEY` con una clave PEM; CI sin esa variable genera
 una firma efímera verificable para validar el pipeline.
 
-La siguiente tarea es **Fase 5**: ejecutar el piloto en repositorios consumidores
-y hosts MCP reales manteniendo TypeScript como canal de compatibilidad.
+La Fase 5 se considera completada según la confirmación del usuario: el runbook
+se ejecutó correctamente en Windows. La validación manual del runbook en Linux
+queda aplazada; por ahora, los checks Linux de GitHub Actions son el gate
+aceptado. Go queda como runtime principal y TypeScript sigue temporalmente como
+canal de compatibilidad. El trabajo siguiente es completar la transición de
+consumidores al binario Go y retirar el runtime TypeScript al cerrar ese periodo.

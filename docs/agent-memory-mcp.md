@@ -113,7 +113,7 @@ Configuración genérica de un host MCP:
 | `memory_session_start`  | Inicia una sesión y opcionalmente recupera contexto.                     |
 | `memory_search`         | Busca memoria del proyecto configurado. Sólo lectura.                    |
 | `memory_get`            | Recupera una memoria por ID. Sólo lectura y sin revelar otros proyectos. |
-| `memory_save`           | Crea o actualiza memoria; `subjectKey` habilita idempotencia.              |
+| `memory_save`           | Crea o actualiza memoria; `subjectKey` habilita idempotencia.            |
 | `memory_session_finish` | Cierra la sesión y opcionalmente guarda su resumen.                      |
 
 Las herramientas validan tamaños, tipos y cardinalidades antes de llegar al dominio. Las respuestas exitosas incluyen texto JSON y `structuredContent`; los fallos de operación se devuelven con `isError`. El servidor reserva `stdout` para MCP y emite errores de arranque por `stderr`.
