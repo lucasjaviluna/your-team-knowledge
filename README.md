@@ -8,13 +8,13 @@ documentado en [ADR 0009](docs/adr/0009-agent-memory-only-scope.md).
 
 El binario `ytk-memory` ofrece:
 
-- nueve herramientas MCP para sesiones, búsqueda, guardado, revisión, corrección
+- once herramientas MCP para sesiones, búsqueda, guardado, revisión, corrección
   versionada y consulta de relaciones;
 - aislamiento por proyecto;
 - `doctor`, `backup`, `upgrade` y `rollback`;
 - setup y uninstall idempotentes de Codex, Claude Code, Pi y OpenCode; Codex usa
   registro MCP global y los demás hosts configuración por proyecto;
-- compilación y pruebas en Windows/Linux desde el módulo Go.
+- compilación y pruebas en Windows, Linux y macOS arm64 desde el módulo Go.
 
 El comando `ytk-memory evaluate` ejecuta el corpus sintético de recuperación y
 emite métricas JSON para comparar cambios de ranking y briefing. Consultá
@@ -22,6 +22,9 @@ emite métricas JSON para comparar cambios de ranking y briefing. Consultá
 
 La guía de instalación está en [docs/agent-memory-installation.md](docs/agent-memory-installation.md)
 y la guía de consumidores en [docs/agent-memory-native-consumer-guide.md](docs/agent-memory-native-consumer-guide.md).
+La descripción detallada de capas Go, esquema SQLite/FTS5, índices, tools,
+métricas, seguridad y distribución está en
+[docs/technical-architecture.md](docs/technical-architecture.md).
 
 ## Desarrollo
 

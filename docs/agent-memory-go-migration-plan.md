@@ -11,7 +11,7 @@ release y smoke.
 - SQLite y FTS5 locales, sin cgo.
 - Sesiones, resúmenes, relaciones, lifecycle, revisión, retención y
   compactación.
-- MCP por `stdio` con nueve herramientas y un proceso fijado a un proyecto.
+- MCP por `stdio` con once herramientas y un proceso fijado a un proyecto.
 - `doctor`, backup, upgrade, rollback y setup/uninstall para Codex, Claude Code, Pi y OpenCode.
 - Compilación y paquetes validados para Windows x64, Linux x64 y macOS arm64.
 
