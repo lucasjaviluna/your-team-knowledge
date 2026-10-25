@@ -46,8 +46,11 @@ ytk-memory release verify \
 
 `--ephemeral-key` está reservado para smoke tests y no produce un artefacto
 apto para distribución. El workflow de tags `v*` exige el secreto persistente,
-sube el artefacto con su manifiesto, firma, clave pública y checksum, y publica
-el release sólo después de validar Windows y Linux.
+la variable pública `YTK_MEMORY_SIGNING_PUBLIC_KEY`, sube el artefacto con su
+manifiesto, firma, clave pública y checksum, y publica el release sólo después
+de validar Windows y Linux y verificar cada firma. Consultá la
+[política de firma, rotación y revocación](release-policy.md) antes del primer
+tag aprobado.
 
 ## Límites actuales
 

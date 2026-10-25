@@ -32,7 +32,8 @@ Linux de GitHub Actions es suficiente. Go es el único runtime de Agent Memory.
 El canal de release confiable está implementado inicialmente: el binario Go
 genera artefactos reproducibles con manifiesto, SHA-256 y firma Ed25519, y
 ofrece verificación antes de instalar. Quedan pendientes la custodia real de
-la clave, la política de rotación/revocación y ejecutar el primer tag aprobado.
+la clave y ejecutar el primer tag aprobado. La política de rotación/revocación
+y la comprobación de la clave pública esperada en CI ya están documentadas.
 La secuencia de mejoras está en
 [la hoja de ruta](agent-memory-roadmap-2026-10-22.md).
 

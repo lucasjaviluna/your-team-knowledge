@@ -66,11 +66,15 @@ jobs:
         shell: pwsh
         env:
           YTK_MEMORY_SIGNING_PRIVATE_KEY: ${{ secrets.YTK_MEMORY_SIGNING_PRIVATE_KEY }}
+          YTK_MEMORY_SIGNING_PUBLIC_KEY: ${{ vars.YTK_MEMORY_SIGNING_PUBLIC_KEY }}
         run: |
           if (-not $env:YTK_MEMORY_SIGNING_PRIVATE_KEY) { throw 'YTK_MEMORY_SIGNING_PRIVATE_KEY is required for an approved release.' }
+          if (-not $env:YTK_MEMORY_SIGNING_PUBLIC_KEY) { throw 'YTK_MEMORY_SIGNING_PUBLIC_KEY repository variable is required for an approved release.' }
           $version = $env:GITHUB_REF_NAME.TrimStart('v')
           & (Join-Path $env:RUNNER_TEMP 'ytk-memory-release') release package --module-dir (Join-Path $env:GITHUB_WORKSPACE 'native/ytk-memory') --output (Join-Path $env:RUNNER_TEMP 'release') --version $version --goos '${{ matrix.goos }}' --goarch '${{ matrix.goarch }}' --json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $publicKey = (Get-Content (Join-Path $env:RUNNER_TEMP 'release' '*.pub') -Raw).Trim()
+          if ($publicKey -cne $env:YTK_MEMORY_SIGNING_PUBLIC_KEY.Trim()) { throw 'Release public key does not match YTK_MEMORY_SIGNING_PUBLIC_KEY.' }
       - uses: actions/upload-artifact@v4
         with:
           name: ytk-memory-${{ matrix.goos }}-${{ matrix.goarch }}
@@ -83,6 +87,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: native/ytk-memory/go.mod
+          cache-dependency-path: native/ytk-memory/go.sum
       - uses: actions/download-artifact@v4
         with:
           path: release
@@ -100,6 +109,20 @@ jobs:
             test -s "${artifact}.pub"
             test -s "${artifact}.sha256"
             grep -F "$base" "${artifact}.sha256"
+          done
+      - name: Verify signatures before publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd native/ytk-memory
+          go build -o "$RUNNER_TEMP/ytk-memory-release" ./cmd/ytk-memory
+          for manifest in "$GITHUB_WORKSPACE"/release/*.manifest.json; do
+            artifact="${manifest%.manifest.json}"
+            "$RUNNER_TEMP/ytk-memory-release" release verify \
+              --artifact "$artifact" \
+              --manifest "$manifest" \
+              --signature "${artifact}.sig" \
+              --public-key "${artifact}.pub"
           done
       - name: Publish GitHub release
         env:
