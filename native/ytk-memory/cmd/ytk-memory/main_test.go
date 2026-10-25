@@ -85,3 +85,32 @@ func TestInspectClaudeSetupChecksManagedProjectServer(t *testing.T) {
 		t.Fatalf("missing executable was accepted: %#v", check)
 	}
 }
+
+func TestInspectOpenCodeSetupChecksManagedProjectServer(t *testing.T) {
+	root := t.TempDir()
+	executable := filepath.Join(root, "ytk-memory")
+	if err := os.WriteFile(executable, []byte("binary"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, ".ytk-memory"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".ytk-memory", "opencode-managed"), []byte("Managed by ytk-memory-init: OpenCode project MCP.\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	mcp := `{"mcp":{"ytk-memory":{"type":"local","command":[` + strconv.Quote(executable) + `,"mcp"],"enabled":true}}}`
+	filename := filepath.Join(root, "opencode.json")
+	if err := os.WriteFile(filename, []byte(mcp), 0644); err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(root, ".ytk-memory", "opencode-managed")
+	if check := inspectOpenCodeSetup(filename, marker); check["status"] != "ok" {
+		t.Fatalf("unexpected OpenCode setup check: %#v", check)
+	}
+	if err := os.Remove(executable); err != nil {
+		t.Fatal(err)
+	}
+	if check := inspectOpenCodeSetup(filename, marker); check["status"] != "invalid" {
+		t.Fatalf("missing executable was accepted: %#v", check)
+	}
+}

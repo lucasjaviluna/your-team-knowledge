@@ -15,7 +15,7 @@ binario nativo Go `native/ytk-memory`.
 Consumer / agent
        |
        v
-MCP stdio + setup Codex
+MCP stdio + setup de hosts
        |
        v
 Agent Memory Core
@@ -45,7 +45,8 @@ persistencia durable y handoff de sesión.
 ## Runtime y distribución
 
 El runtime Go es la única implementación de Agent Memory. El comando
-`ytk-memory` ofrece MCP, comandos administrativos y setup/uninstall de Codex.
+`ytk-memory` ofrece MCP, comandos administrativos y setup/uninstall de Codex,
+Claude Code, Pi y OpenCode.
 
 `setup codex` registra un servidor MCP genérico en
 `CODEX_HOME/config.toml`; la activación de cada proyecto vive en
@@ -56,7 +57,7 @@ registro global salvo confirmación explícita o `--remove-global-mcp`.
 
 - `native/ytk-memory/internal/core`: entidades, reglas y persistencia SQLite/FTS5.
 - `native/ytk-memory/internal/surface`: transporte MCP por `stdio`.
-- `native/ytk-memory/internal/setup`: configuración de consumidores Codex.
+- `native/ytk-memory/internal/setup`: configuración de consumidores MCP.
 - `native/ytk-memory/cmd/ytk-memory`: CLI y distribución nativa.
 
 No existe una API HTTP, una base corporativa ni un orquestador documental en el

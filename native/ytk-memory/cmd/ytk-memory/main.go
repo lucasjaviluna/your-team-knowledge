@@ -80,7 +80,7 @@ func run(args []string) error {
 	project := fs.String("project", "", "project id")
 	database := fs.String("database", "", "SQLite path")
 	area := fs.String("area", "", "memory area")
-	host := fs.String("host", "codex", "consumer host for doctor: codex, claude, or pi")
+	host := fs.String("host", "codex", "consumer host for doctor: codex, claude, pi, or opencode")
 	to := fs.String("to", "", "backup target")
 	backupTo := fs.String("backup-to", "", "upgrade backup target")
 	from := fs.String("from", "", "rollback source")
@@ -108,8 +108,8 @@ func run(args []string) error {
 		return surface.NewService(store, surface.Config{ProjectID: cfg.project, Area: cfg.area}).Server().Run(context.Background(), &mcp.StdioTransport{})
 	}
 	if command == "doctor" {
-		if *host != "codex" && *host != "claude" && *host != "pi" {
-			return errors.New("--host must be codex, claude, or pi.")
+		if *host != "codex" && *host != "claude" && *host != "pi" && *host != "opencode" {
+			return errors.New("--host must be codex, claude, pi, or opencode.")
 		}
 		return doctor(cfg, *jsonOutput, *host)
 	}
@@ -187,8 +187,8 @@ func runRelease(args []string) error {
 }
 
 func runSetup(command string, args []string) error {
-	if len(args) == 0 || (args[0] != "codex" && args[0] != "claude" && args[0] != "pi") {
-		return errors.New("usage: ytk-memory setup <codex|claude|pi> [--dry-run] [--portable]")
+	if len(args) == 0 || (args[0] != "codex" && args[0] != "claude" && args[0] != "pi" && args[0] != "opencode") {
+		return errors.New("usage: ytk-memory setup <codex|claude|pi|opencode> [--dry-run] [--portable]")
 	}
 	host := args[0]
 	fs := flag.NewFlagSet(command, flag.ContinueOnError)
@@ -240,6 +240,8 @@ func runSetup(command string, args []string) error {
 			result, err = setup.UninstallClaude(context, *dryRun)
 		} else if host == "pi" {
 			result, err = setup.UninstallPi(context, *dryRun)
+		} else if host == "opencode" {
+			result, err = setup.UninstallOpenCode(context, *dryRun)
 		} else {
 			removeGlobal := *removeGlobalMCP
 			if !removeGlobal && !*dryRun && !*jsonOutput {
@@ -255,6 +257,8 @@ func runSetup(command string, args []string) error {
 			result, err = setup.InstallClaude(context, true)
 		} else if host == "pi" {
 			result, err = setup.InstallPi(context, true)
+		} else if host == "opencode" {
+			result, err = setup.InstallOpenCode(context, true)
 		} else {
 			result, err = setup.Install(context, true, *portable)
 		}
@@ -263,6 +267,8 @@ func runSetup(command string, args []string) error {
 			_, err = setup.InstallClaude(context, true)
 		} else if host == "pi" {
 			_, err = setup.InstallPi(context, true)
+		} else if host == "opencode" {
+			_, err = setup.InstallOpenCode(context, true)
 		} else {
 			_, err = setup.Install(context, true, *portable)
 		}
@@ -283,6 +289,8 @@ func runSetup(command string, args []string) error {
 			result, err = setup.InstallClaude(context, false)
 		} else if host == "pi" {
 			result, err = setup.InstallPi(context, false)
+		} else if host == "opencode" {
+			result, err = setup.InstallOpenCode(context, false)
 		} else {
 			result, err = setup.Install(context, false, *portable)
 		}
@@ -481,8 +489,14 @@ func doctor(c config, jsonOutput bool, host string) error {
 		if setupCheck["status"] != "ok" {
 			healthy = false
 		}
-	} else {
+	} else if host == "pi" {
 		setupCheck := inspectPiSetup(filepath.Join(c.root, ".pi", "mcp.json"))
+		checks = append(checks, setupCheck)
+		if setupCheck["status"] != "ok" {
+			healthy = false
+		}
+	} else {
+		setupCheck := inspectOpenCodeSetup(setup.OpenCodeConfigPath(c.root), filepath.Join(c.root, ".ytk-memory", "opencode-managed"))
 		checks = append(checks, setupCheck)
 		if setupCheck["status"] != "ok" {
 			healthy = false
@@ -490,6 +504,47 @@ func doctor(c config, jsonOutput bool, host string) error {
 	}
 	result := map[string]any{"operation": "doctor", "healthy": healthy, "host": host, "projectId": c.project, "database": c.database, "lifecycle": life, "go": runtime.Version(), "checks": checks}
 	return printDoctor(result, jsonOutput)
+}
+
+func inspectOpenCodeSetup(filename, markerFile string) map[string]string {
+	marker, err := os.ReadFile(markerFile)
+	if os.IsNotExist(err) {
+		return map[string]string{"name": "opencode_mcp", "status": "not_configured", "message": "Run ytk-memory setup opencode to register the project MCP server."}
+	}
+	if err != nil || string(marker) != "Managed by ytk-memory-init: OpenCode project MCP.\n" {
+		return map[string]string{"name": "opencode_mcp", "status": "invalid", "message": "OpenCode ownership marker is missing or invalid."}
+	}
+	contents, err := os.ReadFile(filename)
+	if os.IsNotExist(err) {
+		return map[string]string{"name": "opencode_mcp", "status": "invalid", "message": "Managed OpenCode opencode.json is missing."}
+	}
+	if err != nil {
+		return map[string]string{"name": "opencode_mcp", "status": "invalid", "message": err.Error()}
+	}
+	var document map[string]any
+	if err := setup.DecodeOpenCodeConfig(contents, &document); err != nil {
+		return map[string]string{"name": "opencode_mcp", "status": "invalid", "message": "OpenCode project config is not valid JSON or JSONC."}
+	}
+	servers, ok := document["mcp"].(map[string]any)
+	if !ok {
+		return map[string]string{"name": "opencode_mcp", "status": "not_configured", "message": "No OpenCode MCP server was found."}
+	}
+	server, ok := servers["ytk-memory"].(map[string]any)
+	if !ok || server["type"] != "local" {
+		return map[string]string{"name": "opencode_mcp", "status": "invalid", "message": "Managed OpenCode MCP entry is missing or invalid."}
+	}
+	command, ok := server["command"].([]any)
+	if !ok || len(command) != 2 || command[1] != "mcp" {
+		return map[string]string{"name": "opencode_mcp", "status": "invalid", "message": "Managed OpenCode MCP command is missing."}
+	}
+	executable, ok := command[0].(string)
+	if !ok || executable == "" {
+		return map[string]string{"name": "opencode_mcp", "status": "invalid", "message": "Managed OpenCode executable is missing."}
+	}
+	if _, err := os.Stat(executable); err != nil {
+		return map[string]string{"name": "opencode_mcp", "status": "invalid", "message": "Registered native executable is unavailable."}
+	}
+	return map[string]string{"name": "opencode_mcp", "status": "ok", "message": "Project-scoped OpenCode MCP server is registered and available."}
 }
 
 func inspectClaudeSetup(filename string) map[string]string {

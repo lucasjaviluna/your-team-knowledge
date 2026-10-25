@@ -121,6 +121,30 @@ la integración sin borrar memoria ni servidores ajenos:
 ytk-memory uninstall pi
 ```
 
+### OpenCode
+
+OpenCode admite servidores MCP locales por proyecto en `opencode.json` y
+`opencode.jsonc`. El instalador usa el archivo que ya exista, y crea
+`opencode.json` si aún no hay uno. Para registrar Agent Memory:
+
+```text
+ytk-memory setup opencode --dry-run
+ytk-memory setup opencode
+ytk-memory doctor --host opencode
+```
+
+El instalador agrega `mcp.ytk-memory` como servidor `local`, conserva las demás
+opciones del archivo y añade instrucciones propias a `AGENTS.md`. La
+desinstalación quita sólo el registro marcado como propio y el bloque asociado:
+
+```text
+ytk-memory uninstall opencode
+```
+
+No elimina la base SQLite ni otras configuraciones MCP. Si OpenCode ya tiene
+una entrada llamada `ytk-memory` que no fue instalada por este setup, se informa
+la colisión y no se modifica el proyecto.
+
 ## 3. Verificar la instalación
 
 Ejecutá:
@@ -217,6 +241,7 @@ repositorio.
 | `.mcp.json`                           | Registro MCP por proyecto administrado para Claude Code. |
 | `CLAUDE.md`                           | Instrucciones locales administradas para Claude Code. |
 | `.pi/mcp.json`                        | Registro MCP por proyecto administrado para Pi. |
+| `opencode.json` o `opencode.jsonc`    | Configuración MCP por proyecto de OpenCode. |
 
 ## Resolución de problemas
 

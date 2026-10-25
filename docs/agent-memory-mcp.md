@@ -47,6 +47,22 @@ confianza del proyecto en Pi, ejecutá `/reload` o reiniciá Pi. Para retirarlo:
 ytk-memory uninstall pi
 ```
 
+OpenCode usa servidores locales `stdio` dentro del objeto `mcp` de
+`opencode.json` o `opencode.jsonc`:
+
+```text
+ytk-memory setup opencode --dry-run
+ytk-memory setup opencode
+ytk-memory doctor --host opencode --json
+```
+
+El adaptador conserva el resto de la configuración, añade instrucciones
+administradas a `AGENTS.md` y permite retirar sólo su entrada:
+
+```text
+ytk-memory uninstall opencode
+```
+
 Para otro host MCP compatible con `stdio`, generá la configuración portable:
 
 ```text

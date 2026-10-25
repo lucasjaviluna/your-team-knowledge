@@ -350,3 +350,106 @@ func TestInstallPiRejectsForeignServerNameBeforeWriting(t *testing.T) {
 		t.Fatal("Pi installer wrote before collision")
 	}
 }
+
+func TestInstallOpenCodePreservesForeignConfigAndUninstallsIdempotently(t *testing.T) {
+	ctx := contextFor(t)
+	filename := filepath.Join(ctx.Root, "opencode.json")
+	if err := os.WriteFile(filename, []byte(`{"model":"provider/model","mcp":{"foreign":{"type":"local","command":["foreign-mcp"]}},"other":true}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	agentsFile := filepath.Join(ctx.Root, "AGENTS.md")
+	if err := os.WriteFile(agentsFile, []byte("# Existing instructions\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if preview, err := InstallOpenCode(ctx, true); err != nil || preview.Agent != "opencode" || len(preview.Changes) != 5 {
+		t.Fatalf("unexpected OpenCode preview: result=%#v err=%v", preview, err)
+	}
+	if _, err := InstallOpenCode(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	contents, err := os.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(contents, &document); err != nil {
+		t.Fatal(err)
+	}
+	servers := document["mcp"].(map[string]any)
+	if _, ok := servers["foreign"]; !ok {
+		t.Fatalf("OpenCode setup removed foreign server: %s", contents)
+	}
+	managed, ok := servers[openCodeServerName].(map[string]any)
+	if !ok || managed["type"] != "local" || managed["enabled"] != true {
+		t.Fatalf("managed OpenCode server is invalid: %s", contents)
+	}
+	if repeat, err := InstallOpenCode(ctx, true); err != nil || len(repeat.Changes) != 0 {
+		t.Fatalf("OpenCode install is not idempotent: result=%#v err=%v", repeat, err)
+	}
+	if _, err := UninstallOpenCode(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	contents, err = os.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	document = map[string]any{}
+	if err := json.Unmarshal(contents, &document); err != nil {
+		t.Fatal(err)
+	}
+	servers = document["mcp"].(map[string]any)
+	if _, ok := servers["foreign"]; !ok {
+		t.Fatal("OpenCode uninstall removed foreign server")
+	}
+	if _, ok := servers[openCodeServerName]; ok {
+		t.Fatal("OpenCode uninstall retained managed server")
+	}
+	if _, err := os.Stat(filepath.Join(ctx.Root, ".ytk-memory", "opencode-managed")); !os.IsNotExist(err) {
+		t.Fatal("OpenCode uninstall retained its ownership marker")
+	}
+	agents, err := os.ReadFile(agentsFile)
+	if err != nil || string(agents) != "# Existing instructions\n" {
+		t.Fatalf("OpenCode uninstall changed foreign instructions: %q err=%v", agents, err)
+	}
+}
+
+func TestInstallOpenCodeRejectsForeignServerNameBeforeWriting(t *testing.T) {
+	ctx := contextFor(t)
+	filename := filepath.Join(ctx.Root, "opencode.json")
+	if err := os.WriteFile(filename, []byte(`{"mcp":{"ytk-memory":{"type":"local","command":["other"]}}}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := InstallOpenCode(ctx, false); err == nil || !strings.Contains(err.Error(), "collision") {
+		t.Fatalf("expected collision error, got %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(ctx.Root, ".ytk-memory.json")); !os.IsNotExist(err) {
+		t.Fatal("OpenCode installer wrote before collision")
+	}
+}
+
+func TestInstallOpenCodeSupportsJSONCProjectConfig(t *testing.T) {
+	ctx := contextFor(t)
+	filename := filepath.Join(ctx.Root, "opencode.jsonc")
+	contents := "{\n  // Keep this project setting\n  \"model\": \"provider/model\",\n  \"mcp\": {\n    \"foreign\": {\"type\": \"local\", \"command\": [\"foreign-mcp\"]},\n  },\n}\n"
+	if err := os.WriteFile(filename, []byte(contents), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := InstallOpenCode(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	updated, err := os.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document map[string]any
+	if err := DecodeOpenCodeConfig(updated, &document); err != nil {
+		t.Fatalf("rewritten JSONC config is invalid: %v", err)
+	}
+	servers := document["mcp"].(map[string]any)
+	if _, ok := servers["foreign"]; !ok {
+		t.Fatalf("JSONC setup removed foreign server: %s", updated)
+	}
+	if _, ok := servers[openCodeServerName]; !ok {
+		t.Fatalf("JSONC setup did not register Agent Memory: %s", updated)
+	}
+}

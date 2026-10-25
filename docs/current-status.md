@@ -36,9 +36,10 @@ la clave, la política de rotación/revocación y ejecutar el primer tag aprobad
 La secuencia de mejoras está en
 [la hoja de ruta](agent-memory-roadmap-2026-10-22.md).
 
-Claude Code y Pi son hosts automatizados: Claude usa `.mcp.json`/`CLAUDE.md` y
-Pi usa `.pi/mcp.json`/`AGENTS.md` por proyecto, sin modificar la configuración
-global de Codex. El siguiente host en prioridad es OpenCode.
+Claude Code, Pi y OpenCode son hosts automatizados por proyecto: Claude usa
+`.mcp.json`/`CLAUDE.md`, Pi usa `.pi/mcp.json`/`AGENTS.md`, y OpenCode usa
+`opencode.json[c]`/`AGENTS.md`. Se preservan configuraciones ajenas y no se toca
+el registro global de Codex. La secuencia de hosts priorizada quedó completa.
 
 ## Verificación
 
