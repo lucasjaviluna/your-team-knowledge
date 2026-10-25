@@ -11,7 +11,7 @@ Las capacidades mínimas son:
 - comprobar disponibilidad;
 - buscar memoria relevante con límites de cantidad y caracteres;
 - recuperar una entrada completa por ID;
-- crear o actualizar por `topicKey`;
+- crear o actualizar por `subjectKey`;
 - iniciar y finalizar una sesión;
 - guardar el resumen durable de una sesión;
 - listar y completar revisiones pendientes.
@@ -24,7 +24,7 @@ Las capacidades mínimas son:
 
 ## Idempotencia y seguridad
 
-`topicKey` identifica un tema estable dentro del proyecto. Repetir un guardado con la misma clave actualiza la entrada activa en lugar de crear memorias competidoras.
+`subjectKey` identifica un tema estable dentro del proyecto. Repetir un guardado con la misma clave actualiza la entrada activa en lugar de crear memorias competidoras.
 
 El borde de persistencia rechaza contenido con patrones sensibles. Los consumidores no deben guardar credenciales, secretos, datos personales innecesarios, transcripciones completas ni output crudo. Los límites de entrada pertenecen al adaptador de transporte; la autorización y el aislamiento pertenecen al proveedor.
 

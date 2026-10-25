@@ -130,7 +130,7 @@ describe("Codex Agent Memory installer", () => {
     );
     writeFileSync(
       join(root, ".team-memory", "AGENT-MEMORY.md"),
-      "# Agent Memory\n\nProject: `sample`. Start with `memory_session_start`; search before project decisions; save reusable knowledge with a stable `topicKey`; finish with a concise summary. Do not store secrets.\n",
+      "# Agent Memory\n\nProject: `sample`. Start with `memory_session_start`; search before project decisions; save reusable knowledge with a stable `subjectKey`; finish with a concise summary. Do not store secrets.\n",
     );
     initializeAgentMemory(
       ["--agent", "codex", "--project", "sample", "--portable"],

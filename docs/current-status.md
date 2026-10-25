@@ -1,6 +1,6 @@
 # Estado actual y punto de continuación
 
-**Revisado:** 2026-10-22
+**Revisado:** 2026-10-25
 **Alcance:** referencia de Agent Memory y runtime nativo Go.
 
 ## Decisión vigente
@@ -22,8 +22,12 @@ proyecto separado están en [ADR 0009](adr/0009-agent-memory-only-scope.md).
 
 ## Siguiente trabajo
 
-Ejecutar el piloto del binario Go en repositorios consumidores y validar su
-funcionamiento en hosts MCP reales. El plan operativo está en
+El usuario completó correctamente en Windows el piloto descrito en
+[agent-memory-pilot-runbook.md](agent-memory-pilot-runbook.md). La validación
+real en Linux queda aplazada. Mantener los checks de Linux en GitHub Actions;
+que pasen valida build, instalación y flujos automatizados, pero no sustituye
+una prueba manual con un host MCP real en Linux. Registrar esa validación si
+Linux entra en el alcance operativo del piloto. El plan operativo está en
 [agent-memory-go-migration-plan.md](agent-memory-go-migration-plan.md).
 El análisis del estado actual y la secuencia de mejoras están en
 [agent-memory-roadmap-2026-10-22.md](agent-memory-roadmap-2026-10-22.md).

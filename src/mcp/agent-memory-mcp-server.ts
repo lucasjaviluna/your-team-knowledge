@@ -118,12 +118,12 @@ export function createAgentMemoryMcpServer(
     {
       title: "Save memory",
       description:
-        "Create or update durable project memory. A topicKey makes writes idempotent.",
+        "Create or update durable project memory. A subjectKey makes writes idempotent.",
       inputSchema: z.object({
         type: memoryType,
         title: z.string().trim().min(1).max(500),
         content: z.string().trim().min(1).max(50_000),
-        topicKey: z.string().trim().min(1).max(500).optional(),
+        subjectKey: z.string().trim().min(1).max(500).optional(),
         tags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
         source: z.string().trim().min(1).max(200).optional(),
         sessionId: z.string().trim().min(1).max(200).optional(),
@@ -137,7 +137,7 @@ export function createAgentMemoryMcpServer(
             type: input.type,
             title: input.title,
             content: input.content,
-            ...(input.topicKey ? { topicKey: input.topicKey } : {}),
+            ...(input.subjectKey ? { subjectKey: input.subjectKey } : {}),
             ...(input.tags ? { tags: input.tags } : {}),
             ...(input.source ? { source: input.source } : {}),
             ...(input.sessionId ? { sessionId: input.sessionId } : {}),

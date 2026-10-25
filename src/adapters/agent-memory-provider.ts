@@ -40,7 +40,7 @@ export interface AgentMemorySearchResult {
 }
 
 export interface AgentMemorySaveRequest {
-  topicKey?: string;
+  subjectKey?: string;
   title: string;
   content: string;
   source?: string;
@@ -169,7 +169,7 @@ export class SqliteAgentMemoryProvider implements AgentMemoryProvider {
       type: request.type,
       title: request.title,
       content: request.content,
-      ...(request.topicKey ? { subjectKey: request.topicKey } : {}),
+      ...(request.subjectKey ? { subjectKey: request.subjectKey } : {}),
       ...(request.sessionId ? { sessionId: request.sessionId } : {}),
       ...(request.sessionId ? { ownerId: this.owner(context) } : {}),
       tags: normalizeTags([

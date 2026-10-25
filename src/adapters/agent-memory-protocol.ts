@@ -38,7 +38,7 @@ export interface AgentMemoryRememberRequest {
   title: string;
   content: string;
   type: MemoryItemType;
-  topicKey?: string;
+  subjectKey?: string;
   tags?: readonly string[];
   source?: string;
   sessionId?: string;
@@ -102,7 +102,7 @@ export class AgentMemoryProtocol {
           title: request.title,
           content: request.content,
           source: request.source ?? "agent-memory:protocol",
-          ...(request.topicKey ? { topicKey: request.topicKey } : {}),
+          ...(request.subjectKey ? { subjectKey: request.subjectKey } : {}),
           ...(request.tags ? { tags: request.tags } : {}),
           ...(request.sessionId ? { sessionId: request.sessionId } : {}),
           ...(context.area ? { area: context.area } : {}),
@@ -125,7 +125,7 @@ export class AgentMemoryProtocol {
         type: "summary",
         title: `Session summary ${session.sessionId}`,
         content: request.summary,
-        topicKey: `session/${session.sessionId}`,
+        subjectKey: `session/${session.sessionId}`,
         sessionId: session.sessionId,
       });
       return { sessionId: session.sessionId, summaryStored: summary.stored };

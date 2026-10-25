@@ -328,7 +328,7 @@ func protocol(project string) string {
 		"",
 		"## Persist durable findings",
 		"",
-		"Save reusable decisions, discoveries, patterns, or preferences with a stable `topicKey`. Do not store secrets, credentials, tokens, unnecessary personal data, or raw conversations. Never store unverified hypotheses as facts.",
+		"Save reusable decisions, discoveries, patterns, or preferences with a stable `subjectKey`. Do not store secrets, credentials, tokens, unnecessary personal data, or raw conversations. Never store unverified hypotheses as facts.",
 		"",
 		"## Finish or pause work",
 		"",

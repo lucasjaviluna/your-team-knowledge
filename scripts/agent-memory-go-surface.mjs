@@ -70,7 +70,7 @@ try {
         name: "memory_save",
         arguments: {
           type: "decision",
-          topicKey: "surface/conformance",
+          subjectKey: "surface/conformance",
           title: "Surface contract",
           content: "The Go MCP surface is stable.",
           sessionId: started.sessionId,

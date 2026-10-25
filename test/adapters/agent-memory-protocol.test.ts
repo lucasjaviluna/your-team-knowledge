@@ -38,13 +38,13 @@ describe("AgentMemoryProtocol", () => {
 
     const first = await protocol.remember(project, {
       type: "decision",
-      topicKey: "architecture/auth",
+      subjectKey: "architecture/auth",
       title: "Authentication model",
       content: "Use short-lived bearer tokens.",
     });
     const updated = await protocol.remember(project, {
       type: "decision",
-      topicKey: "architecture/auth",
+      subjectKey: "architecture/auth",
       title: "Authentication model updated",
       content: "Use short-lived bearer tokens at the HTTP boundary.",
     });
@@ -54,7 +54,7 @@ describe("AgentMemoryProtocol", () => {
     const otherArea = await provider.save(
       {
         type: "decision",
-        topicKey: "architecture/frontend-auth",
+        subjectKey: "architecture/frontend-auth",
         title: "Frontend authentication",
         content: "Use the browser session for authentication.",
         area: "frontend",

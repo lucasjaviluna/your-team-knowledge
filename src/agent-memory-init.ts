@@ -190,7 +190,7 @@ function isLegacyPortableMcp(content: string | null): boolean {
 function isLegacyPortableInstructions(content: string | null): boolean {
   return (
     content !== null &&
-    /^# Agent Memory\n\nProject: `[^`]+`\. Start with `memory_session_start`; search before project decisions; save reusable knowledge with a stable `topicKey`; finish with a concise summary\. Do not store secrets\.\n?$/.test(
+    /^# Agent Memory\n\nProject: `[^`]+`\. Start with `memory_session_start`; search before project decisions; save reusable knowledge with a stable `subjectKey`; finish with a concise summary\. Do not store secrets\.\n?$/.test(
       content,
     )
   );

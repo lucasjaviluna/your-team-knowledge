@@ -38,7 +38,7 @@ try {
       name: "memory_save",
       arguments: {
         type: "decision",
-        topicKey: "architecture/auth",
+        subjectKey: "architecture/auth",
         title: "Authentication model",
         content: "Use short-lived bearer tokens.",
         sessionId: started.sessionId,

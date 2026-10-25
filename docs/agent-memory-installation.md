@@ -95,9 +95,10 @@ Ejecutá:
 ytk-memory doctor
 ```
 
-Una instalación sana informa `"healthy": true`, una base SQLite legible y el
-registro MCP disponible para el proyecto actual. Si la base no existe, ejecutá
-el setup nuevamente o restaurá un backup válido.
+La salida legible muestra `Agent Memory · Todo en orden`, una base SQLite
+legible y el registro MCP disponible para el proyecto actual. Para comprobar el
+campo estructurado `"healthy": true`, ejecutá `ytk-memory doctor --json`.
+Si la base no existe, ejecutá el setup nuevamente o restaurá un backup válido.
 
 También podés comprobar explícitamente el proyecto y el área:
 
@@ -117,7 +118,7 @@ este ciclo:
 1. inicia una sesión con `memory_session_start`;
 2. busca contexto relacionado antes de tomar una decisión;
 3. guarda decisiones, descubrimientos, patrones o preferencias reutilizables;
-4. actualiza un tema mediante `topicKey` cuando el conocimiento evoluciona;
+4. actualiza un tema mediante `subjectKey` cuando el conocimiento evoluciona;
 5. finaliza con `memory_session_finish` y un resumen conciso.
 
 No guardes contraseñas, tokens, credenciales, secretos, transcripciones

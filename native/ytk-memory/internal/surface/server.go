@@ -52,13 +52,13 @@ type getInput struct {
 	MaxChars int    `json:"maxChars,omitempty"`
 }
 type saveInput struct {
-	Type      string   `json:"type"`
-	Title     string   `json:"title"`
-	Content   string   `json:"content"`
-	TopicKey  string   `json:"topicKey,omitempty"`
-	Tags      []string `json:"tags,omitempty"`
-	Source    string   `json:"source,omitempty"`
-	SessionID string   `json:"sessionId,omitempty"`
+	Type       string   `json:"type"`
+	Title      string   `json:"title"`
+	Content    string   `json:"content"`
+	SubjectKey string   `json:"subjectKey,omitempty"`
+	Tags       []string `json:"tags,omitempty"`
+	Source     string   `json:"source,omitempty"`
+	SessionID  string   `json:"sessionId,omitempty"`
 }
 type finishInput struct {
 	SessionID string `json:"sessionId"`
@@ -99,7 +99,9 @@ func (s *Service) start(ctx context.Context, _ *mcp.CallToolRequest, in startInp
 		entries = found
 	}
 	session, err := s.Store.StartSession(ctx, newID(), s.ProjectID, &s.OwnerID)
-	if err != nil { return toolResult(nil, err) }
+	if err != nil {
+		return toolResult(nil, err)
+	}
 	return toolResult(map[string]any{"sessionId": session.ID, "entries": entries}, nil)
 }
 func (s *Service) search(ctx context.Context, _ *mcp.CallToolRequest, in searchInput) (*mcp.CallToolResult, map[string]any, error) {
@@ -189,7 +191,7 @@ func (s *Service) get(ctx context.Context, _ *mcp.CallToolRequest, in getInput) 
 }
 func (s *Service) save(ctx context.Context, _ *mcp.CallToolRequest, in saveInput) (*mcp.CallToolResult, map[string]any, error) {
 	in.Title, in.Content = strings.TrimSpace(in.Title), strings.TrimSpace(in.Content)
-	in.TopicKey, in.Source, in.SessionID = strings.TrimSpace(in.TopicKey), strings.TrimSpace(in.Source), strings.TrimSpace(in.SessionID)
+	in.SubjectKey, in.Source, in.SessionID = strings.TrimSpace(in.SubjectKey), strings.TrimSpace(in.Source), strings.TrimSpace(in.SessionID)
 	if err := validate(in.Type, 20, true); err != nil {
 		return toolResult(nil, err)
 	}
@@ -202,7 +204,7 @@ func (s *Service) save(ctx context.Context, _ *mcp.CallToolRequest, in saveInput
 	if in.Type != "decision" && in.Type != "discovery" && in.Type != "pattern" && in.Type != "preference" && in.Type != "summary" {
 		return toolResult(nil, errors.New("Unsupported memory item type."))
 	}
-	if len([]rune(in.TopicKey)) > 500 || len([]rune(in.Source)) > 200 || len(in.Tags) > 50 || len([]rune(in.SessionID)) > 200 {
+	if len([]rune(in.SubjectKey)) > 500 || len([]rune(in.Source)) > 200 || len(in.Tags) > 50 || len([]rune(in.SessionID)) > 200 {
 		return toolResult(nil, errors.New("A memory field exceeds its maximum length."))
 	}
 	tags := append([]string{}, in.Tags...)
@@ -221,8 +223,8 @@ func (s *Service) save(ctx context.Context, _ *mcp.CallToolRequest, in saveInput
 		tags = append(tags, "area:"+s.Area)
 	}
 	var subject, session *string
-	if in.TopicKey != "" {
-		subject = &in.TopicKey
+	if in.SubjectKey != "" {
+		subject = &in.SubjectKey
 	}
 	if in.SessionID != "" {
 		session = &in.SessionID

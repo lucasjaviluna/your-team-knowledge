@@ -20,7 +20,7 @@ read or write another project.
 | `memory_session_start` | Start a project session and optionally recall context for the current task. |
 | `memory_search` | Search durable memory for the current project. |
 | `memory_get` | Read one result in more detail when the search result is insufficient. |
-| `memory_save` | Create or update a durable finding. A stable `topicKey` makes the write idempotent. |
+| `memory_save` | Create or update a durable finding. A stable `subjectKey` makes the write idempotent. |
 | `memory_session_finish` | Close the active session and optionally persist its handoff summary. |
 
 ## When to use this workflow
@@ -80,7 +80,7 @@ Choose the closest supported type:
 | `summary` | A handoff or session summary. |
 
 Write a short, descriptive title and self-contained Markdown content. Add useful
-tags. Use a stable `topicKey` for an evolving topic, for example
+tags. Use a stable `subjectKey` for an evolving topic, for example
 `architecture/authentication`, `bug/payment-timeout`, or
 `convention/test-fixtures`. Reuse the same key when the new finding replaces
 or extends the old one; `memory_save` will update it idempotently.

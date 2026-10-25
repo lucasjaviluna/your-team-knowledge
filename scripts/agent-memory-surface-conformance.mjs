@@ -51,7 +51,7 @@ async function runMcpConformance(expected) {
         name: "memory_save",
         arguments: {
           type: "decision",
-          topicKey: "surface/conformance",
+          subjectKey: "surface/conformance",
           title: "Surface contract",
           content: "The MCP surface is stable.",
           sessionId: started.sessionId,
