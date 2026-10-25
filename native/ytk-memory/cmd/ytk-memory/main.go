@@ -80,7 +80,7 @@ func run(args []string) error {
 	project := fs.String("project", "", "project id")
 	database := fs.String("database", "", "SQLite path")
 	area := fs.String("area", "", "memory area")
-	host := fs.String("host", "codex", "consumer host for doctor: codex or claude")
+	host := fs.String("host", "codex", "consumer host for doctor: codex, claude, or pi")
 	to := fs.String("to", "", "backup target")
 	backupTo := fs.String("backup-to", "", "upgrade backup target")
 	from := fs.String("from", "", "rollback source")
@@ -108,8 +108,8 @@ func run(args []string) error {
 		return surface.NewService(store, surface.Config{ProjectID: cfg.project, Area: cfg.area}).Server().Run(context.Background(), &mcp.StdioTransport{})
 	}
 	if command == "doctor" {
-		if *host != "codex" && *host != "claude" {
-			return errors.New("--host must be codex or claude.")
+		if *host != "codex" && *host != "claude" && *host != "pi" {
+			return errors.New("--host must be codex, claude, or pi.")
 		}
 		return doctor(cfg, *jsonOutput, *host)
 	}
@@ -187,8 +187,8 @@ func runRelease(args []string) error {
 }
 
 func runSetup(command string, args []string) error {
-	if len(args) == 0 || (args[0] != "codex" && args[0] != "claude") {
-		return errors.New("usage: ytk-memory setup <codex|claude> [--dry-run] [--portable]")
+	if len(args) == 0 || (args[0] != "codex" && args[0] != "claude" && args[0] != "pi") {
+		return errors.New("usage: ytk-memory setup <codex|claude|pi> [--dry-run] [--portable]")
 	}
 	host := args[0]
 	fs := flag.NewFlagSet(command, flag.ContinueOnError)
@@ -207,7 +207,7 @@ func runSetup(command string, args []string) error {
 	if fs.NArg() != 0 {
 		return fmt.Errorf("unexpected argument: %s", fs.Arg(0))
 	}
-	if host == "claude" && (*portable || *removeGlobalMCP) {
+	if host != "codex" && (*portable || *removeGlobalMCP) {
 		return errors.New("--portable and --remove-global-mcp apply only to the Codex setup.")
 	}
 	cfg, err := resolve(*project, *database, *area, false)
@@ -238,6 +238,8 @@ func runSetup(command string, args []string) error {
 	if command == "uninstall" || *remove {
 		if host == "claude" {
 			result, err = setup.UninstallClaude(context, *dryRun)
+		} else if host == "pi" {
+			result, err = setup.UninstallPi(context, *dryRun)
 		} else {
 			removeGlobal := *removeGlobalMCP
 			if !removeGlobal && !*dryRun && !*jsonOutput {
@@ -251,12 +253,16 @@ func runSetup(command string, args []string) error {
 	} else if *dryRun {
 		if host == "claude" {
 			result, err = setup.InstallClaude(context, true)
+		} else if host == "pi" {
+			result, err = setup.InstallPi(context, true)
 		} else {
 			result, err = setup.Install(context, true, *portable)
 		}
 	} else {
 		if host == "claude" {
 			_, err = setup.InstallClaude(context, true)
+		} else if host == "pi" {
+			_, err = setup.InstallPi(context, true)
 		} else {
 			_, err = setup.Install(context, true, *portable)
 		}
@@ -275,6 +281,8 @@ func runSetup(command string, args []string) error {
 		}
 		if host == "claude" {
 			result, err = setup.InstallClaude(context, false)
+		} else if host == "pi" {
+			result, err = setup.InstallPi(context, false)
 		} else {
 			result, err = setup.Install(context, false, *portable)
 		}
@@ -467,8 +475,14 @@ func doctor(c config, jsonOutput bool, host string) error {
 				healthy = false
 			}
 		}
-	} else {
+	} else if host == "claude" {
 		setupCheck := inspectClaudeSetup(filepath.Join(c.root, ".mcp.json"))
+		checks = append(checks, setupCheck)
+		if setupCheck["status"] != "ok" {
+			healthy = false
+		}
+	} else {
+		setupCheck := inspectPiSetup(filepath.Join(c.root, ".pi", "mcp.json"))
 		checks = append(checks, setupCheck)
 		if setupCheck["status"] != "ok" {
 			healthy = false
@@ -506,6 +520,36 @@ func inspectClaudeSetup(filename string) map[string]string {
 		return map[string]string{"name": "claude_mcp", "status": "invalid", "message": "Registered native executable is unavailable."}
 	}
 	return map[string]string{"name": "claude_mcp", "status": "ok", "message": "Project-scoped Claude Code MCP server is registered and available."}
+}
+
+func inspectPiSetup(filename string) map[string]string {
+	contents, err := os.ReadFile(filename)
+	if os.IsNotExist(err) {
+		return map[string]string{"name": "pi_mcp", "status": "not_configured", "message": "Run ytk-memory setup pi to register the project MCP server."}
+	}
+	if err != nil {
+		return map[string]string{"name": "pi_mcp", "status": "invalid", "message": err.Error()}
+	}
+	var document map[string]any
+	if err := json.Unmarshal(contents, &document); err != nil {
+		return map[string]string{"name": "pi_mcp", "status": "invalid", "message": "Pi .pi/mcp.json is not valid JSON."}
+	}
+	servers, ok := document["mcpServers"].(map[string]any)
+	if !ok {
+		return map[string]string{"name": "pi_mcp", "status": "not_configured", "message": "No Pi MCP server was found."}
+	}
+	server, ok := servers["ytk-memory"].(map[string]any)
+	if !ok || server["description"] != "Managed by ytk-memory-init: local Agent Memory for this project." {
+		return map[string]string{"name": "pi_mcp", "status": "not_configured", "message": "No managed Pi MCP server was found."}
+	}
+	command, ok := server["command"].(string)
+	if !ok || command == "" {
+		return map[string]string{"name": "pi_mcp", "status": "invalid", "message": "Managed Pi MCP command is missing."}
+	}
+	if _, err := os.Stat(command); err != nil {
+		return map[string]string{"name": "pi_mcp", "status": "invalid", "message": "Registered native executable is unavailable."}
+	}
+	return map[string]string{"name": "pi_mcp", "status": "ok", "message": "Trusted project Pi MCP server is registered and available."}
 }
 
 func printDoctor(result map[string]any, jsonOutput bool) error {

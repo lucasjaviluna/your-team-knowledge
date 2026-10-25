@@ -30,6 +30,23 @@ de usarlos. Para retirar sólo esta integración, sin borrar la base local:
 ytk-memory uninstall claude
 ```
 
+Pi usa su configuración MCP local en `.pi/mcp.json` después de que el proyecto
+sea confiado. La integración se instala y verifica así:
+
+```text
+ytk-memory setup pi --dry-run
+ytk-memory setup pi
+ytk-memory doctor --host pi --json
+```
+
+El setup conserva otros servidores de `.pi/mcp.json`, registra sólo
+`mcpServers.ytk-memory` y añade un bloque propio a `AGENTS.md`. Tras aprobar la
+confianza del proyecto en Pi, ejecutá `/reload` o reiniciá Pi. Para retirarlo:
+
+```text
+ytk-memory uninstall pi
+```
+
 Para otro host MCP compatible con `stdio`, generá la configuración portable:
 
 ```text

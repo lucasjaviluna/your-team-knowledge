@@ -271,3 +271,82 @@ func TestInstallClaudeSupportsPathsWithSpaces(t *testing.T) {
 		t.Fatalf("Claude MCP config lost executable path with spaces: %q", command)
 	}
 }
+
+func TestInstallPiPreservesForeignProjectMCPAndUninstallsIdempotently(t *testing.T) {
+	ctx := contextFor(t)
+	mcpFile := filepath.Join(ctx.Root, ".pi", "mcp.json")
+	if err := os.MkdirAll(filepath.Dir(mcpFile), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(mcpFile, []byte(`{"mcpServers":{"foreign":{"command":"foreign-mcp"}},"setting":true}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	agentsFile := filepath.Join(ctx.Root, "AGENTS.md")
+	if err := os.WriteFile(agentsFile, []byte("# Existing instructions\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if preview, err := InstallPi(ctx, true); err != nil || preview.Agent != "pi" || len(preview.Changes) != 4 {
+		t.Fatalf("unexpected Pi preview: result=%#v err=%v", preview, err)
+	}
+	if _, err := InstallPi(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	contents, err := os.ReadFile(mcpFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(contents, &document); err != nil {
+		t.Fatal(err)
+	}
+	servers := document["mcpServers"].(map[string]any)
+	if _, ok := servers["foreign"]; !ok {
+		t.Fatalf("Pi setup removed foreign server: %s", contents)
+	}
+	server, ok := servers[piServerName].(map[string]any)
+	if !ok || server["description"] != piServerDescription || server["command"] != ctx.Executable {
+		t.Fatalf("managed Pi server is invalid: %s", contents)
+	}
+	if repeat, err := InstallPi(ctx, true); err != nil || len(repeat.Changes) != 0 {
+		t.Fatalf("Pi install is not idempotent: result=%#v err=%v", repeat, err)
+	}
+	if _, err := UninstallPi(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	contents, err = os.ReadFile(mcpFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	document = map[string]any{}
+	if err := json.Unmarshal(contents, &document); err != nil {
+		t.Fatal(err)
+	}
+	servers = document["mcpServers"].(map[string]any)
+	if _, ok := servers["foreign"]; !ok {
+		t.Fatal("Pi uninstall removed foreign server")
+	}
+	if _, ok := servers[piServerName]; ok {
+		t.Fatal("Pi uninstall retained managed server")
+	}
+	agents, err := os.ReadFile(agentsFile)
+	if err != nil || string(agents) != "# Existing instructions\n" {
+		t.Fatalf("Pi uninstall changed foreign instructions: %q err=%v", agents, err)
+	}
+}
+
+func TestInstallPiRejectsForeignServerNameBeforeWriting(t *testing.T) {
+	ctx := contextFor(t)
+	filename := filepath.Join(ctx.Root, ".pi", "mcp.json")
+	if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filename, []byte(`{"mcpServers":{"ytk-memory":{"command":"other"}}}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := InstallPi(ctx, false); err == nil || !strings.Contains(err.Error(), "collision") {
+		t.Fatalf("expected collision error, got %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(ctx.Root, ".ytk-memory.json")); !os.IsNotExist(err) {
+		t.Fatal("Pi installer wrote before collision")
+	}
+}

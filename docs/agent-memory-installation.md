@@ -100,6 +100,27 @@ ytk-memory uninstall claude
 No borra `.ytk-memory/ytk-memory.sqlite`, `.ytk-memory.json` ni entradas MCP
 que no pertenezcan a Agent Memory.
 
+### Pi
+
+Pi carga MCPs de proyecto desde `.pi/mcp.json` sólo después de confiar en el
+proyecto. Para configurar Agent Memory:
+
+```text
+ytk-memory setup pi --dry-run
+ytk-memory setup pi
+ytk-memory doctor --host pi
+```
+
+El instalador conserva los demás servidores de `.pi/mcp.json`, añade sólo
+`mcpServers.ytk-memory` con una descripción de propiedad y agrega un bloque
+administrado a `AGENTS.md`, que Pi descubre como contexto de proyecto. Luego
+confiá el proyecto en Pi y ejecutá `/reload` o reiniciá la sesión. Para retirar
+la integración sin borrar memoria ni servidores ajenos:
+
+```text
+ytk-memory uninstall pi
+```
+
 ## 3. Verificar la instalación
 
 Ejecutá:
@@ -195,6 +216,7 @@ repositorio.
 | `.ytk-memory/mcp.json`               | Configuración portable opcional para otros hosts. |
 | `.mcp.json`                           | Registro MCP por proyecto administrado para Claude Code. |
 | `CLAUDE.md`                           | Instrucciones locales administradas para Claude Code. |
+| `.pi/mcp.json`                        | Registro MCP por proyecto administrado para Pi. |
 
 ## Resolución de problemas
 

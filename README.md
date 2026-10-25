@@ -12,8 +12,8 @@ El binario `ytk-memory` ofrece:
   versionada y consulta de relaciones;
 - aislamiento por proyecto;
 - `doctor`, `backup`, `upgrade` y `rollback`;
-- setup y uninstall idempotentes de Codex y Claude Code; Codex usa registro
-  MCP global y Claude Code usa `.mcp.json` por proyecto;
+- setup y uninstall idempotentes de Codex, Claude Code y Pi; Codex usa registro
+  MCP global, Claude Code usa `.mcp.json` y Pi usa `.pi/mcp.json` por proyecto;
 - compilación y pruebas en Windows/Linux desde el módulo Go.
 
 El comando `ytk-memory evaluate` ejecuta el corpus sintético de recuperación y

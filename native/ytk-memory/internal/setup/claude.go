@@ -102,7 +102,7 @@ func installClaudeMCP(current *string, file, executable string) (string, error) 
 			return "", fmt.Errorf("Expected a JSON object in %s.", file)
 		}
 	}
-	servers, err := claudeServers(root, file)
+	servers, err := mcpServers(root, file)
 	if err != nil {
 		return "", err
 	}
@@ -126,7 +126,7 @@ func uninstallClaudeMCP(current *string, file string) (*string, bool, error) {
 	if err := json.Unmarshal([]byte(*current), &root); err != nil {
 		return nil, false, fmt.Errorf("Expected a JSON object in %s.", file)
 	}
-	servers, err := claudeServers(root, file)
+	servers, err := mcpServers(root, file)
 	if err != nil {
 		return nil, false, err
 	}
@@ -151,7 +151,7 @@ func uninstallClaudeMCP(current *string, file string) (*string, bool, error) {
 	return &content, true, nil
 }
 
-func claudeServers(root map[string]any, file string) (map[string]any, error) {
+func mcpServers(root map[string]any, file string) (map[string]any, error) {
 	value, found := root["mcpServers"]
 	if !found {
 		return map[string]any{}, nil
