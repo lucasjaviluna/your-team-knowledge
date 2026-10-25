@@ -2,8 +2,10 @@ package core
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -372,6 +374,40 @@ func (s *Store) Search(ctx context.Context, workspaceID, query string, limit int
 	return items, rows.Err()
 }
 
+// Context returns a compact, project-scoped briefing ordered by explicit
+// priority, recent session summaries, then other durable memories.
+func (s *Store) Context(ctx context.Context, workspaceID string, limit int) ([]Memory, error) {
+	workspaceID = required(workspaceID, "workspaceId")
+	if limit < 1 || limit > 100 {
+		return nil, errors.New("limit must be between 1 and 100.")
+	}
+	now := formatTime(s.now())
+	rows, err := s.db.QueryContext(ctx, `SELECT * FROM memory_items
+		WHERE workspace_id=? AND status='active' AND valid_from<=?
+		AND (expires_at IS NULL OR expires_at>?)
+		AND (review_at IS NULL OR review_at>?)
+		ORDER BY CASE
+			WHEN instr(tags_json, '"priority:critical"')>0 THEN 0
+			WHEN instr(tags_json, '"priority:high"')>0 THEN 1
+			WHEN type='summary' THEN 2
+			WHEN type IN ('decision','preference','pattern') THEN 3
+			ELSE 4 END,
+			updated_at DESC, id ASC LIMIT ?`, workspaceID, now, now, now, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Memory{}
+	for rows.Next() {
+		item, err := scanMemory(rows)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
 func (s *Store) AddRelation(ctx context.Context, sourceID, targetID, relation string) (Relation, error) {
 	source, err := s.findMemory(ctx, required(sourceID, "sourceMemoryId"))
 	if err != nil {
@@ -404,6 +440,146 @@ func (s *Store) AddRelation(ctx context.Context, sourceID, targetID, relation st
 	createdAt := formatTime(s.now())
 	_, err = s.db.ExecContext(ctx, `INSERT INTO memory_relations (source_memory_id, target_memory_id, relation, created_at) VALUES (?, ?, ?, ?)`, sourceID, targetID, relation, createdAt)
 	return Relation{SourceMemoryID: sourceID, TargetMemoryID: targetID, Relation: relation, CreatedAt: createdAt}, err
+}
+
+type RelatedMemory struct {
+	Relation  string `json:"relation"`
+	Direction string `json:"direction"`
+	Memory    Memory `json:"memory"`
+}
+
+// ListRelations returns related memories only when both ends belong to the
+// requested workspace.
+func (s *Store) ListRelations(ctx context.Context, workspaceID, memoryID string, limit int) ([]RelatedMemory, error) {
+	workspaceID = required(workspaceID, "workspaceId")
+	memoryID = required(memoryID, "memoryId")
+	if limit < 1 || limit > 100 {
+		return nil, errors.New("limit must be between 1 and 100.")
+	}
+	_, ok, err := s.Get(ctx, memoryID, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("Memory '%s' was not found.", memoryID)
+	}
+	rows, err := s.db.QueryContext(ctx, `SELECT r.source_memory_id, r.target_memory_id, r.relation, r.created_at
+		FROM memory_relations r
+		JOIN memory_items source ON source.id=r.source_memory_id
+		JOIN memory_items target ON target.id=r.target_memory_id
+		WHERE source.workspace_id=? AND target.workspace_id=?
+		AND (r.source_memory_id=? OR r.target_memory_id=?)
+		ORDER BY r.created_at DESC, r.source_memory_id, r.target_memory_id LIMIT ?`, workspaceID, workspaceID, memoryID, memoryID, limit)
+	if err != nil {
+		return nil, err
+	}
+	type relationIDs struct{ source, target, relation, createdAt string }
+	ids := []relationIDs{}
+	for rows.Next() {
+		var value relationIDs
+		if err := rows.Scan(&value.source, &value.target, &value.relation, &value.createdAt); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		ids = append(ids, value)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return nil, err
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	result := make([]RelatedMemory, 0, len(ids))
+	for _, value := range ids {
+		direction, otherID := "outgoing", value.target
+		if value.target == memoryID {
+			direction, otherID = "incoming", value.source
+		}
+		other, exists, err := s.Get(ctx, otherID, workspaceID)
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			result = append(result, RelatedMemory{Relation: value.relation, Direction: direction, Memory: other})
+		}
+	}
+	return result, nil
+}
+
+type CorrectionResult struct {
+	Previous Memory `json:"previous"`
+	Current  Memory `json:"current"`
+}
+
+// CorrectMemory preserves the old revision and links the replacement to it.
+func (s *Store) CorrectMemory(ctx context.Context, workspaceID, memoryID, title, content string) (CorrectionResult, error) {
+	workspaceID = required(workspaceID, "workspaceId")
+	memoryID = required(memoryID, "memoryId")
+	title, content = required(title, "title"), required(content, "content")
+	if hasSensitiveContent(title + "\n" + content) {
+		return CorrectionResult{}, errors.New("Sensitive content detected in memory.")
+	}
+
+	old, ok, err := s.Get(ctx, memoryID, workspaceID)
+	if err != nil {
+		return CorrectionResult{}, err
+	}
+	if !ok {
+		return CorrectionResult{}, fmt.Errorf("Memory '%s' was not found.", memoryID)
+	}
+	if old.Status != "active" && old.Status != "needs_review" {
+		return CorrectionResult{}, fmt.Errorf("Memory '%s' cannot be corrected from status '%s'.", memoryID, old.Status)
+	}
+	now := formatTime(s.now())
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return CorrectionResult{}, err
+	}
+	defer tx.Rollback()
+	old, err = scanMemory(tx.QueryRowContext(ctx, `SELECT * FROM memory_items WHERE id=?`, memoryID))
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && old.WorkspaceID != workspaceID) {
+		return CorrectionResult{}, fmt.Errorf("Memory '%s' was not found.", memoryID)
+	}
+	if err != nil {
+		return CorrectionResult{}, err
+	}
+	if old.Status != "active" && old.Status != "needs_review" {
+		return CorrectionResult{}, fmt.Errorf("Memory '%s' cannot be corrected from status '%s'.", memoryID, old.Status)
+	}
+
+	previous := old
+	previous.Status, previous.UpdatedAt = "superseded", now
+	if err := updateUsing(ctx, tx, previous); err != nil {
+		return CorrectionResult{}, err
+	}
+	current := old
+	newID, err := randomID()
+	if err != nil {
+		return CorrectionResult{}, err
+	}
+	current.ID, current.Title, current.Content = newID, title, content
+	current.Status, current.CreatedAt, current.UpdatedAt, current.ValidFrom = "active", now, now, now
+	current.ArchivedAt, current.ReviewAt = nil, nil
+	if current.ExpiresAt != nil && *current.ExpiresAt <= now {
+		current.ExpiresAt = nil
+	}
+	if err := validateMemory(current); err != nil {
+		return CorrectionResult{}, err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_items (id, workspace_id, session_id, type, title, content, subject_key, tags_json, status, created_at, updated_at, valid_from, expires_at, review_at, archived_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, memoryValues(current)...); err != nil {
+		return CorrectionResult{}, err
+	}
+	if err := index(ctx, tx, current); err != nil {
+		return CorrectionResult{}, err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_relations (source_memory_id, target_memory_id, relation, created_at) VALUES (?, ?, 'supersedes', ?)`, current.ID, previous.ID, now); err != nil {
+		return CorrectionResult{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return CorrectionResult{}, err
+	}
+	return CorrectionResult{Previous: previous, Current: current}, nil
 }
 
 type Lifecycle struct {
@@ -514,7 +690,10 @@ func (s *Store) CompleteReview(ctx context.Context, memoryID, nextReviewAt, reas
 	if item.Status != "active" && item.Status != "needs_review" {
 		return ReviewCompletion{}, fmt.Errorf("Memory '%s' cannot complete review from status '%s'.", memoryID, item.Status)
 	}
-	if item.ReviewAt != nil && *item.ReviewAt > now {
+	if item.ValidFrom > now || (item.ExpiresAt != nil && *item.ExpiresAt <= now) {
+		return ReviewCompletion{}, fmt.Errorf("Memory '%s' is not eligible for review.", memoryID)
+	}
+	if item.ReviewAt == nil || *item.ReviewAt > now {
 		return ReviewCompletion{}, fmt.Errorf("Memory '%s' is not due for review.", memoryID)
 	}
 	updated := item
@@ -529,7 +708,8 @@ func (s *Store) CompleteReview(ctx context.Context, memoryID, nextReviewAt, reas
 }
 
 func (s *Store) ListDueForReview(ctx context.Context, workspaceID string) ([]Memory, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT * FROM memory_items WHERE workspace_id=? AND status='active' AND review_at IS NOT NULL AND review_at<=? ORDER BY review_at, updated_at`, workspaceID, formatTime(s.now()))
+	now := formatTime(s.now())
+	rows, err := s.db.QueryContext(ctx, `SELECT * FROM memory_items WHERE workspace_id=? AND status='active' AND valid_from<=? AND (expires_at IS NULL OR expires_at>?) AND review_at IS NOT NULL AND review_at<=? ORDER BY review_at, updated_at`, workspaceID, now, now, now)
 	if err != nil {
 		return nil, err
 	}
@@ -747,11 +927,15 @@ type CompactInput struct {
 }
 
 func (s *Store) update(ctx context.Context, item Memory) error {
-	_, err := s.db.ExecContext(ctx, `UPDATE memory_items SET session_id=?, type=?, title=?, content=?, subject_key=?, tags_json=?, status=?, updated_at=?, valid_from=?, expires_at=?, review_at=?, archived_at=? WHERE id=?`, updateMemoryValues(item)...)
+	return updateUsing(ctx, s.db, item)
+}
+
+func updateUsing(ctx context.Context, db queryExecutor, item Memory) error {
+	_, err := db.ExecContext(ctx, `UPDATE memory_items SET session_id=?, type=?, title=?, content=?, subject_key=?, tags_json=?, status=?, updated_at=?, valid_from=?, expires_at=?, review_at=?, archived_at=? WHERE id=?`, updateMemoryValues(item)...)
 	if err != nil {
 		return err
 	}
-	return s.index(ctx, item)
+	return index(ctx, db, item)
 }
 func (s *Store) listIDs(ctx context.Context, query string, args ...any) ([]string, error) {
 	rows, err := s.db.QueryContext(ctx, query, args...)
@@ -883,6 +1067,13 @@ func updateMemoryValues(item Memory) []any {
 	}
 }
 func formatTime(value time.Time) string { return value.UTC().Format(timestampLayout) }
+func randomID() (string, error) {
+	value := make([]byte, 16)
+	if _, err := rand.Read(value); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(value), nil
+}
 func required(value, name string) string {
 	normalized := strings.TrimSpace(value)
 	if normalized == "" {

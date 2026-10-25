@@ -11,7 +11,7 @@ Este análisis distingue **implementado en código**, **cubierto por pruebas aut
 ## Estado comprobado
 
 - `native/ytk-memory` implementa SQLite/FTS5, sesiones, `subjectKey`, búsqueda léxica, relaciones, revisión, retención y compactación. El guardado rechaza patrones de contenido sensible antes de persistir.
-- El MCP Go expone cinco herramientas: `memory_session_start`, `memory_search`, `memory_get`, `memory_save` y `memory_session_finish`. El proceso fija proyecto y propietario de sesión; los tests de superficie verifican aislamiento, doctor, backup, upgrade y rollback.
+- El MCP Go conserva las cinco herramientas base y añade revisión, corrección y consulta de relaciones/versiones. El proceso fija proyecto y propietario de sesión; los tests de superficie verifican aislamiento, doctor, backup, upgrade y rollback.
 - El cierre de sesión rechaza contenido sensible antes de cualquier escritura y guarda el resumen y el cierre en una sola transacción. `Save` mantiene la memoria y el índice FTS en una transacción; `Compact` agrupa resumen, relaciones y archivado. Las pruebas inyectan fallos SQLite para comprobar que no queda estado parcial.
 - `setup codex` instala activación local y registro MCP global; `uninstall codex` conserva la base. El usuario confirmó que el piloto del runbook se completó correctamente en Windows; la validación manual en Linux queda aplazada y pasar los checks Linux de GitHub Actions es suficiente por ahora.
 - CI corre en Windows x64 y Linux x64. Formatea, analiza, prueba y compila el módulo Go. La automatización de artefactos firmados queda como trabajo posterior.
@@ -42,8 +42,8 @@ Las prioridades son la fiabilidad del ciclo de sesión, el contexto útil al ini
 
 ### P1 — Capacidades de memoria para el agente
 
-4. **Añadir contexto inicial compacto.** Diseñar `memory_context` o ampliar la respuesta de inicio para ofrecer sesiones recientes, resúmenes y memorias prioritarias dentro de un presupuesto explícito de bytes. Medir utilidad y ruido frente a la búsqueda actual; mantener proyecto y área aislados.
-5. **Exponer lifecycle y corrección al agente.** Ofrecer revisión pendiente, marcar revisado, actualizar una memoria por ID con aserción de proyecto y consultar relaciones/versiones. Preservar el contrato de cinco herramientas existente y cubrir cualquier ampliación con pruebas Go.
+4. **Añadir contexto inicial compacto — implementado, pendiente de verificación.** `memory_session_start` sin consulta devuelve memorias activas con prioridad explícita, resúmenes recientes y un presupuesto total configurable; conserva aislamiento de proyecto y área.
+5. **Exponer lifecycle y corrección al agente — implementado, pendiente de verificación.** Se añadieron `memory_review_list`, `memory_review_complete`, `memory_correct` y `memory_relations`, conservando las cinco herramientas originales. La corrección crea una versión nueva, marca la anterior como `superseded` y registra `supersedes` atómicamente.
 6. **Evaluar recuperación con tareas representativas.** Crear un corpus pequeño de decisiones, cambios de nombre, versiones contradictorias, términos exactos y paráfrasis. Medir recall@k, precisión del briefing, latencia y tamaño del contexto frente a la línea base de YTK. Priorizar mejoras léxicas/ranking y exposición de relaciones según errores observados; embeddings no entran por defecto.
 7. **Resolver conflictos y consolidación con control humano.** Primero mostrar candidatos y relaciones existentes; luego permitir veredictos y consolidación con vista previa y confirmación explícita. Evitar que un upsert o resumen borre evidencia histórica sin versión o rastro de revisión.
 

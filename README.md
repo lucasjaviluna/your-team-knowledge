@@ -8,8 +8,8 @@ documentado en [ADR 0009](docs/adr/0009-agent-memory-only-scope.md).
 
 El binario `ytk-memory` ofrece:
 
-- cinco herramientas MCP para iniciar/cerrar sesiones, guardar, buscar y leer
-  memorias;
+- nueve herramientas MCP para sesiones, búsqueda, guardado, revisión, corrección
+  versionada y consulta de relaciones;
 - aislamiento por proyecto;
 - `doctor`, `backup`, `upgrade` y `rollback`;
 - setup y uninstall de Codex con registro MCP global y activación local;

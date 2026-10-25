@@ -11,7 +11,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func TestFiveMCPToolsRoundTripAndSessionOwnership(t *testing.T) {
+func TestMCPToolsRoundTripAndSessionOwnership(t *testing.T) {
 	ctx := context.Background()
 	store, err := core.Open(filepath.Join(t.TempDir(), "memory.sqlite"), nil)
 	if err != nil {
@@ -35,8 +35,8 @@ func TestFiveMCPToolsRoundTripAndSessionOwnership(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tools.Tools) != 5 {
-		t.Fatalf("got %d tools, want 5", len(tools.Tools))
+	if len(tools.Tools) != 9 {
+		t.Fatalf("got %d tools, want 9", len(tools.Tools))
 	}
 	started, err := clientSession.CallTool(ctx, &mcp.CallToolParams{Name: "memory_session_start", Arguments: map[string]any{}})
 	if err != nil {
