@@ -154,7 +154,8 @@ ytk-memory doctor
 ```
 
 La salida legible muestra `Agent Memory · Todo en orden`, una base SQLite
-legible y el registro MCP disponible para el proyecto actual. Para comprobar el
+legible, una comprobación `quick_check` de integridad y el registro MCP
+disponible para el proyecto actual. Para comprobar el
 campo estructurado `"healthy": true`, ejecutá `ytk-memory doctor --json`.
 Si la base no existe, ejecutá el setup nuevamente o restaurá un backup válido.
 

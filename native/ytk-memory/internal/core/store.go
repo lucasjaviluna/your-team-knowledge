@@ -235,7 +235,7 @@ func (s *Store) Get(ctx context.Context, id, workspaceID string) (Memory, bool, 
 	return item, true, nil
 }
 
-// Backup writes a consistent SQLite snapshot using the SQLite backup operation.
+// Backup writes a consistent SQLite snapshot using VACUUM INTO.
 type BackupResult struct {
 	DestinationFile string `json:"destinationFile"`
 	TotalPages      int    `json:"totalPages"`
@@ -260,6 +260,25 @@ func (s *Store) Backup(ctx context.Context, destination string) (BackupResult, e
 		return BackupResult{}, err
 	}
 	return BackupResult{DestinationFile: destination, TotalPages: pages, RemainingPages: 0}, nil
+}
+
+// IntegrityCheck verifies the SQLite file without changing its contents.
+func (s *Store) IntegrityCheck(ctx context.Context) error {
+	rows, err := s.db.QueryContext(ctx, "PRAGMA quick_check")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var result string
+		if err := rows.Scan(&result); err != nil {
+			return err
+		}
+		if result != "ok" {
+			return fmt.Errorf("SQLite integrity check failed: %s", result)
+		}
+	}
+	return rows.Err()
 }
 
 func (s *Store) Save(ctx context.Context, input SaveInput) (Memory, error) {

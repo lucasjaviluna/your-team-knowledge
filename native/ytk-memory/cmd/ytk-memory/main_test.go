@@ -39,6 +39,41 @@ func TestWriteDoctorExplainsMissingConfiguration(t *testing.T) {
 	}
 }
 
+func TestDoctorReportsUnreadableSQLiteAsStructuredFailure(t *testing.T) {
+	root := t.TempDir()
+	filename := filepath.Join(root, "not-a-database.sqlite")
+	if err := os.WriteFile(filename, []byte("not sqlite"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	previous, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(previous) })
+	var output bytes.Buffer
+	previousOutput := os.Stdout
+	read, write, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = write
+	err = doctor(config{project: "sample", database: filename, root: root}, true, "codex")
+	_ = write.Close()
+	os.Stdout = previousOutput
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := output.ReadFrom(read); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), `"healthy":false`) || !strings.Contains(output.String(), `"status":"invalid"`) {
+		t.Fatalf("doctor did not report structured SQLite failure: %s", output.String())
+	}
+}
+
 func TestResolveRequiresLocalProjectConfiguration(t *testing.T) {
 	root := t.TempDir()
 	previous, err := os.Getwd()

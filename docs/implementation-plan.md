@@ -9,7 +9,8 @@ Memory: madurar el runtime nativo Go y validarlo en repositorios consumidores.
 - Sesiones, búsqueda, guardado idempotente, relaciones y lifecycle.
 - Revisión, retención, backup, upgrade y rollback.
 - MCP `stdio` con aislamiento por proyecto.
-- Setup/uninstall de Codex y activación local.
+- Setup/uninstall de Codex con activación local, y de Claude Code, Pi y OpenCode por proyecto.
+- Release firmado con verificación previa a la publicación; queda activar el primer tag aprobado.
 - Pruebas y compilación en Windows/Linux desde GitHub Actions.
 
 ## Próximo tramo

@@ -54,6 +54,34 @@ func TestOpenMigratesLegacySQLiteDatabase(t *testing.T) {
 	}
 }
 
+func TestBackupCapturesCommittedDataWithWALActive(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "memory.sqlite"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if _, err := store.Save(context.Background(), SaveInput{ID: "backup-memory", WorkspaceID: "workspace-a", Type: "decision", Title: "Backup test", Content: "Committed data must be present in a backup."}); err != nil {
+		t.Fatal(err)
+	}
+	backupFile := filepath.Join(root, "backup.sqlite")
+	if _, err := store.Backup(context.Background(), backupFile); err != nil {
+		t.Fatal(err)
+	}
+	copy, err := Open(backupFile, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer copy.Close()
+	item, found, err := copy.Get(context.Background(), "backup-memory", "workspace-a")
+	if err != nil || !found || item.Title != "Backup test" {
+		t.Fatalf("backup lost committed WAL data: item=%#v found=%v err=%v", item, found, err)
+	}
+	if err := copy.IntegrityCheck(context.Background()); err != nil {
+		t.Fatalf("backup failed integrity check: %v", err)
+	}
+}
+
 func TestSearchExpandsAuthenticationSynonyms(t *testing.T) {
 	store, err := Open(filepath.Join(t.TempDir(), "memory.sqlite"), func() time.Time { return time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC) })
 	if err != nil {

@@ -36,5 +36,5 @@ persistente del job protegido.
 
 Las mejoras futuras deben extender el módulo Go: contexto inicial compacto,
 herramientas de lifecycle y corrección, evaluación de recuperación, diagnóstico
-más detallado, política de rotación/revocación de claves y el primer release
+más detallado y el primer release
 aprobado desde el canal firmado.

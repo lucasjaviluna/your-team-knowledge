@@ -462,18 +462,29 @@ func doctor(c config, jsonOutput bool, host string) error {
 	if _, err := os.Stat(c.database); os.IsNotExist(err) {
 		result := map[string]any{"operation": "doctor", "healthy": false, "state": "missing_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "missing", "message": "No se encontró la base de datos. Ejecutá `ytk-memory setup codex` para crearla o restaurá un backup."}}}
 		return printDoctor(result, jsonOutput)
+	} else if err != nil {
+		result := map[string]any{"operation": "doctor", "healthy": false, "state": "invalid_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "invalid", "message": "No se pudo acceder a la base de datos: " + err.Error()}}}
+		return printDoctor(result, jsonOutput)
 	}
 	s, err := core.Open(c.database, nil)
 	if err != nil {
-		return err
+		result := map[string]any{"operation": "doctor", "healthy": false, "state": "invalid_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "invalid", "message": "No se pudo abrir la base SQLite: " + err.Error()}}}
+		return printDoctor(result, jsonOutput)
 	}
 	defer s.Close()
 	life, err := s.InspectLifecycle(context.Background(), c.project)
 	if err != nil {
-		return err
+		result := map[string]any{"operation": "doctor", "healthy": false, "state": "invalid_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "invalid", "message": "No se pudo leer el esquema SQLite: " + err.Error()}}}
+		return printDoctor(result, jsonOutput)
 	}
 	checks := []map[string]string{{"name": "database", "status": "ok", "message": "SQLite schema is readable."}}
 	healthy := true
+	if err := s.IntegrityCheck(context.Background()); err != nil {
+		checks = append(checks, map[string]string{"name": "integrity", "status": "invalid", "message": err.Error()})
+		healthy = false
+	} else {
+		checks = append(checks, map[string]string{"name": "integrity", "status": "ok", "message": "SQLite quick_check passed."})
+	}
 	if host == "codex" {
 		home, homeErr := codexHome()
 		if homeErr == nil {

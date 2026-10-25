@@ -17,8 +17,8 @@ proyecto separado están en [ADR 0009](adr/0009-agent-memory-only-scope.md).
 - MCP `stdio` con aislamiento por proyecto.
 - Briefing inicial compacto de memorias activas en `memory_session_start`, con límites configurables y prioridad explícita.
 - Herramientas MCP para listar/completar revisiones, corregir memorias con historial de versiones, consultar relaciones y consolidar memorias con vista previa y confirmación explícita.
-- CLI `doctor`, backup, upgrade y rollback.
-- Setup/uninstall de Codex con MCP global y activación local.
+- CLI `doctor` con comprobación de esquema e integridad SQLite, backup, upgrade y rollback.
+- Setup/uninstall de Codex con MCP global y activación local, y de Claude Code, Pi y OpenCode por proyecto.
 - Compilación y pruebas en Windows/Linux desde GitHub Actions.
 - Suite de pruebas Go para core, MCP y setup.
 
@@ -44,8 +44,10 @@ el registro global de Codex. La secuencia de hosts priorizada quedó completa.
 
 ## Verificación
 
-La CI ejecuta `gofmt`, `go vet`, `go test` y `go build` sobre el módulo Go. No
-requiere Node.js, PostgreSQL, pgvector ni modelos de embeddings.
+La CI ejecuta `gofmt`, `go vet`, `go test` y `go build` sobre el módulo Go en
+Windows y Linux. Los tags aprobados además construyen, firman y verifican los
+artefactos antes de publicarlos. No requiere Node.js, PostgreSQL, pgvector ni
+modelos de embeddings.
 
 El briefing, lifecycle y la evaluación de recuperación están implementados en
 código. El corpus sintético y el comando `ytk-memory evaluate` aportan métricas
