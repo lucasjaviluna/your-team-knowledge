@@ -2,11 +2,16 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"database/sql"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/corporate-knowledge/ytk-memory/internal/core"
+	_ "modernc.org/sqlite"
 )
 
 func TestWriteDoctorExplainsMissingConfiguration(t *testing.T) {
@@ -167,5 +172,86 @@ func TestInspectOpenCodeSetupChecksManagedProjectServer(t *testing.T) {
 	}
 	if check := inspectOpenCodeSetup(filename, marker); check["status"] != "invalid" {
 		t.Fatalf("missing executable was accepted: %#v", check)
+	}
+}
+
+func TestInspectCodexSetupRejectsMalformedTOML(t *testing.T) {
+	filename := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(filename, []byte("[mcp_servers.ytk_memory\ncommand = \"ytk-memory\"\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	check := inspectCodexSetup(filename)
+	if check["status"] != "invalid" || !strings.Contains(check["message"], "TOML") {
+		t.Fatalf("malformed TOML was not diagnosed: %#v", check)
+	}
+}
+
+func TestInspectCodexSetupDetectsDifferentRegisteredBinary(t *testing.T) {
+	running, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	other := filepath.Join(t.TempDir(), "other-ytk-memory")
+	if err := os.WriteFile(other, []byte("different executable"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	filename := filepath.Join(t.TempDir(), "config.toml")
+	text := "# BEGIN ytk-memory-init:codex\n[mcp_servers.ytk_memory]\ncommand = " + strconv.Quote(other) + "\nargs = [\"mcp\"]\n# END ytk-memory-init:codex\n"
+	if err := os.WriteFile(filename, []byte(text), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if check := inspectCodexSetup(filename); check["status"] != "incompatible" {
+		t.Fatalf("different registered executable was not reported (running %s): %#v", running, check)
+	}
+}
+
+func TestRollbackRestoresLegacyDatabase(t *testing.T) {
+	root := t.TempDir()
+	legacy := filepath.Join(root, "legacy.sqlite")
+	database, err := sql.Open("sqlite", legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = database.Exec(`CREATE TABLE memory_items (
+		id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, session_id TEXT,
+		type TEXT NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL,
+		subject_key TEXT, tags_json TEXT NOT NULL, status TEXT NOT NULL,
+		created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+	); INSERT INTO memory_items VALUES (
+		'legacy-rollback', 'sample', NULL, 'decision', 'Inherited record',
+		'Keep data during rollback.', 'migration/legacy', '["legacy"]', 'active',
+		'2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'
+	);`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := database.Close(); err != nil {
+		t.Fatal(err)
+	}
+	current := filepath.Join(root, "current.sqlite")
+	store, err := core.Open(current, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Save(context.Background(), core.SaveInput{ID: "current", WorkspaceID: "sample", Type: "decision", Title: "Current record", Content: "Safety backup must remain."}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := doRollback(config{project: "sample", database: current}, legacy, filepath.Join(root, "safety.sqlite"), true, true); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := core.Open(current, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer restored.Close()
+	item, found, err := restored.Get(context.Background(), "legacy-rollback", "sample")
+	if err != nil || !found || item.Title != "Inherited record" {
+		t.Fatalf("legacy record missing after rollback: item=%#v found=%v err=%v", item, found, err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "safety.sqlite")); err != nil {
+		t.Fatalf("pre-rollback database backup missing: %v", err)
 	}
 }

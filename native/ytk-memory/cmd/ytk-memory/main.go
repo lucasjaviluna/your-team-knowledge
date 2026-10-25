@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"github.com/corporate-knowledge/ytk-memory/internal/core"
 	"github.com/corporate-knowledge/ytk-memory/internal/release"
 	"github.com/corporate-knowledge/ytk-memory/internal/setup"
@@ -497,16 +498,21 @@ func doctorResolveFailure(project, database string, cause error, jsonOutput bool
 }
 
 func doctor(c config, jsonOutput bool, host string) error {
-	if _, err := os.Stat(c.database); os.IsNotExist(err) {
+	dbInfo, statErr := os.Stat(c.database)
+	if os.IsNotExist(statErr) {
 		result := map[string]any{"operation": "doctor", "healthy": false, "state": "missing_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "missing", "message": "No se encontró la base de datos. Ejecutá `ytk-memory setup codex` para crearla o restaurá un backup."}}}
 		return printDoctor(result, jsonOutput)
-	} else if err != nil {
-		result := map[string]any{"operation": "doctor", "healthy": false, "state": "invalid_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "invalid", "message": "No se pudo acceder a la base de datos: " + err.Error()}}}
+	} else if statErr != nil {
+		result := map[string]any{"operation": "doctor", "healthy": false, "state": "invalid_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "invalid", "message": "No se puede inspeccionar la ruta de la base de datos. Revisá permisos y directorios: " + statErr.Error()}}}
+		return printDoctor(result, jsonOutput)
+	}
+	if !dbInfo.Mode().IsRegular() {
+		result := map[string]any{"operation": "doctor", "healthy": false, "state": "invalid_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "invalid", "message": "La ruta configurada para SQLite no es un archivo regular. Revisá .ytk-memory.json y los permisos del directorio."}}}
 		return printDoctor(result, jsonOutput)
 	}
 	s, err := core.Open(c.database, nil)
 	if err != nil {
-		result := map[string]any{"operation": "doctor", "healthy": false, "state": "invalid_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "invalid", "message": "No se pudo abrir la base SQLite: " + err.Error()}}}
+		result := map[string]any{"operation": "doctor", "healthy": false, "state": "invalid_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "invalid", "message": "No se pudo abrir la base SQLite. Revisá permisos de lectura/escritura y acceso al directorio: " + err.Error()}}}
 		return printDoctor(result, jsonOutput)
 	}
 	defer s.Close()
@@ -705,6 +711,10 @@ func inspectCodexSetup(filename string) map[string]string {
 		return map[string]string{"name": "codex_mcp", "status": "invalid", "message": err.Error()}
 	}
 	text := string(contents)
+	var document map[string]any
+	if _, err := toml.Decode(text, &document); err != nil {
+		return map[string]string{"name": "codex_mcp", "status": "invalid", "message": "Codex config.toml no es TOML válido: " + err.Error() + ". Corregí el archivo y volvé a ejecutar doctor."}
+	}
 	begin, end := strings.Index(text, "# BEGIN ytk-memory-init:codex"), strings.Index(text, "# END ytk-memory-init:codex")
 	if begin < 0 && end < 0 {
 		return map[string]string{"name": "codex_mcp", "status": "not_configured", "message": "No native Codex MCP registration was found."}
@@ -722,6 +732,14 @@ func inspectCodexSetup(filename string) map[string]string {
 	}
 	if _, err := os.Stat(match[1]); err != nil {
 		return map[string]string{"name": "codex_mcp", "status": "invalid", "message": "Registered native executable is unavailable."}
+	}
+	running, err := os.Executable()
+	if err == nil {
+		registeredInfo, registeredErr := os.Stat(match[1])
+		runningInfo, runningErr := os.Stat(running)
+		if registeredErr == nil && runningErr == nil && !os.SameFile(registeredInfo, runningInfo) {
+			return map[string]string{"name": "codex_mcp", "status": "incompatible", "message": "Codex apunta a otro ejecutable de ytk-memory. Ejecutá `ytk-memory setup codex` desde la versión instalada para actualizar el registro."}
+		}
 	}
 	return map[string]string{"name": "codex_mcp", "status": "ok", "message": "Native MCP executable is registered and available."}
 }

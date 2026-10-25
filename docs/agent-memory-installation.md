@@ -160,6 +160,11 @@ campo estructurado `"healthy": true`, ejecutá `ytk-memory doctor --json`.
 Si la base no existe, ejecutá el setup nuevamente o restaurá un backup válido.
 Si `.ytk-memory.json` está dañado, `doctor --json` devuelve un check
 `project_config` para corregirlo antes de abrir la base.
+También valida que `config.toml` de Codex tenga sintaxis TOML válida, que la
+ruta SQLite apunte a un archivo accesible y que el registro MCP de Codex use el
+ejecutable actualmente en ejecución. Ante una ruta incorrecta, permisos
+insuficientes o una versión instalada diferente, el diagnóstico indica qué
+configuración corregir o volver a instalar con `ytk-memory setup codex`.
 
 También podés comprobar explícitamente el proyecto y el área:
 
