@@ -22,8 +22,18 @@ Ubicá el binario en un directorio incluido en `PATH` y comprobá:
 ytk-memory --version
 ```
 
-Cuando exista un canal de release firmado, verificá su checksum y firma según
-el procedimiento publicado por ese canal.
+Verificá el checksum y la firma antes de instalar. Con los cuatro archivos del
+release aprobado (`.tar.gz`/`.zip`, `.manifest.json`, `.sig` y `.pub`), ejecutá:
+
+```text
+ytk-memory release verify --artifact ytk-memory_0.1.0_windows_amd64.zip \
+  --manifest ytk-memory_0.1.0_windows_amd64.zip.manifest.json \
+  --signature ytk-memory_0.1.0_windows_amd64.zip.sig \
+  --public-key ytk-memory_0.1.0_windows_amd64.zip.pub
+```
+
+El archivo `.pub` debe coincidir con la clave pública publicada por el canal
+aprobado; no aceptes una clave nueva sólo porque la firma local valida.
 
 ## 2. Preparar el repositorio
 

@@ -29,8 +29,11 @@ El usuario confirmó que el piloto del
 La validación manual en Linux queda aplazada; por ahora, que pasen los checks
 Linux de GitHub Actions es suficiente. Go es el único runtime de Agent Memory.
 
-El siguiente incremento es P2: definir el canal de release confiable. La
-secuencia de mejoras está en
+El canal de release confiable está implementado inicialmente: el binario Go
+genera artefactos reproducibles con manifiesto, SHA-256 y firma Ed25519, y
+ofrece verificación antes de instalar. Quedan pendientes la custodia real de
+la clave, la política de rotación/revocación y ejecutar el primer tag aprobado.
+La secuencia de mejoras está en
 [la hoja de ruta](agent-memory-roadmap-2026-10-22.md).
 
 ## Verificación

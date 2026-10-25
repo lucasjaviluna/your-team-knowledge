@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/corporate-knowledge/ytk-memory/internal/core"
+	"github.com/corporate-knowledge/ytk-memory/internal/release"
 	"github.com/corporate-knowledge/ytk-memory/internal/setup"
 	"github.com/corporate-knowledge/ytk-memory/internal/surface"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -39,7 +40,7 @@ func main() {
 }
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: ytk-memory <mcp|setup|uninstall|conformance|evaluate|doctor|backup|upgrade|rollback> [options]")
+		return errors.New("usage: ytk-memory <mcp|setup|uninstall|conformance|evaluate|release|doctor|backup|upgrade|rollback> [options]")
 	}
 	if args[0] == "--version" || args[0] == "version" {
 		fmt.Println(version)
@@ -67,6 +68,9 @@ func run(args []string) error {
 			return err
 		}
 		return json.NewEncoder(os.Stdout).Encode(report)
+	}
+	if command == "release" {
+		return runRelease(args[1:])
 	}
 	if command == "setup" || command == "uninstall" {
 		return runSetup(command, args[1:])
@@ -115,6 +119,67 @@ func run(args []string) error {
 		return doRollback(cfg, *from, *currentTo, *confirm, *jsonOutput)
 	}
 	return fmt.Errorf("unknown operation: %s", command)
+}
+
+func runRelease(args []string) error {
+	if len(args) == 0 {
+		return errors.New("usage: ytk-memory release <package|verify> [options]")
+	}
+	switch args[0] {
+	case "package":
+		fs := flag.NewFlagSet("release package", flag.ContinueOnError)
+		fs.SetOutput(os.Stderr)
+		output := fs.String("output", "dist", "release output directory")
+		versionValue := fs.String("version", version, "semantic release version")
+		goos := fs.String("goos", runtime.GOOS, "target operating system")
+		goarch := fs.String("goarch", runtime.GOARCH, "target architecture")
+		moduleDir := fs.String("module-dir", "", "native Go module directory")
+		ephemeral := fs.Bool("ephemeral-key", false, "generate a temporary key (never use for an approved release)")
+		jsonOutput := fs.Bool("json", false, "print machine-readable JSON")
+		if err := fs.Parse(args[1:]); err != nil {
+			return err
+		}
+		if fs.NArg() != 0 {
+			return fmt.Errorf("unexpected argument: %s", fs.Arg(0))
+		}
+		result, err := release.Package(release.PackageInput{ModuleDir: *moduleDir, OutputDir: *output, Version: *versionValue, GOOS: *goos, GOARCH: *goarch, Ephemeral: *ephemeral})
+		if err != nil {
+			return err
+		}
+		if *jsonOutput {
+			return json.NewEncoder(os.Stdout).Encode(result)
+		}
+		fmt.Fprintf(os.Stdout, "Release empaquetado: %s\nManifiesto: %s\nFirma: %s\nClave pública: %s\nChecksum: %s\n", result.Artifact, result.Manifest, result.Signature, result.PublicKey, result.Checksum)
+		return nil
+	case "verify":
+		fs := flag.NewFlagSet("release verify", flag.ContinueOnError)
+		fs.SetOutput(os.Stderr)
+		artifact := fs.String("artifact", "", "release archive")
+		manifest := fs.String("manifest", "", "release manifest")
+		signature := fs.String("signature", "", "manifest signature")
+		publicKey := fs.String("public-key", "", "trusted public key")
+		jsonOutput := fs.Bool("json", false, "print machine-readable JSON")
+		if err := fs.Parse(args[1:]); err != nil {
+			return err
+		}
+		if fs.NArg() != 0 {
+			return fmt.Errorf("unexpected argument: %s", fs.Arg(0))
+		}
+		if *artifact == "" || *manifest == "" || *signature == "" || *publicKey == "" {
+			return errors.New("--artifact, --manifest, --signature and --public-key are required")
+		}
+		metadata, err := release.Verify(*artifact, *manifest, *signature, *publicKey)
+		if err != nil {
+			return err
+		}
+		if *jsonOutput {
+			return json.NewEncoder(os.Stdout).Encode(map[string]any{"verified": true, "manifest": metadata})
+		}
+		fmt.Fprintf(os.Stdout, "Release verificado: %s (%s/%s)\n", metadata.Artifact, metadata.GOOS, metadata.GOARCH)
+		return nil
+	default:
+		return fmt.Errorf("unknown release operation: %s", args[0])
+	}
 }
 
 func runSetup(command string, args []string) error {

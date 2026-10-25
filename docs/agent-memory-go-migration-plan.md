@@ -28,10 +28,13 @@ go build ./cmd/ytk-memory
 
 El piloto se completó en Windows según la confirmación del usuario. La prueba
 manual de Linux queda aplazada; los checks Linux de GitHub Actions son el gate
-aceptado por ahora.
+aceptado por ahora. El comando `release` genera paquetes reproducibles,
+manifiesto, checksum y firma Ed25519; los tags aprobados requieren una clave
+persistente del job protegido.
 
 ## Trabajo posterior
 
 Las mejoras futuras deben extender el módulo Go: contexto inicial compacto,
 herramientas de lifecycle y corrección, evaluación de recuperación, diagnóstico
-más detallado y distribución firmada desde un canal de release aprobado.
+más detallado, política de rotación/revocación de claves y el primer release
+aprobado desde el canal firmado.

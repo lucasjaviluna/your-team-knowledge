@@ -36,3 +36,72 @@ jobs:
         shell: pwsh
         run: go build -o (Join-Path $env:RUNNER_TEMP ytk-memory) ./cmd/ytk-memory
         working-directory: native/ytk-memory
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: validate
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+          - os: windows-2022
+            goos: windows
+            goarch: amd64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: native/ytk-memory/go.mod
+          cache-dependency-path: native/ytk-memory/go.sum
+      - name: Build release helper
+        shell: pwsh
+        run: go build -o (Join-Path $env:RUNNER_TEMP 'ytk-memory-release') ./cmd/ytk-memory
+        working-directory: native/ytk-memory
+      - name: Package signed release
+        shell: pwsh
+        env:
+          YTK_MEMORY_SIGNING_PRIVATE_KEY: ${{ secrets.YTK_MEMORY_SIGNING_PRIVATE_KEY }}
+        run: |
+          if (-not $env:YTK_MEMORY_SIGNING_PRIVATE_KEY) { throw 'YTK_MEMORY_SIGNING_PRIVATE_KEY is required for an approved release.' }
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          & (Join-Path $env:RUNNER_TEMP 'ytk-memory-release') release package --module-dir (Join-Path $env:GITHUB_WORKSPACE 'native/ytk-memory') --output (Join-Path $env:RUNNER_TEMP 'release') --version $version --goos '${{ matrix.goos }}' --goarch '${{ matrix.goarch }}' --json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ytk-memory-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ runner.temp }}/release/*
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          pattern: ytk-memory-*
+          merge-multiple: true
+      - name: Verify release files
+        shell: bash
+        run: |
+          set -euo pipefail
+          for manifest in release/*.manifest.json; do
+            artifact="${manifest%.manifest.json}"
+            base="$(basename "$artifact")"
+            test -s "$artifact"
+            test -s "${artifact}.sig"
+            test -s "${artifact}.pub"
+            test -s "${artifact}.sha256"
+            grep -F "$base" "${artifact}.sha256"
+          done
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release/* --verify-tag --generate-notes --title "$GITHUB_REF_NAME"

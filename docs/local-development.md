@@ -30,6 +30,25 @@ El servidor MCP usa SQLite local y no requiere PostgreSQL, servicios externos,
 embeddings ni modelos descargables. Para probarlo manualmente, compilá y luego
 iniciá `./ytk-memory mcp --project proyecto-prueba`.
 
+## Release local
+
+El empaquetado aprobado requiere una clave Ed25519 persistente en
+`YTK_MEMORY_SIGNING_PRIVATE_KEY`. Desde `native/ytk-memory`:
+
+```text
+ytk-memory release package --version 0.1.0 --goos linux --goarch amd64 --output dist
+ytk-memory release verify \
+  --artifact dist/ytk-memory_0.1.0_linux_amd64.tar.gz \
+  --manifest dist/ytk-memory_0.1.0_linux_amd64.tar.gz.manifest.json \
+  --signature dist/ytk-memory_0.1.0_linux_amd64.tar.gz.sig \
+  --public-key dist/ytk-memory_0.1.0_linux_amd64.tar.gz.pub
+```
+
+`--ephemeral-key` está reservado para smoke tests y no produce un artefacto
+apto para distribución. El workflow de tags `v*` exige el secreto persistente,
+sube el artefacto con su manifiesto, firma, clave pública y checksum, y publica
+el release sólo después de validar Windows y Linux.
+
 ## Límites actuales
 
 El producto se enfoca exclusivamente en Agent Memory para sesiones agenticas.
