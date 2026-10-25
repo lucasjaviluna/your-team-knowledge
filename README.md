@@ -15,6 +15,10 @@ El binario `ytk-memory` ofrece:
 - setup y uninstall de Codex con registro MCP global y activación local;
 - compilación y pruebas en Windows/Linux desde el módulo Go.
 
+El comando `ytk-memory evaluate` ejecuta el corpus sintético de recuperación y
+emite métricas JSON para comparar cambios de ranking y briefing. Consultá
+[docs/local-development.md](docs/local-development.md) para ejecutarlo.
+
 La guía de instalación está en [docs/agent-memory-installation.md](docs/agent-memory-installation.md)
 y la guía de consumidores en [docs/agent-memory-native-consumer-guide.md](docs/agent-memory-native-consumer-guide.md).
 

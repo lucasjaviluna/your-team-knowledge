@@ -29,8 +29,8 @@ El usuario confirmó que el piloto del
 La validación manual en Linux queda aplazada; por ahora, que pasen los checks
 Linux de GitHub Actions es suficiente. Go es el único runtime de Agent Memory.
 
-El siguiente incremento P1 es evaluar recuperación con tareas representativas y
-medir precisión, recall, latencia y tamaño del contexto. La secuencia de mejoras está en
+El siguiente incremento P1 es resolver conflictos y consolidación con control
+humano. La secuencia de mejoras está en
 [la hoja de ruta](agent-memory-roadmap-2026-10-22.md).
 
 ## Verificación
@@ -38,5 +38,6 @@ medir precisión, recall, latencia y tamaño del contexto. La secuencia de mejor
 La CI ejecuta `gofmt`, `go vet`, `go test` y `go build` sobre el módulo Go. No
 requiere Node.js, PostgreSQL, pgvector ni modelos de embeddings.
 
-Los incrementos P1 de briefing y lifecycle están implementados en código; su
-validación automatizada local sigue pendiente.
+El briefing, lifecycle y la evaluación de recuperación están implementados en
+código. El corpus sintético y el comando `ytk-memory evaluate` aportan métricas
+reproducibles de recall, precisión, latencia local y tamaño de contexto.

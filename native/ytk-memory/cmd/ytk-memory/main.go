@@ -39,7 +39,7 @@ func main() {
 }
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: ytk-memory <mcp|setup|uninstall|conformance|doctor|backup|upgrade|rollback> [options]")
+		return errors.New("usage: ytk-memory <mcp|setup|uninstall|conformance|evaluate|doctor|backup|upgrade|rollback> [options]")
 	}
 	if args[0] == "--version" || args[0] == "version" {
 		fmt.Println(version)
@@ -52,6 +52,17 @@ func run(args []string) error {
 			return err
 		}
 		report, err := core.RunConformance(fixture, database)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(os.Stdout).Encode(report)
+	}
+	if command == "evaluate" {
+		fixture, database, err := evaluationArguments(args[1:])
+		if err != nil {
+			return err
+		}
+		report, err := core.RunEvaluation(fixture, database)
 		if err != nil {
 			return err
 		}
@@ -582,6 +593,28 @@ func conformanceArguments(args []string) (string, string, error) {
 	}
 	if fixture == "" || database == "" {
 		return "", "", errors.New("--conformance-fixture and --database are required")
+	}
+	return fixture, database, nil
+}
+
+func evaluationArguments(args []string) (string, string, error) {
+	var fixture, database string
+	for i := 0; i < len(args); i++ {
+		if i+1 >= len(args) {
+			return "", "", fmt.Errorf("argument '%s' requires a value", args[i])
+		}
+		switch args[i] {
+		case "--evaluation-fixture":
+			fixture = args[i+1]
+		case "--database":
+			database = args[i+1]
+		default:
+			return "", "", fmt.Errorf("unexpected argument '%s'", args[i])
+		}
+		i++
+	}
+	if fixture == "" || database == "" {
+		return "", "", errors.New("--evaluation-fixture and --database are required")
 	}
 	return fixture, database, nil
 }

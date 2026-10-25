@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "clock": "2026-10-25T12:00:00Z",
+  "workspaceId": "evaluation-project",
+  "memories": [
+    {
+      "id": "auth-boundary",
+      "type": "decision",
+      "title": "Authentication stays at the gateway",
+      "content": "The gateway validates identity before requests reach services.",
+      "subjectKey": "architecture/authentication",
+      "tags": ["priority:high", "area:backend"]
+    },
+    {
+      "id": "rename-current",
+      "type": "decision",
+      "title": "Rename workspace to project",
+      "content": "Use projectId in public contracts. workspaceId remains only in SQLite internals.",
+      "subjectKey": "contract/project-name",
+      "tags": ["priority:high", "area:backend"]
+    },
+    {
+      "id": "rollback-decision",
+      "type": "decision",
+      "title": "Rollback requires a safety backup",
+      "content": "Create a backup of the current SQLite database before a rollback replaces it.",
+      "subjectKey": "operations/rollback-safety",
+      "tags": ["area:operations"]
+    },
+    {
+      "id": "exact-fts",
+      "type": "discovery",
+      "title": "FTS5 index is transactional",
+      "content": "The memory item and its FTS5 index commit together or both roll back.",
+      "subjectKey": "storage/fts-atomicity",
+      "tags": ["area:backend"]
+    },
+    {
+      "id": "legacy-conflict",
+      "type": "summary",
+      "title": "Legacy naming note",
+      "content": "Older documentation referred to a workspace. Do not use this term in new public contracts.",
+      "subjectKey": "history/workspace-name",
+      "tags": ["area:backend"]
+    },
+    {
+      "id": "irrelevant-ui",
+      "type": "preference",
+      "title": "Keep diagnostics concise",
+      "content": "Command line diagnostics should be actionable and brief.",
+      "subjectKey": "preference/diagnostics",
+      "tags": ["area:cli"]
+    }
+  ],
+  "searches": [
+    {
+      "id": "exact-term",
+      "query": "FTS5 transactional",
+      "relevantSubjectKeys": ["storage/fts-atomicity"],
+      "limit": 3
+    },
+    {
+      "id": "paraphrase-authentication",
+      "query": "where is identity checked",
+      "relevantSubjectKeys": ["architecture/authentication"],
+      "limit": 3
+    },
+    {
+      "id": "renamed-contract",
+      "query": "project identifier contract",
+      "relevantSubjectKeys": ["contract/project-name"],
+      "limit": 3
+    },
+    {
+      "id": "rollback-paraphrase",
+      "query": "restore database safely",
+      "relevantSubjectKeys": ["operations/rollback-safety"],
+      "limit": 3
+    }
+  ],
+  "briefings": [
+    {
+      "id": "priorities-and-recent-decisions",
+      "relevantSubjectKeys": ["architecture/authentication", "contract/project-name"],
+      "limit": 2
+    }
+  ]
+}
