@@ -30,7 +30,7 @@ type configFile struct {
 	Database    string `json:"database"`
 	Area        string `json:"default_area"`
 }
-type config struct{ project, database, area string }
+type config struct{ project, database, area, root string }
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -80,6 +80,7 @@ func run(args []string) error {
 	project := fs.String("project", "", "project id")
 	database := fs.String("database", "", "SQLite path")
 	area := fs.String("area", "", "memory area")
+	host := fs.String("host", "codex", "consumer host for doctor: codex or claude")
 	to := fs.String("to", "", "backup target")
 	backupTo := fs.String("backup-to", "", "upgrade backup target")
 	from := fs.String("from", "", "rollback source")
@@ -107,7 +108,10 @@ func run(args []string) error {
 		return surface.NewService(store, surface.Config{ProjectID: cfg.project, Area: cfg.area}).Server().Run(context.Background(), &mcp.StdioTransport{})
 	}
 	if command == "doctor" {
-		return doctor(cfg, *jsonOutput)
+		if *host != "codex" && *host != "claude" {
+			return errors.New("--host must be codex or claude.")
+		}
+		return doctor(cfg, *jsonOutput, *host)
 	}
 	if command == "backup" {
 		return doBackup(cfg, *to, *overwrite, *jsonOutput)
@@ -183,9 +187,10 @@ func runRelease(args []string) error {
 }
 
 func runSetup(command string, args []string) error {
-	if len(args) == 0 || args[0] != "codex" {
-		return errors.New("usage: ytk-memory setup codex [--dry-run] [--portable]")
+	if len(args) == 0 || (args[0] != "codex" && args[0] != "claude") {
+		return errors.New("usage: ytk-memory setup <codex|claude> [--dry-run] [--portable]")
 	}
+	host := args[0]
 	fs := flag.NewFlagSet(command, flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	project := fs.String("project", "", "project id")
@@ -201,6 +206,9 @@ func runSetup(command string, args []string) error {
 	}
 	if fs.NArg() != 0 {
 		return fmt.Errorf("unexpected argument: %s", fs.Arg(0))
+	}
+	if host == "claude" && (*portable || *removeGlobalMCP) {
+		return errors.New("--portable and --remove-global-mcp apply only to the Codex setup.")
 	}
 	cfg, err := resolve(*project, *database, *area, false)
 	if err != nil {
@@ -218,25 +226,41 @@ func runSetup(command string, args []string) error {
 	if err != nil {
 		return err
 	}
-	home, err := codexHome()
-	if err != nil {
-		return err
+	home := ""
+	if host == "codex" {
+		home, err = codexHome()
+		if err != nil {
+			return err
+		}
 	}
 	context := setup.Context{Root: cwd, Home: home, Executable: executable, ProjectID: cfg.project, Database: cfg.database, Area: cfg.area}
 	var result setup.Result
 	if command == "uninstall" || *remove {
-		removeGlobal := *removeGlobalMCP
-		if !removeGlobal && !*dryRun && !*jsonOutput {
-			removeGlobal, err = confirmGlobalMCPRemoval()
-			if err != nil {
-				return err
+		if host == "claude" {
+			result, err = setup.UninstallClaude(context, *dryRun)
+		} else {
+			removeGlobal := *removeGlobalMCP
+			if !removeGlobal && !*dryRun && !*jsonOutput {
+				removeGlobal, err = confirmGlobalMCPRemoval()
+				if err != nil {
+					return err
+				}
 			}
+			result, err = setup.Uninstall(context, *dryRun, removeGlobal)
 		}
-		result, err = setup.Uninstall(context, *dryRun, removeGlobal)
 	} else if *dryRun {
-		result, err = setup.Install(context, *dryRun, *portable)
+		if host == "claude" {
+			result, err = setup.InstallClaude(context, true)
+		} else {
+			result, err = setup.Install(context, true, *portable)
+		}
 	} else {
-		if _, err := setup.Install(context, true, *portable); err != nil {
+		if host == "claude" {
+			_, err = setup.InstallClaude(context, true)
+		} else {
+			_, err = setup.Install(context, true, *portable)
+		}
+		if err != nil {
 			return err
 		}
 		if err := os.MkdirAll(filepath.Dir(cfg.database), 0755); err != nil {
@@ -249,7 +273,11 @@ func runSetup(command string, args []string) error {
 		if closeErr := store.Close(); closeErr != nil {
 			return closeErr
 		}
-		result, err = setup.Install(context, false, *portable)
+		if host == "claude" {
+			result, err = setup.InstallClaude(context, false)
+		} else {
+			result, err = setup.Install(context, false, *portable)
+		}
 	}
 	if err != nil {
 		return err
@@ -281,7 +309,7 @@ func printSetupResult(result setup.Result) error {
 	if result.DryRun {
 		mode = "Vista previa"
 	}
-	fmt.Fprintf(os.Stdout, "%s · %s\nProyecto: %s\nCliente: Codex\nAlcance de instrucciones: %s\n", operation, mode, result.ProjectID, result.InstructionScope)
+	fmt.Fprintf(os.Stdout, "%s · %s\nProyecto: %s\nCliente: %s\nAlcance de instrucciones: %s\n", operation, mode, result.ProjectID, result.Agent, result.InstructionScope)
 	if len(result.Changes) == 0 {
 		fmt.Fprintln(os.Stdout, "\nNo se requieren cambios; la configuración ya está al día.")
 		return nil
@@ -404,7 +432,7 @@ func resolve(project, database, area string, requireLocalConfig bool) (config, e
 			return config{}, errors.New("Resolved project id is invalid.")
 		}
 	}
-	return config{project, database, area}, nil
+	return config{project: project, database: database, area: area, root: root}, nil
 }
 func slug(s string) string {
 	re := regexp.MustCompile(`[^a-zA-Z0-9]+`)
@@ -414,7 +442,7 @@ func slug(s string) string {
 	}
 	return s
 }
-func doctor(c config, jsonOutput bool) error {
+func doctor(c config, jsonOutput bool, host string) error {
 	if _, err := os.Stat(c.database); os.IsNotExist(err) {
 		result := map[string]any{"operation": "doctor", "healthy": false, "state": "missing_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "missing", "message": "No se encontró la base de datos. Ejecutá `ytk-memory setup codex` para crearla o restaurá un backup."}}}
 		return printDoctor(result, jsonOutput)
@@ -430,15 +458,54 @@ func doctor(c config, jsonOutput bool) error {
 	}
 	checks := []map[string]string{{"name": "database", "status": "ok", "message": "SQLite schema is readable."}}
 	healthy := true
-	if home, homeErr := codexHome(); homeErr == nil {
-		setupCheck := inspectCodexSetup(filepath.Join(home, "config.toml"))
+	if host == "codex" {
+		home, homeErr := codexHome()
+		if homeErr == nil {
+			setupCheck := inspectCodexSetup(filepath.Join(home, "config.toml"))
+			checks = append(checks, setupCheck)
+			if setupCheck["status"] != "ok" {
+				healthy = false
+			}
+		}
+	} else {
+		setupCheck := inspectClaudeSetup(filepath.Join(c.root, ".mcp.json"))
 		checks = append(checks, setupCheck)
 		if setupCheck["status"] != "ok" {
 			healthy = false
 		}
 	}
-	result := map[string]any{"operation": "doctor", "healthy": healthy, "projectId": c.project, "database": c.database, "lifecycle": life, "go": runtime.Version(), "checks": checks}
+	result := map[string]any{"operation": "doctor", "healthy": healthy, "host": host, "projectId": c.project, "database": c.database, "lifecycle": life, "go": runtime.Version(), "checks": checks}
 	return printDoctor(result, jsonOutput)
+}
+
+func inspectClaudeSetup(filename string) map[string]string {
+	contents, err := os.ReadFile(filename)
+	if os.IsNotExist(err) {
+		return map[string]string{"name": "claude_mcp", "status": "not_configured", "message": "Run ytk-memory setup claude to register the project MCP server."}
+	}
+	if err != nil {
+		return map[string]string{"name": "claude_mcp", "status": "invalid", "message": err.Error()}
+	}
+	var document map[string]any
+	if err := json.Unmarshal(contents, &document); err != nil {
+		return map[string]string{"name": "claude_mcp", "status": "invalid", "message": "Claude .mcp.json is not valid JSON."}
+	}
+	servers, ok := document["mcpServers"].(map[string]any)
+	if !ok {
+		return map[string]string{"name": "claude_mcp", "status": "not_configured", "message": "No Claude Code MCP server was found."}
+	}
+	server, ok := servers["ytk-memory"].(map[string]any)
+	if !ok || server["_managedBy"] != "ytk-memory-init" {
+		return map[string]string{"name": "claude_mcp", "status": "not_configured", "message": "No managed Claude Code MCP server was found."}
+	}
+	command, ok := server["command"].(string)
+	if !ok || command == "" {
+		return map[string]string{"name": "claude_mcp", "status": "invalid", "message": "Managed Claude Code MCP command is missing."}
+	}
+	if _, err := os.Stat(command); err != nil {
+		return map[string]string{"name": "claude_mcp", "status": "invalid", "message": "Registered native executable is unavailable."}
+	}
+	return map[string]string{"name": "claude_mcp", "status": "ok", "message": "Project-scoped Claude Code MCP server is registered and available."}
 }
 
 func printDoctor(result map[string]any, jsonOutput bool) error {

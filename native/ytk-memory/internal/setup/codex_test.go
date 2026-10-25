@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -164,5 +165,109 @@ func TestInstallMigratesOwnedProjectMCPRegistration(t *testing.T) {
 	}
 	if !strings.Contains(string(global), "args = [\"mcp\"]") {
 		t.Fatalf("global MCP registration was not created: %s", global)
+	}
+}
+
+func TestInstallClaudePreservesForeignProjectMCPAndUninstallsIdempotently(t *testing.T) {
+	ctx := contextFor(t)
+	mcpFile := filepath.Join(ctx.Root, ".mcp.json")
+	if err := os.WriteFile(mcpFile, []byte(`{"mcpServers":{"foreign":{"command":"foreign-mcp","args":["serve"]}},"otherSetting":true}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	claudeFile := filepath.Join(ctx.Root, "CLAUDE.md")
+	if err := os.WriteFile(claudeFile, []byte("# Existing Claude guidance\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	preview, err := InstallClaude(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.Agent != "claude-code" || preview.InstructionScope != "project" || len(preview.Changes) != 4 {
+		t.Fatalf("unexpected preview: %#v", preview)
+	}
+	if _, err := InstallClaude(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	var parsed map[string]any
+	contents, err := os.ReadFile(mcpFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(contents, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	servers := parsed["mcpServers"].(map[string]any)
+	if _, ok := servers["foreign"]; !ok {
+		t.Fatalf("foreign server was removed: %s", contents)
+	}
+	managed, ok := servers[claudeServerName].(map[string]any)
+	if !ok || managed[claudeManagedKey] != claudeManagedBy || managed["command"] != ctx.Executable {
+		t.Fatalf("managed Claude server is invalid: %s", contents)
+	}
+	claude, err := os.ReadFile(claudeFile)
+	if err != nil || !strings.Contains(string(claude), claudeLocalStart) || !strings.Contains(string(claude), "Existing Claude guidance") {
+		t.Fatalf("CLAUDE.md was not safely updated: %q err=%v", claude, err)
+	}
+	if repeat, err := InstallClaude(ctx, true); err != nil || len(repeat.Changes) != 0 {
+		t.Fatalf("Claude install is not idempotent: result=%#v err=%v", repeat, err)
+	}
+	if _, err := UninstallClaude(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	contents, err = os.ReadFile(mcpFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed = map[string]any{}
+	if err := json.Unmarshal(contents, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	servers = parsed["mcpServers"].(map[string]any)
+	if _, ok := servers["foreign"]; !ok {
+		t.Fatal("Claude uninstall removed foreign MCP configuration")
+	}
+	if _, ok := servers[claudeServerName]; ok {
+		t.Fatal("Claude uninstall retained its managed MCP server")
+	}
+	claude, err = os.ReadFile(claudeFile)
+	if err != nil || string(claude) != "# Existing Claude guidance\n" {
+		t.Fatalf("Claude uninstall changed foreign instructions: %q err=%v", claude, err)
+	}
+}
+
+func TestInstallClaudeRejectsForeignServerNameBeforeWriting(t *testing.T) {
+	ctx := contextFor(t)
+	filename := filepath.Join(ctx.Root, ".mcp.json")
+	if err := os.WriteFile(filename, []byte(`{"mcpServers":{"ytk-memory":{"command":"other"}}}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := InstallClaude(ctx, false); err == nil || !strings.Contains(err.Error(), "collision") {
+		t.Fatalf("expected collision error, got %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(ctx.Root, ".ytk-memory.json")); !os.IsNotExist(err) {
+		t.Fatal("Claude installer wrote before collision")
+	}
+}
+
+func TestInstallClaudeSupportsPathsWithSpaces(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "project with spaces")
+	if err := os.MkdirAll(root, 0755); err != nil {
+		t.Fatal(err)
+	}
+	ctx := Context{Root: root, Executable: filepath.Join(root, "bin with spaces", "ytk-memory"), ProjectID: "spaces", Database: filepath.Join(root, ".ytk-memory", "ytk-memory.sqlite")}
+	if _, err := InstallClaude(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	contents, err := os.ReadFile(filepath.Join(root, ".mcp.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(contents, &document); err != nil {
+		t.Fatal(err)
+	}
+	command := document["mcpServers"].(map[string]any)[claudeServerName].(map[string]any)["command"]
+	if command != ctx.Executable {
+		t.Fatalf("Claude MCP config lost executable path with spaces: %q", command)
 	}
 }

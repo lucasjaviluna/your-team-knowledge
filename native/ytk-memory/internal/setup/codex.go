@@ -48,7 +48,7 @@ func Install(ctx Context, dryRun, portable bool) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	return apply(ctx, changes, dryRun, false)
+	return apply(ctx, changes, dryRun, false, "codex", "local")
 }
 func Uninstall(ctx Context, dryRun, removeGlobalMCP bool) (Result, error) {
 	if err := valid(ctx); err != nil {
@@ -58,7 +58,7 @@ func Uninstall(ctx Context, dryRun, removeGlobalMCP bool) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	return apply(ctx, changes, dryRun, true)
+	return apply(ctx, changes, dryRun, true, "codex", "local")
 }
 func valid(ctx Context) error {
 	if strings.TrimSpace(ctx.Root) == "" || strings.TrimSpace(ctx.ProjectID) == "" || strings.TrimSpace(ctx.Database) == "" || strings.TrimSpace(ctx.Executable) == "" {
@@ -163,8 +163,8 @@ func uninstallChanges(ctx Context, removeGlobalMCP bool) ([]change, error) {
 	}
 	return changes, nil
 }
-func apply(ctx Context, changes []change, dry, uninstall bool) (Result, error) {
-	result := Result{ProjectID: ctx.ProjectID, Agent: "codex", InstructionScope: "local", DryRun: dry, Uninstall: uninstall, Files: []string{}, Changes: []Change{}}
+func apply(ctx Context, changes []change, dry, uninstall bool, agent, instructionScope string) (Result, error) {
+	result := Result{ProjectID: ctx.ProjectID, Agent: agent, InstructionScope: instructionScope, DryRun: dry, Uninstall: uninstall, Files: []string{}, Changes: []Change{}}
 	pending := []change{}
 	for _, c := range changes {
 		before := read(c.file)

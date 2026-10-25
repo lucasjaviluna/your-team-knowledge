@@ -36,6 +36,10 @@ la clave, la política de rotación/revocación y ejecutar el primer tag aprobad
 La secuencia de mejoras está en
 [la hoja de ruta](agent-memory-roadmap-2026-10-22.md).
 
+Claude Code es el segundo host automatizado: usa `.mcp.json` y `CLAUDE.md` por
+proyecto, sin modificar la configuración global de Codex. El siguiente host en
+prioridad es Pi, seguido por OpenCode.
+
 ## Verificación
 
 La CI ejecuta `gofmt`, `go vet`, `go test` y `go build` sobre el módulo Go. No

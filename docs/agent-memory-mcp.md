@@ -13,6 +13,23 @@ ytk-memory setup codex
 ytk-memory doctor --json
 ```
 
+Claude Code dispone de una integración idempotente por proyecto:
+
+```text
+ytk-memory setup claude --dry-run
+ytk-memory setup claude
+ytk-memory doctor --host claude --json
+```
+
+El setup conserva los demás servidores de `.mcp.json`, añade sólo el servidor
+administrado `ytk-memory` bajo `mcpServers` y agrega instrucciones propias a
+`CLAUDE.md`. Claude Code pide al usuario aprobar servidores de proyecto antes
+de usarlos. Para retirar sólo esta integración, sin borrar la base local:
+
+```text
+ytk-memory uninstall claude
+```
+
 Para otro host MCP compatible con `stdio`, generá la configuración portable:
 
 ```text

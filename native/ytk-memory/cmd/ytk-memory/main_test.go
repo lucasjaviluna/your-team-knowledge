@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -60,5 +61,27 @@ func TestResolveRequiresLocalProjectConfiguration(t *testing.T) {
 	}
 	if resolved.project != "sample" {
 		t.Fatalf("got project %q, want sample", resolved.project)
+	}
+}
+
+func TestInspectClaudeSetupChecksManagedProjectServer(t *testing.T) {
+	root := t.TempDir()
+	executable := filepath.Join(root, "ytk-memory")
+	if err := os.WriteFile(executable, []byte("binary"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	mcp := `{"mcpServers":{"ytk-memory":{"_managedBy":"ytk-memory-init","command":` + strconv.Quote(executable) + `,"args":["mcp"]}}}`
+	filename := filepath.Join(root, ".mcp.json")
+	if err := os.WriteFile(filename, []byte(mcp), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if check := inspectClaudeSetup(filename); check["status"] != "ok" {
+		t.Fatalf("unexpected Claude setup check: %#v", check)
+	}
+	if err := os.Remove(executable); err != nil {
+		t.Fatal(err)
+	}
+	if check := inspectClaudeSetup(filename); check["status"] != "invalid" {
+		t.Fatalf("missing executable was accepted: %#v", check)
 	}
 }

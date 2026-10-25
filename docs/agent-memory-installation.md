@@ -78,6 +78,28 @@ El registro MCP global arranca el binario en el proyecto abierto por Codex. El
 servidor sólo opera si encuentra `.ytk-memory.json` en ese proyecto o uno de
 sus directorios padre; así un proyecto sin setup local no crea ni usa memoria.
 
+### Claude Code
+
+Para registrar el mismo servidor como MCP por proyecto de Claude Code:
+
+```text
+ytk-memory setup claude --dry-run
+ytk-memory setup claude
+ytk-memory doctor --host claude
+```
+
+El comando conserva servidores ajenos de `.mcp.json`, registra solamente
+`mcpServers.ytk-memory` con su marcador de propiedad y añade un bloque
+administrado a `CLAUDE.md`. Al abrir el proyecto, aprobá el servidor MCP cuando
+Claude Code lo solicite. La desinstalación es igualmente acotada:
+
+```text
+ytk-memory uninstall claude
+```
+
+No borra `.ytk-memory/ytk-memory.sqlite`, `.ytk-memory.json` ni entradas MCP
+que no pertenezcan a Agent Memory.
+
 ## 3. Verificar la instalación
 
 Ejecutá:
@@ -171,6 +193,8 @@ repositorio.
 | `AGENTS.md`                          | Instrucciones locales del agente.                 |
 | `.agents/skills/ytk-memory/SKILL.md` | Procedimiento operativo de memoria.               |
 | `.ytk-memory/mcp.json`               | Configuración portable opcional para otros hosts. |
+| `.mcp.json`                           | Registro MCP por proyecto administrado para Claude Code. |
+| `CLAUDE.md`                           | Instrucciones locales administradas para Claude Code. |
 
 ## Resolución de problemas
 
