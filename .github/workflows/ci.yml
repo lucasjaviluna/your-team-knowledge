@@ -39,7 +39,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: validate
+    needs: [validate, prepare-release]
     permissions:
       contents: write
     strategy:
@@ -70,6 +70,7 @@ jobs:
         env:
           YTK_MEMORY_SIGNING_PRIVATE_KEY: ${{ secrets.YTK_MEMORY_SIGNING_PRIVATE_KEY }}
           YTK_MEMORY_SIGNING_PUBLIC_KEY: ${{ vars.YTK_MEMORY_SIGNING_PUBLIC_KEY }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if (-not $env:YTK_MEMORY_SIGNING_PRIVATE_KEY) { throw 'YTK_MEMORY_SIGNING_PRIVATE_KEY is required for an approved release.' }
           if (-not $env:YTK_MEMORY_SIGNING_PUBLIC_KEY) { throw 'YTK_MEMORY_SIGNING_PUBLIC_KEY repository variable is required for an approved release.' }
@@ -107,37 +108,34 @@ jobs:
             $names = ($releaseFiles | ForEach-Object Name) -join ', '
             throw "Expected five release files in '$releaseDir', found $($releaseFiles.Count): $names"
           }
-          $uploadDir = Join-Path $env:RUNNER_TEMP 'ytk-memory-release-upload'
-          New-Item -ItemType Directory -Path $uploadDir -Force | Out-Null
-          $releaseFiles | Copy-Item -Destination $uploadDir -Force
-          $stagedFiles = @(Get-ChildItem -LiteralPath $uploadDir -File -ErrorAction Stop)
-          if ($stagedFiles.Count -ne $releaseFiles.Count) {
-            throw "Staging copied $($stagedFiles.Count) of $($releaseFiles.Count) release files to '$uploadDir'."
-          }
-          Write-Host "Package step staged $($stagedFiles.Count) files in '$uploadDir'."
-          $stagedFiles | Select-Object Name, Length | Format-Table -AutoSize
-      - name: Confirm release files before upload
-        shell: pwsh
+          $uploadPaths = @($releaseFiles | ForEach-Object { $_.FullName })
+          & gh release upload $env:GITHUB_REF_NAME @uploadPaths --repo $env:GITHUB_REPOSITORY --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Unable to upload release assets for $env:GITHUB_REF_NAME." }
+
+  prepare-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create or reuse draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          $uploadDir = Join-Path $env:RUNNER_TEMP 'ytk-memory-release-upload'
-          if (-not (Test-Path -LiteralPath $uploadDir -PathType Container)) {
-            $releaseDir = Join-Path $env:GITHUB_WORKSPACE 'release-output'
-            $releaseNames = if (Test-Path -LiteralPath $releaseDir -PathType Container) {
-              (Get-ChildItem -LiteralPath $releaseDir -File | ForEach-Object Name) -join ', '
-            } else { '<directory missing>' }
-            throw "Staging directory '$uploadDir' is missing. Release output '$releaseDir': $releaseNames"
-          }
-          $files = Get-ChildItem -LiteralPath $uploadDir -File -ErrorAction Stop
-          if ($files.Count -ne 5) {
-            $names = ($files | ForEach-Object Name) -join ', '
-            throw "Expected five staged release files in '$uploadDir', found $($files.Count): $names"
-          }
-          $files | Select-Object Name, Length | Format-Table -AutoSize
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ytk-memory-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: ${{ runner.temp }}/ytk-memory-release-upload
-          if-no-files-found: error
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          repo="$GITHUB_REPOSITORY"
+          if release_json="$(gh release view "$tag" --repo "$repo" --json isDraft 2>/dev/null)"; then
+            is_draft="$(printf '%s' "$release_json" | jq -r '.isDraft')"
+            if [[ "$is_draft" != "true" ]]; then
+              echo "Release $tag already exists and is published; refusing to replace its assets." >&2
+              exit 1
+            fi
+          else
+            gh release create "$tag" --repo "$repo" --draft --verify-tag --generate-notes --title "$tag"
+          fi
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -151,24 +149,12 @@ jobs:
         with:
           go-version-file: native/ytk-memory/go.mod
           cache-dependency-path: native/ytk-memory/go.sum
-      - name: Download Linux release artifact
-        uses: actions/download-artifact@v4
-        with:
-          path: release
-          name: ytk-memory-linux-amd64
-          merge-multiple: true
-      - name: Download Windows release artifact
-        uses: actions/download-artifact@v4
-        with:
-          path: release
-          name: ytk-memory-windows-amd64
-          merge-multiple: true
-      - name: Download macOS release artifact
-        uses: actions/download-artifact@v4
-        with:
-          path: release
-          name: ytk-memory-darwin-arm64
-          merge-multiple: true
+      - name: Download draft release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p release
+          gh release download "$GITHUB_REF_NAME" --dir release --repo "$GITHUB_REPOSITORY"
       - name: Verify release files
         shell: bash
         run: |
@@ -213,4 +199,4 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release/* --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false --repo "$GITHUB_REPOSITORY"

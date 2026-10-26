@@ -29,9 +29,11 @@ nombre, SHA-256, clave pública confiable y firma antes de instalar.
 - El canal distingue una firma persistente de una firma temporal de CI.
 - La rotación o revocación de la clave debe publicarse junto con la política de
   soporte del canal; no se acepta una clave nueva silenciosamente.
-- Sólo los jobs de empaquetado del workflow de releases acceden al secreto. El
-  job de publicación recibe artefactos, manifiestos, firmas, claves públicas y
-  checksums, y los verifica antes de subirlos juntos.
+- Sólo los jobs de empaquetado del workflow de releases acceden al secreto.
+  Cada job sube sus cinco archivos directamente a un GitHub Release en borrador.
+  El job final descarga los activos, verifica manifiestos, firmas y checksums,
+  y publica el borrador sólo cuando están presentes los tres objetivos de
+  plataforma y todas las verificaciones pasan.
 - La CI compara la clave pública emitida con la variable pública
   `YTK_MEMORY_SIGNING_PUBLIC_KEY` antes de publicar, y verifica cada firma.
 - La custodia, rotación y revocación se rigen por la
