@@ -74,14 +74,19 @@ jobs:
           if (-not $env:YTK_MEMORY_SIGNING_PRIVATE_KEY) { throw 'YTK_MEMORY_SIGNING_PRIVATE_KEY is required for an approved release.' }
           if (-not $env:YTK_MEMORY_SIGNING_PUBLIC_KEY) { throw 'YTK_MEMORY_SIGNING_PUBLIC_KEY repository variable is required for an approved release.' }
           $version = $env:GITHUB_REF_NAME.TrimStart('v')
-          & (Join-Path $env:RUNNER_TEMP 'ytk-memory-release') release package --module-dir (Join-Path $env:GITHUB_WORKSPACE 'native/ytk-memory') --output (Join-Path $env:RUNNER_TEMP 'release') --version $version --goos '${{ matrix.goos }}' --goarch '${{ matrix.goarch }}' --json
+          $releaseDir = Join-Path $env:GITHUB_WORKSPACE 'release-output'
+          New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
+          & (Join-Path $env:RUNNER_TEMP 'ytk-memory-release') release package --module-dir (Join-Path $env:GITHUB_WORKSPACE 'native/ytk-memory') --output $releaseDir --version $version --goos '${{ matrix.goos }}' --goarch '${{ matrix.goarch }}' --json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $publicKey = (Get-Content (Join-Path $env:RUNNER_TEMP 'release' '*.pub') -Raw).Trim()
+          $publicKeyFile = Get-ChildItem -LiteralPath $releaseDir -File -Filter '*.pub' | Select-Object -First 1
+          if (-not $publicKeyFile) { throw "Release package did not create a public key in '$releaseDir'." }
+          $publicKey = (Get-Content -LiteralPath $publicKeyFile.FullName -Raw).Trim()
           if ($publicKey -cne $env:YTK_MEMORY_SIGNING_PUBLIC_KEY.Trim()) { throw 'Release public key does not match YTK_MEMORY_SIGNING_PUBLIC_KEY.' }
       - name: Validate packaged binary
         shell: pwsh
         run: |
-          $artifact = Get-ChildItem (Join-Path $env:RUNNER_TEMP 'release') -File | Where-Object { $_.Name -match '\.(zip|tar\.gz)$' } | Select-Object -First 1
+          $releaseDir = Join-Path $env:GITHUB_WORKSPACE 'release-output'
+          $artifact = Get-ChildItem -LiteralPath $releaseDir -File | Where-Object { $_.Name -match '\.(zip|tar\.gz)$' } | Select-Object -First 1
           if (-not $artifact) { throw 'Release artifact is missing.' }
           $extract = Join-Path $env:RUNNER_TEMP 'release-smoke'
           New-Item -ItemType Directory -Path $extract -Force | Out-Null
@@ -98,7 +103,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ytk-memory-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: ${{ runner.temp }}/release/*
+          path: release-output/*
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
