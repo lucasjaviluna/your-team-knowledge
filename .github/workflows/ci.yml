@@ -110,10 +110,23 @@ jobs:
           $uploadDir = Join-Path $env:RUNNER_TEMP 'ytk-memory-release-upload'
           New-Item -ItemType Directory -Path $uploadDir -Force | Out-Null
           $releaseFiles | Copy-Item -Destination $uploadDir -Force
+          $stagedFiles = @(Get-ChildItem -LiteralPath $uploadDir -File -ErrorAction Stop)
+          if ($stagedFiles.Count -ne $releaseFiles.Count) {
+            throw "Staging copied $($stagedFiles.Count) of $($releaseFiles.Count) release files to '$uploadDir'."
+          }
+          Write-Host "Package step staged $($stagedFiles.Count) files in '$uploadDir'."
+          $stagedFiles | Select-Object Name, Length | Format-Table -AutoSize
       - name: Confirm release files before upload
         shell: pwsh
         run: |
           $uploadDir = Join-Path $env:RUNNER_TEMP 'ytk-memory-release-upload'
+          if (-not (Test-Path -LiteralPath $uploadDir -PathType Container)) {
+            $releaseDir = Join-Path $env:GITHUB_WORKSPACE 'release-output'
+            $releaseNames = if (Test-Path -LiteralPath $releaseDir -PathType Container) {
+              (Get-ChildItem -LiteralPath $releaseDir -File | ForEach-Object Name) -join ', '
+            } else { '<directory missing>' }
+            throw "Staging directory '$uploadDir' is missing. Release output '$releaseDir': $releaseNames"
+          }
           $files = Get-ChildItem -LiteralPath $uploadDir -File -ErrorAction Stop
           if ($files.Count -ne 5) {
             $names = ($files | ForEach-Object Name) -join ', '
