@@ -66,7 +66,6 @@ jobs:
         run: go build -o (Join-Path $env:RUNNER_TEMP 'ytk-memory-release') ./cmd/ytk-memory
         working-directory: native/ytk-memory
       - name: Package signed release
-        id: package
         shell: pwsh
         env:
           YTK_MEMORY_SIGNING_PRIVATE_KEY: ${{ secrets.YTK_MEMORY_SIGNING_PRIVATE_KEY }}
@@ -90,19 +89,6 @@ jobs:
           if (-not (Test-Path -LiteralPath $publicKeyPath -PathType Leaf)) { throw "Release package did not create its reported public key '$publicKeyPath'." }
           $publicKey = (Get-Content -LiteralPath $publicKeyPath -Raw).Trim()
           if ($publicKey -cne $env:YTK_MEMORY_SIGNING_PUBLIC_KEY.Trim()) { throw 'Release public key does not match YTK_MEMORY_SIGNING_PUBLIC_KEY.' }
-          "artifact_path=$artifactPath" >> $env:GITHUB_OUTPUT
-      - name: Validate packaged binary
-        env:
-          RELEASE_ARTIFACT: ${{ steps.package.outputs.artifact_path }}
-        shell: pwsh
-        run: |
-          $artifactPath = $env:RELEASE_ARTIFACT
-          if (-not $artifactPath) { throw 'Package step did not provide the artifact path.' }
-          if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
-            $releaseDir = Join-Path $env:GITHUB_WORKSPACE 'release-output'
-            $files = (Get-ChildItem -LiteralPath $releaseDir -File -ErrorAction SilentlyContinue | ForEach-Object Name) -join ', '
-            throw "Release artifact '$artifactPath' is missing in validation step. Files in output directory: $files"
-          }
           $artifact = Get-Item -LiteralPath $artifactPath
           $extract = Join-Path $env:RUNNER_TEMP 'release-smoke'
           New-Item -ItemType Directory -Path $extract -Force | Out-Null
