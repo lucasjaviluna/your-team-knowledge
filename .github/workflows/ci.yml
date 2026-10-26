@@ -66,6 +66,7 @@ jobs:
         run: go build -o (Join-Path $env:RUNNER_TEMP 'ytk-memory-release') ./cmd/ytk-memory
         working-directory: native/ytk-memory
       - name: Package signed release
+        id: package
         shell: pwsh
         env:
           YTK_MEMORY_SIGNING_PRIVATE_KEY: ${{ secrets.YTK_MEMORY_SIGNING_PRIVATE_KEY }}
@@ -76,18 +77,33 @@ jobs:
           $version = $env:GITHUB_REF_NAME.TrimStart('v')
           $releaseDir = Join-Path $env:GITHUB_WORKSPACE 'release-output'
           New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
-          & (Join-Path $env:RUNNER_TEMP 'ytk-memory-release') release package --module-dir (Join-Path $env:GITHUB_WORKSPACE 'native/ytk-memory') --output $releaseDir --version $version --goos '${{ matrix.goos }}' --goarch '${{ matrix.goarch }}' --json
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $publicKeyFile = Get-ChildItem -LiteralPath $releaseDir -File -Filter '*.pub' | Select-Object -First 1
-          if (-not $publicKeyFile) { throw "Release package did not create a public key in '$releaseDir'." }
-          $publicKey = (Get-Content -LiteralPath $publicKeyFile.FullName -Raw).Trim()
+          $packageJson = & (Join-Path $env:RUNNER_TEMP 'ytk-memory-release') release package --module-dir (Join-Path $env:GITHUB_WORKSPACE 'native/ytk-memory') --output $releaseDir --version $version --goos '${{ matrix.goos }}' --goarch '${{ matrix.goarch }}' --json
+          $packageExitCode = $LASTEXITCODE
+          if ($packageExitCode -ne 0) { exit $packageExitCode }
+          $package = $packageJson | ConvertFrom-Json
+          $artifactPath = [string]$package.artifact
+          $publicKeyPath = [string]$package.publicKey
+          if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
+            $files = (Get-ChildItem -LiteralPath $releaseDir -File | ForEach-Object Name) -join ', '
+            throw "Release package did not create its reported artifact '$artifactPath'. Files in output directory: $files"
+          }
+          if (-not (Test-Path -LiteralPath $publicKeyPath -PathType Leaf)) { throw "Release package did not create its reported public key '$publicKeyPath'." }
+          $publicKey = (Get-Content -LiteralPath $publicKeyPath -Raw).Trim()
           if ($publicKey -cne $env:YTK_MEMORY_SIGNING_PUBLIC_KEY.Trim()) { throw 'Release public key does not match YTK_MEMORY_SIGNING_PUBLIC_KEY.' }
+          "artifact_path=$artifactPath" >> $env:GITHUB_OUTPUT
       - name: Validate packaged binary
+        env:
+          RELEASE_ARTIFACT: ${{ steps.package.outputs.artifact_path }}
         shell: pwsh
         run: |
-          $releaseDir = Join-Path $env:GITHUB_WORKSPACE 'release-output'
-          $artifact = Get-ChildItem -LiteralPath $releaseDir -File | Where-Object { $_.Name -match '\.(zip|tar\.gz)$' } | Select-Object -First 1
-          if (-not $artifact) { throw 'Release artifact is missing.' }
+          $artifactPath = $env:RELEASE_ARTIFACT
+          if (-not $artifactPath) { throw 'Package step did not provide the artifact path.' }
+          if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
+            $releaseDir = Join-Path $env:GITHUB_WORKSPACE 'release-output'
+            $files = (Get-ChildItem -LiteralPath $releaseDir -File -ErrorAction SilentlyContinue | ForEach-Object Name) -join ', '
+            throw "Release artifact '$artifactPath' is missing in validation step. Files in output directory: $files"
+          }
+          $artifact = Get-Item -LiteralPath $artifactPath
           $extract = Join-Path $env:RUNNER_TEMP 'release-smoke'
           New-Item -ItemType Directory -Path $extract -Force | Out-Null
           if ($artifact.Extension -eq '.zip') {

@@ -37,11 +37,12 @@ una medición de relevancia o adopción en tareas reales.
 
 1. **Completar el primer release firmado:** el tag `v0.1.0` existe. Se corrigió
    el cierre de archivos tar/gzip/ZIP y el smoke test Ubuntu ya pasó. En el job
-   Windows, la validación no encontró el directorio de artefactos bajo
-   `RUNNER_TEMP`; el workflow ahora usa `GITHUB_WORKSPACE/release-output` de forma
-   consistente entre empaquetado, validación y carga. Falta integrar el cambio y
-   publicar un nuevo tag semántico para verificar todas las plataformas. No se
-   confirmó la publicación del release.
+   Windows, la validación no encontró el ZIP mediante el filtro por extensión.
+   El workflow ahora pasa la ruta exacta del artefacto reportada por el empaquetador
+   y enumera los archivos disponibles si falta. Usa `GITHUB_WORKSPACE/release-output`
+   para empaquetado, validación y carga. Falta integrar el cambio y publicar un
+   nuevo tag semántico para verificar todas las plataformas. No se confirmó la
+   publicación del release.
 2. **Reparar índices FTS legados:** `Open` crea la tabla FTS5 pero la migración
    no reindexa filas antiguas cuando esa tabla no existía. Implementar rebuild
    seguro y testear búsqueda después de migración.
