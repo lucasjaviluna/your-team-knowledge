@@ -40,21 +40,9 @@ jobs:
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [validate, prepare-release]
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            goos: linux
-            goarch: amd64
-          - os: windows-2022
-            goos: windows
-            goarch: amd64
-          - os: macos-26
-            goos: darwin
-            goarch: arm64
-    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -62,55 +50,70 @@ jobs:
           go-version-file: native/ytk-memory/go.mod
           cache-dependency-path: native/ytk-memory/go.sum
       - name: Build release helper
-        shell: pwsh
-        run: go build -o (Join-Path $env:RUNNER_TEMP 'ytk-memory-release') ./cmd/ytk-memory
+        run: go build -o "$RUNNER_TEMP/ytk-memory-release" ./cmd/ytk-memory
         working-directory: native/ytk-memory
-      - name: Package signed release
-        shell: pwsh
+      - name: Package and upload signed releases
         env:
           YTK_MEMORY_SIGNING_PRIVATE_KEY: ${{ secrets.YTK_MEMORY_SIGNING_PRIVATE_KEY }}
           YTK_MEMORY_SIGNING_PUBLIC_KEY: ${{ vars.YTK_MEMORY_SIGNING_PUBLIC_KEY }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (-not $env:YTK_MEMORY_SIGNING_PRIVATE_KEY) { throw 'YTK_MEMORY_SIGNING_PRIVATE_KEY is required for an approved release.' }
-          if (-not $env:YTK_MEMORY_SIGNING_PUBLIC_KEY) { throw 'YTK_MEMORY_SIGNING_PUBLIC_KEY repository variable is required for an approved release.' }
-          $version = $env:GITHUB_REF_NAME.TrimStart('v')
-          $releaseDir = Join-Path $env:GITHUB_WORKSPACE 'release-output'
-          New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
-          $packageJson = & (Join-Path $env:RUNNER_TEMP 'ytk-memory-release') release package --module-dir (Join-Path $env:GITHUB_WORKSPACE 'native/ytk-memory') --output $releaseDir --version $version --goos '${{ matrix.goos }}' --goarch '${{ matrix.goarch }}' --json
-          $packageExitCode = $LASTEXITCODE
-          if ($packageExitCode -ne 0) { exit $packageExitCode }
-          $package = $packageJson | ConvertFrom-Json
-          $artifactPath = [string]$package.artifact
-          $publicKeyPath = [string]$package.publicKey
-          if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
-            $files = (Get-ChildItem -LiteralPath $releaseDir -File | ForEach-Object Name) -join ', '
-            throw "Release package did not create its reported artifact '$artifactPath'. Files in output directory: $files"
+          set -euo pipefail
+          : "${YTK_MEMORY_SIGNING_PRIVATE_KEY:?YTK_MEMORY_SIGNING_PRIVATE_KEY is required for an approved release.}"
+          : "${YTK_MEMORY_SIGNING_PUBLIC_KEY:?YTK_MEMORY_SIGNING_PUBLIC_KEY repository variable is required for an approved release.}"
+          version="${GITHUB_REF_NAME#v}"
+          release_dir="$RUNNER_TEMP/release-output"
+          mkdir -p "$release_dir"
+          upload_files=()
+
+          for target in "linux amd64" "windows amd64" "darwin arm64"; do
+            read -r goos goarch <<< "$target"
+            echo "Packaging $goos/$goarch for $version"
+            package_json="$("$RUNNER_TEMP/ytk-memory-release" release package \
+              --module-dir "$GITHUB_WORKSPACE/native/ytk-memory" \
+              --output "$release_dir" \
+              --version "$version" \
+              --goos "$goos" \
+              --goarch "$goarch" \
+              --json)"
+            artifact="$(jq -er '.artifact' <<< "$package_json")"
+            public_key="$(jq -er '.publicKey' <<< "$package_json")"
+            [[ -s "$artifact" ]] || { echo "Package did not create $artifact" >&2; exit 1; }
+            [[ -s "$public_key" ]] || { echo "Package did not create $public_key" >&2; exit 1; }
+            actual_public_key="$(tr -d '\r\n' < "$public_key")"
+            [[ "$actual_public_key" == "$YTK_MEMORY_SIGNING_PUBLIC_KEY" ]] || {
+              echo "Release public key for $goos/$goarch does not match YTK_MEMORY_SIGNING_PUBLIC_KEY." >&2
+              exit 1
+            }
+            for suffix in ".manifest.json" ".sig" ".pub" ".sha256"; do
+              companion="${artifact}${suffix}"
+              [[ -s "$companion" ]] || { echo "Package did not create $companion" >&2; exit 1; }
+              upload_files+=("$companion")
+            done
+            upload_files+=("$artifact")
+
+            if [[ "$goos" == "linux" ]]; then
+              smoke_dir="$RUNNER_TEMP/release-smoke-linux"
+              mkdir -p "$smoke_dir"
+              tar -xzf "$artifact" -C "$smoke_dir"
+              actual_version="$("$smoke_dir/ytk-memory" version)"
+              [[ "$actual_version" == "$version" ]] || {
+                echo "Packaged Linux binary version '$actual_version' does not match '$version'." >&2
+                exit 1
+              }
+            elif [[ "$goos" == "windows" ]]; then
+              unzip -t "$artifact"
+            else
+              tar -tzf "$artifact" | grep -Fx 'ytk-memory'
+            fi
+          done
+
+          [[ "${#upload_files[@]}" -eq 15 ]] || {
+            echo "Expected 15 release files, collected ${#upload_files[@]}." >&2
+            exit 1
           }
-          if (-not (Test-Path -LiteralPath $publicKeyPath -PathType Leaf)) { throw "Release package did not create its reported public key '$publicKeyPath'." }
-          $publicKey = (Get-Content -LiteralPath $publicKeyPath -Raw).Trim()
-          if ($publicKey -cne $env:YTK_MEMORY_SIGNING_PUBLIC_KEY.Trim()) { throw 'Release public key does not match YTK_MEMORY_SIGNING_PUBLIC_KEY.' }
-          $artifact = Get-Item -LiteralPath $artifactPath
-          $extract = Join-Path $env:RUNNER_TEMP 'release-smoke'
-          New-Item -ItemType Directory -Path $extract -Force | Out-Null
-          if ($artifact.Extension -eq '.zip') {
-            Expand-Archive -LiteralPath $artifact.FullName -DestinationPath $extract
-          } else {
-            tar -xzf $artifact.FullName -C $extract
-            if ($LASTEXITCODE -ne 0) { throw 'Unable to extract the release archive.' }
-          }
-          $binary = Get-ChildItem -LiteralPath $extract -File -Recurse | Where-Object { $_.Name -match '^ytk-memory(\.exe)?$' } | Select-Object -First 1
-          if (-not $binary) { throw 'Packaged ytk-memory binary is missing.' }
-          $actual = (& $binary.FullName version).Trim()
-          if ($actual -ne $env:GITHUB_REF_NAME.TrimStart('v')) { throw "Packaged binary version '$actual' does not match tag '$env:GITHUB_REF_NAME'." }
-          $releaseFiles = Get-ChildItem -LiteralPath $releaseDir -File
-          if ($releaseFiles.Count -ne 5) {
-            $names = ($releaseFiles | ForEach-Object Name) -join ', '
-            throw "Expected five release files in '$releaseDir', found $($releaseFiles.Count): $names"
-          }
-          $uploadPaths = @($releaseFiles | ForEach-Object { $_.FullName })
-          & gh release upload $env:GITHUB_REF_NAME @uploadPaths --repo $env:GITHUB_REPOSITORY --clobber
-          if ($LASTEXITCODE -ne 0) { throw "Unable to upload release assets for $env:GITHUB_REF_NAME." }
+          gh release upload "$GITHUB_REF_NAME" "${upload_files[@]}" \
+            --repo "$GITHUB_REPOSITORY" --clobber
 
   prepare-release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -167,12 +170,14 @@ jobs:
           )
           for base in "${artifacts[@]}"; do
             artifact="release/${base}"
-            manifest="${artifact}.manifest.json"
-            test -s "$artifact"
-            test -s "$manifest"
-            test -s "${artifact}.sig"
-            test -s "${artifact}.pub"
-            test -s "${artifact}.sha256"
+            for path in "$artifact" "${artifact}.manifest.json" "${artifact}.sig" "${artifact}.pub" "${artifact}.sha256"; do
+              if [[ ! -s "$path" ]]; then
+                echo "Missing or empty release asset: $path" >&2
+                echo "Downloaded assets:" >&2
+                find release -maxdepth 1 -type f -printf '%f\n' | sort >&2
+                exit 1
+              fi
+            done
             grep -F "$base" "${artifact}.sha256"
           done
       - name: Verify signatures before publication
