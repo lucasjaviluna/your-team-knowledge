@@ -45,8 +45,8 @@ de esos hosts.
 
 | Área | Estado | Siguiente trabajo |
 | --- | --- | --- |
-| Release firmado | Código/workflow implementados, primer release aún no activado. | Configurar fuera del repo secreto Ed25519 y variable pública de Actions, verificar huella y crear tag semántico aprobado. |
-| Índice FTS legado | Migración crea FTS5 pero no hace backfill de filas previas si la tabla FTS faltaba. | Añadir reconstrucción transaccional y prueba de upgrade/búsqueda sobre fixture legado. |
+| Release firmado | Operativo: `v0.1.5` publicado tras CI verde en Windows, Linux y macOS. | Rotar la clave sólo según [release-policy.md](release-policy.md) y conservar la custodia fuera del repositorio. |
+| Índice FTS legado | Resuelto: la apertura crea y rellena FTS5 de forma transaccional si la tabla falta. | Mantener la prueba de migración y búsqueda al cambiar el esquema. |
 | Evaluación real | Hay baseline sintética reproducible, no medición de utilidad o calidad con tareas reales. | Evaluar búsqueda/briefing en repos consumidores, registrar relevancia, ruido y latencia. |
 | Concurrencia | Transacciones e idempotencia cubiertas en operaciones; no hay caracterización completa de varios procesos y reintentos. | Probar escritores concurrentes, reintentos y recuperación WAL. |
 | Plataformas | Windows x64, Linux x64 y macOS arm64 en CI/release. | Añadir arm64 u otros gestores sólo con demanda y soporte. |
@@ -67,15 +67,13 @@ agente: las tools correspondientes ya existen.
 
 ### P2 — Distribución y soporte
 
-1. Activar primer release firmado una vez que la custodia real esté configurada.
-2. Reparar backfill/rebuild FTS para bases legadas sin índice poblado.
-3. Evaluar hosts y tareas reales cuando los repositorios consumidores estén
+1. Evaluar hosts y tareas reales cuando los repositorios consumidores estén
    disponibles.
-4. Caracterizar concurrencia/reintentos y ajustar prácticas operativas.
+2. Caracterizar concurrencia/reintentos y ajustar prácticas operativas.
 
-El primer punto está bloqueado por configuración externa de firma. La política
-se describe en [release-policy.md](release-policy.md); la clave privada no se
-almacena en Git, docs ni conversación.
+El release firmado quedó operativo con `v0.1.5`. La política de custodia y
+rotación se describe en [release-policy.md](release-policy.md); la clave privada
+no se almacena en Git, docs ni conversación.
 
 ### P3 — Decisiones opcionales
 

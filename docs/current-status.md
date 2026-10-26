@@ -14,6 +14,8 @@ retirados del alcance; ver [ADR 0009](adr/0009-agent-memory-only-scope.md).
 
 - Core Go con SQLite/FTS5; sesiones, memorias, `subjectKey`, relaciones,
   lifecycle, revisión, retención y consolidación.
+- Migración FTS5 para bases heredadas: crea y rellena el índice de forma
+  transaccional cuando falta, con rollback si alguna memoria no se puede indexar.
 - MCP `stdio` con once herramientas y proceso ligado a un proyecto; briefing
   compacto, búsqueda lexical, corrección versionada y consolidación confirmada.
 - Setup/uninstall para Codex, Claude Code, Pi y OpenCode. Codex registra MCP en
@@ -24,8 +26,9 @@ retirados del alcance; ver [ADR 0009](adr/0009-agent-memory-only-scope.md).
 - Evaluación sintética de retrieval y conformance; salida JSON con métricas
   reproducibles.
 - CI en Windows x64, Linux x64 y macOS arm64 con formato, vet, pruebas y build.
-- Canal de release implementado: paquetes, manifiesto, SHA-256, firma Ed25519,
-  verificación de artefactos y smoke test por tag.
+- Canal de release firmado operativo: `v0.1.5` publicado tras CI verde en
+  Windows x64, Linux x64 y macOS arm64. Genera paquetes, manifiesto, SHA-256,
+  firma Ed25519, verificación de artefactos y smoke test por tag.
 - Documentación técnica integral en
   [technical-architecture.md](technical-architecture.md).
 
@@ -35,26 +38,13 @@ una medición de relevancia o adopción en tareas reales.
 
 ## Pendiente
 
-1. **Completar el primer release firmado:** el tag `v0.1.0` existe. Se corrigió
-   el cierre de archivos tar/gzip/ZIP y el smoke test Ubuntu ya pasó. En el job
-   Windows, el output entre los pasos de empaquetado y validación quedó vacío.
-   La validación se ejecuta ahora dentro del mismo paso que produce el paquete y
-   consume directamente la ruta exacta informada por el empaquetador. Usa
-   `GITHUB_WORKSPACE/release-output` para empaquetado y carga. Falta integrar el
-   cambio y publicar un nuevo tag semántico para verificar todas las plataformas.
-   No se confirmó la publicación del release.
-2. **Reparar índices FTS legados:** `Open` crea la tabla FTS5 pero la migración
-   no reindexa filas antiguas cuando esa tabla no existía. Implementar rebuild
-   seguro y testear búsqueda después de migración.
-3. **Validar en consumidores reales:** medir calidad del briefing/búsqueda y
+1. **Validar en consumidores reales:** medir calidad del briefing/búsqueda y
    comprobar cada host cuando haya repositorios disponibles.
-4. **Caracterizar concurrencia y reintentos** con más de un proceso SQLite.
+2. **Caracterizar concurrencia y reintentos** con más de un proceso SQLite.
 
 La CI está definida en `.github/workflows/ci.yml`; la custodia y procedimiento
-de firma están en [release-policy.md](release-policy.md). En el intento
-informado, la generación y comparación de la clave pública pasó;
-el fallo reportado fue la extracción del paquete Ubuntu. No se confirmó que el
-release se haya publicado.
+de firma están en [release-policy.md](release-policy.md). El workflow de
+`v0.1.5` empaquetó, verificó y publicó el release firmado correctamente.
 
 ## Verificación y referencias
 

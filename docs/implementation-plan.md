@@ -11,6 +11,8 @@ criterios de producto están en la [hoja de ruta](agent-memory-roadmap-2026-10-2
 
 - Runtime único en Go con core SQLite/FTS5, sesiones, memorias, `subjectKey`,
   relaciones, lifecycle, revisión, retención y consolidación.
+- La migración crea y rellena FTS5 de forma transaccional cuando falta en una
+  base heredada; una falla de backfill revierte el índice completo.
 - Once herramientas MCP por `stdio`, con proceso fijado a proyecto, owner de
   sesión, briefing inicial, búsqueda lexical y confirmación previa a consolidar.
 - CLI `doctor`, backup, upgrade y rollback; el doctor diagnostica TOML de
@@ -21,8 +23,8 @@ criterios de producto están en la [hoja de ruta](agent-memory-roadmap-2026-10-2
 - Evaluación sintética de retrieval y runner de conformance.
 - CI de Go en Windows x64, Linux x64 y macOS arm64 con `gofmt`, `go vet`,
   `go test` y build.
-- Empaquetado firmado Ed25519, manifiesto, SHA-256, verificación y workflow de
-  tag con smoke test antes de publicar.
+- Release firmado Ed25519 operativo: `v0.1.5` fue empaquetado, verificado y
+  publicado tras CI verde en Windows x64, Linux x64 y macOS arm64.
 - Documentación técnica integral en
   [technical-architecture.md](technical-architecture.md).
 
@@ -33,22 +35,11 @@ consumidores disponibles; los tests actuales validan adaptadores y archivos.
 
 ## Pendiente, en orden
 
-1. **Activar el primer release firmado.** Una persona responsable debe generar
-   y custodiar una clave Ed25519 persistente fuera del repositorio, configurar
-   `YTK_MEMORY_SIGNING_PRIVATE_KEY` como secreto de Actions y
-   `YTK_MEMORY_SIGNING_PUBLIC_KEY` como variable pública del repositorio,
-   verificar la huella y crear un tag semántico aprobado. CI construirá y
-   verificará Windows x64, Linux x64 y macOS arm64 antes de publicar. La clave
-   privada no se guarda en Git, memoria del proyecto, logs ni conversación.
-2. **Reparar el índice FTS al migrar bases antiguas.** La migración actual crea
-   FTS5 si falta, pero no incorpora automáticamente filas existentes al índice.
-   Diseñar una rutina transaccional de rebuild, añadir prueba sobre fixture
-   heredado y definir cuándo doctor/upgrade la ejecutan.
-3. **Ampliar validación con consumidores reales.** Probar hosts usados por el
+1. **Ampliar validación con consumidores reales.** Probar hosts usados por el
    equipo y tareas reales, medir utilidad/ruido de briefing y búsqueda, y
    documentar hallazgos. El corpus sintético sólo entrega una línea base
    reproducible; no es evaluación externa.
-4. **Ejercitar concurrencia y reintentos.** Medir comportamiento con varios
+2. **Ejercitar concurrencia y reintentos.** Medir comportamiento con varios
    procesos SQLite locales e idempotencia de las operaciones compuestas antes
    de recomendar un patrón de uso concurrente.
 

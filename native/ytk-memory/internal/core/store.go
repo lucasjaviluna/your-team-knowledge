@@ -101,9 +101,6 @@ func (s *Store) migrate(ctx context.Context) error {
 			FOREIGN KEY (source_memory_id) REFERENCES memory_items(id),
 			FOREIGN KEY (target_memory_id) REFERENCES memory_items(id)
 		);
-		CREATE VIRTUAL TABLE IF NOT EXISTS memory_items_fts USING fts5(
-			memory_id UNINDEXED, title, content, tags, subject_key
-		);
 	`)
 	if err != nil {
 		return err
@@ -125,8 +122,62 @@ func (s *Store) migrate(ctx context.Context) error {
 			return err
 		}
 	}
-	_, err = s.db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS memory_items_lifecycle_idx ON memory_items(workspace_id, status, valid_from, expires_at, review_at)`)
-	return err
+	if _, err = s.db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS memory_items_lifecycle_idx ON memory_items(workspace_id, status, valid_from, expires_at, review_at)`); err != nil {
+		return err
+	}
+	ftsExists, err := tableExists(ctx, s.db, "memory_items_fts")
+	if err != nil {
+		return err
+	}
+	if !ftsExists {
+		return s.createAndBackfillFTS(ctx)
+	}
+	return nil
+}
+
+func tableExists(ctx context.Context, db *sql.DB, name string) (bool, error) {
+	var count int
+	err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, name).Scan(&count)
+	return count > 0, err
+}
+
+func (s *Store) createAndBackfillFTS(ctx context.Context) (retErr error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if retErr != nil {
+			_ = tx.Rollback()
+		}
+	}()
+	if _, err := tx.ExecContext(ctx, `CREATE VIRTUAL TABLE memory_items_fts USING fts5(
+		memory_id UNINDEXED, title, content, tags, subject_key
+	)`); err != nil {
+		return err
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT id, title, content, tags_json, subject_key FROM memory_items`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var item Memory
+		var tagsJSON string
+		if err := rows.Scan(&item.ID, &item.Title, &item.Content, &tagsJSON, &item.SubjectKey); err != nil {
+			return err
+		}
+		if err := json.Unmarshal([]byte(tagsJSON), &item.Tags); err != nil {
+			return fmt.Errorf("decode tags for FTS backfill %q: %w", item.ID, err)
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO memory_items_fts (memory_id, title, content, tags, subject_key) VALUES (?, ?, ?, ?, ?)`, item.ID, item.Title, item.Content, strings.Join(item.Tags, " "), valueOrEmpty(item.SubjectKey)); err != nil {
+			return err
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func ensureColumn(ctx context.Context, db *sql.DB, table, column, definition string) error {

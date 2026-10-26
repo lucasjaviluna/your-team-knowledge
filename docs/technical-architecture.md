@@ -275,12 +275,13 @@ con la tabla canónica. `index()` borra entrada previa por ID e inserta el texto
 actual; tags se unen con espacios. No hay triggers: escrituras SQL manuales
 pueden dejar FTS desincronizado y toda herramienta debe pasar por core.
 
-La migración no incluye una tarea general de reconstrucción/backfill FTS para
-filas existentes. Si una base legada tiene memorias pero no tenía tabla FTS,
-`Open` crea la virtual table, pero las filas antiguas no se insertan allí por
-el código de migración actual; no aparecerán en búsqueda lexical hasta que se
-reindexen. El runtime no expone todavía un comando de reparación FTS. Este
-límite debe considerarse en upgrades desde esquemas previos a FTS.
+Antes de crear FTS5, la migración consulta `sqlite_master`. Si la tabla falta,
+`Open` la crea y rellena desde todas las filas de `memory_items` dentro de una
+sola transacción. Cada `tags_json` se decodifica y normaliza al mismo texto que
+usa `index()`. Si una fila no puede decodificarse o insertarse, la transacción
+revierte: la apertura falla y no deja un índice parcial. Si FTS5 ya existe, la
+migración no lo reconstruye para no alterar un índice operativo durante una
+apertura rutinaria.
 
 ### 5.3 Índices B-tree
 

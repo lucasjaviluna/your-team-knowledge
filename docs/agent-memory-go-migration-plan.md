@@ -30,12 +30,7 @@ sintética entrega baseline lexical, no resultados de tareas reales.
 
 ## Pendiente
 
-1. Activar el primer release firmado configurando de forma segura el secreto
-   `YTK_MEMORY_SIGNING_PRIVATE_KEY`, la variable pública
-   `YTK_MEMORY_SIGNING_PUBLIC_KEY` y ejecutando un tag semántico aprobado.
-2. Implementar reconstrucción del índice FTS para filas legadas cuando la
-   virtual table se crea por primera vez durante migración.
-3. Validar retrieval y hosts en repositorios consumidores y caracterizar
+1. Validar retrieval y hosts en repositorios consumidores y caracterizar
    concurrencia/reintentos.
 
 Ver [release-policy.md](release-policy.md), [current-status.md](current-status.md)

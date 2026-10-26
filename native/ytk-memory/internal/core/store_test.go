@@ -52,6 +52,52 @@ func TestOpenMigratesLegacySQLiteDatabase(t *testing.T) {
 	if found.ID != "legacy-memory" {
 		t.Fatalf("found %s", found.ID)
 	}
+	items, err := store.Search(context.Background(), "workspace-a", "legacy boundary", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 || items[0].ID != "legacy-memory" {
+		t.Fatalf("legacy FTS backfill search = %#v", items)
+	}
+}
+
+func TestOpenRollsBackFTSBackfillForInvalidLegacyTags(t *testing.T) {
+	filename := filepath.Join(t.TempDir(), "legacy-invalid-tags.sqlite")
+	database, err := sql.Open("sqlite", filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = database.Exec(`CREATE TABLE memory_items (
+		id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, session_id TEXT,
+		type TEXT NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL,
+		subject_key TEXT, tags_json TEXT NOT NULL, status TEXT NOT NULL,
+		created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+	); INSERT INTO memory_items VALUES (
+		'invalid-tags', 'workspace-a', NULL, 'decision', 'Invalid legacy tags',
+		'FTS migration must roll back.', NULL, '{invalid-json}', 'active',
+		'2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'
+	);`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := database.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(filename, nil); err == nil {
+		t.Fatal("Open succeeded despite invalid legacy tags")
+	}
+	database, err = sql.Open("sqlite", filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer database.Close()
+	ftsExists, err := tableExists(context.Background(), database, "memory_items_fts")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ftsExists {
+		t.Fatal("FTS table persisted after backfill rollback")
+	}
 }
 
 func TestBackupCapturesCommittedDataWithWALActive(t *testing.T) {
