@@ -105,7 +105,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ytk-memory-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: release-output/*
+          path: release-output
           if-no-files-found: error
 
   publish:
