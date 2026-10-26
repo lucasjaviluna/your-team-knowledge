@@ -43,16 +43,14 @@ el ciclo básico y no necesitan duplicarse.
 
 ### P0 — Estabilidad y validación
 
-1. **PR 01: concurrencia y reintentos multiproceso.** Ejecutar dos o más
-   procesos independientes sobre la misma SQLite. Cubrir lectores y escritores
-   simultáneos, guardados repetidos con el mismo `subjectKey`, cierre de sesión,
-   transacciones interrumpidas, backup con WAL activo y reapertura después de un
-   fallo. Registrar `SQLITE_BUSY`, latencia, duplicados, consistencia entre
-   `memory_items` y FTS5 y recuperación. Definir `busy_timeout`, límites de
-   reintento e idempotencia sólo después de medirlos. Criterio: sin corrupción,
-   pérdida de escrituras confirmadas, duplicados activos indebidos ni índices
-   parciales bajo una carga reproducible; los conflictos esperables deben
-   devolver errores accionables.
+1. **PR 01: concurrencia y reintentos multiproceso — completado.** El runtime
+   configura `busy_timeout` de 10 s, transacciones `IMMEDIATE`, activa WAL con
+   reintentos acotados y aplica cambios de esquema/backfill FTS5 en una
+   transacción. La prueba automatizada usa ocho procesos, 20 guardados nuevos y
+   20 upserts concurrentes por proceso, recuperación tras interrupción y backup
+   mientras hay una transacción WAL abierta; pasó cinco ejecuciones
+   consecutivas en Windows con cero errores `SQLITE_BUSY`/`SQLITE_LOCKED`.
+   Ver [ADR 0011](adr/0011-sqlite-multiprocess-concurrency.md).
 2. **PR 02: piloto reproducible en consumidores reales.** Usar dos repositorios
    y dos hosts; medir relevancia, ruido, latencia y aplicación correcta de
    memorias en tareas reales. Comprobar reinicio, aislamiento, actualización,
@@ -62,9 +60,9 @@ el ciclo básico y no necesitan duplicarse.
    superar la matriz y los umbrales fijados antes de ejecutar el
    [runbook](agent-memory-pilot-runbook.md).
 
-Ambos PR deben ser revisables por separado. La prueba manual Linux continúa
-aplazada; CI Linux sigue siendo el gate automatizado aceptado para el tramo
-actual y no se presentará como una prueba de uso con un host real.
+El PR 01 y el PR 02 son incrementos revisables por separado. La prueba manual
+Linux continúa aplazada; CI Linux sigue siendo el gate automatizado aceptado
+para el tramo actual y no se presentará como una prueba de uso con un host real.
 
 ### P1 — Uso agéntico y operación
 

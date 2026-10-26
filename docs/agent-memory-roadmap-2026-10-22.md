@@ -48,7 +48,7 @@ de esos hosts.
 | Release firmado | Operativo: `v0.1.5` publicado tras CI verde en Windows, Linux y macOS. | Rotar la clave sólo según [release-policy.md](release-policy.md) y conservar la custodia fuera del repositorio. |
 | Índice FTS legado | Resuelto: la apertura crea y rellena FTS5 de forma transaccional si la tabla falta. | Mantener la prueba de migración y búsqueda al cambiar el esquema. |
 | Evaluación real | Hay baseline sintética reproducible, no medición de utilidad o calidad con tareas reales. | Evaluar búsqueda/briefing en repos consumidores, registrar relevancia, ruido y latencia. |
-| Concurrencia | Transacciones e idempotencia cubiertas en operaciones; no hay caracterización completa de varios procesos y reintentos. | Probar escritores concurrentes, reintentos y recuperación WAL. |
+| Concurrencia | WAL, timeout, transacciones `IMMEDIATE` y migración transaccional implementados. Prueba de ocho procesos y lector simultáneo pasó cinco veces en Windows sin `SQLITE_BUSY`/`SQLITE_LOCKED`. | Mantener la regresión y comprobarla en CI de las plataformas soportadas. |
 | Plataformas | Windows x64, Linux x64 y macOS arm64 en CI/release. | Añadir arm64 u otros gestores sólo con demanda y soporte. |
 
 ## Plan priorizado
@@ -67,9 +67,10 @@ agente: las tools correspondientes ya existen.
 
 ### P2 — Madurez operativa pendiente
 
-1. Caracterizar primero concurrencia y reintentos multiproceso, recuperación
-   WAL, backup e integridad SQLite/FTS5 con una carga reproducible.
-2. Ejecutar después el piloto de dos repositorios y dos hosts: medir utilidad de
+1. **Completado:** caracterizar concurrencia multiproceso, recuperación WAL,
+   backup e integridad SQLite/FTS5 con una carga reproducible; ver
+   [ADR 0011](adr/0011-sqlite-multiprocess-concurrency.md).
+2. **Siguiente:** ejecutar el piloto de dos repositorios y dos hosts: medir utilidad de
    briefing/búsqueda, aislamiento, persistencia y recuperación entre sesiones.
 3. Según los hallazgos, probar mecanismos de lifecycle del host y validar en
    uso real Codex, Claude Code, Pi y OpenCode. Evaluar CLI de lectura, doctor de

@@ -211,20 +211,32 @@ entre procesos.
 
 ### 5.1 Apertura, WAL y migración
 
-`migrate` ejecuta `PRAGMA foreign_keys = ON` y `PRAGMA journal_mode = WAL`, crea
-tablas/índices con `IF NOT EXISTS` y luego añade columnas ausentes comprobando
-`PRAGMA table_info`. WAL permite solapar lectores y un escritor con mejor
-comportamiento que rollback journal; no permite varios escritores paralelos.
+`Open` configura cada conexión mediante el DSN del driver: claves foráneas
+activadas, `busy_timeout` de 10 000 ms y transacciones con bloqueo `IMMEDIATE`.
+Después activa `PRAGMA journal_mode = WAL` fuera de una transacción. La
+activación de WAL reintenta errores SQLite `BUSY`/`LOCKED` hasta seis intentos
+con espera exponencial acotada. Luego ejecuta tablas, índices, columnas legacy y
+creación/backfill de FTS5 dentro de una sola transacción `IMMEDIATE`; esto
+serializa la inicialización entre procesos y evita que dos aperturas observen
+simultáneamente una columna o tabla FTS ausente.
+
+WAL permite solapar lectores con un escritor; no permite varios escritores
+paralelos. `IMMEDIATE` adquiere el turno de escritura al comenzar la transacción
+en vez de después de leer. El timeout deja que otro proceso termine su
+transacción antes de informar bloqueo. El código no reejecuta automáticamente
+el cuerpo de una escritura ya iniciada: ante un error de `COMMIT` no siempre se
+puede inferir desde la aplicación si el resultado se confirmó, y repetir una
+operación compuesta podría duplicar efectos. `subjectKey` hace idempotente el
+upsert correspondiente, mientras que el timeout y los errores SQLite
+accionables manejan contención fuera de ese caso.
 
 La migración actual es idempotente y basada en introspección de columnas. No
 hay tabla `schema_migrations` ni se escribe `PRAGMA user_version`; release
 declara un `schemaVersion` constante, pero el runtime no mantiene un historial
 numerado de migraciones. Por eso `Open` puede mutar DB incluso durante doctor y
-upgrade; una apertura no equivale a inspección read-only. El código emite
-`PRAGMA foreign_keys=ON` al migrar; SQLite lo aplica por conexión y el runtime
-no configura explícitamente un DSN con esa pragma para cada conexión nueva.
-Las operaciones que dependen de FKs también verifican ownership/workspace en
-las reglas de core.
+upgrade; una apertura no equivale a inspección read-only. Las claves foráneas
+quedan activadas para cada conexión mediante el DSN. Las operaciones que
+dependen de FKs también verifican ownership/workspace en las reglas de core.
 
 ### 5.2 Esquema exacto
 
@@ -831,7 +843,9 @@ smoke de versión y publish. Esto da feedback de compilación/test y prueba el
 artefacto distribuido antes de publicarlo.
 
 Cobertura por paquete: core (migración legacy, WAL backup, store/search,
-lifecycle, transacciones, relaciones/retención); surface (round-trip MCP,
+lifecycle, transacciones, relaciones/retención y estrés SQLite con ocho
+procesos, lector concurrente, upsert por clave, apertura simultánea, recuperación
+de transacción interrumpida y backup WAL); surface (round-trip MCP,
 ownership/scope, límites y confirmación); setup (idempotencia y preservación
 por host); evaluación (fixture/métricas); release (package/hash/signature);
 CLI (doctor, config, rollback legado). Ver [desarrollo local](local-development.md)

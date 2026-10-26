@@ -38,17 +38,23 @@ una medición de relevancia o adopción en tareas reales.
 
 ## Pendiente
 
-1. **Caracterizar concurrencia y reintentos multiproceso:** probar lectores y
-   escritores sobre la misma SQLite, idempotencia, interrupciones, WAL, backup
-   y consistencia de FTS5 con una carga reproducible.
-2. **Validar en consumidores reales:** ejecutar el
+1. **Validar en consumidores reales:** ejecutar el
    [runbook del piloto](agent-memory-pilot-runbook.md) en dos repositorios y dos
    hosts, medir calidad del briefing/búsqueda y recuperación entre sesiones.
-3. **Ampliar uso y operación según la evidencia:** investigar hooks de lifecycle
+2. **Ampliar uso y operación según la evidencia:** investigar hooks de lifecycle
    si el piloto revela omisiones; comprobar los cuatro hosts en uso real y
    evaluar CLI de lectura, doctor de solo lectura, preservación de JSONC en
    OpenCode e instalación reproducible. Ver criterios y dependencias en el
    [plan de implementación](implementation-plan.md).
+
+La concurrencia local SQLite quedó caracterizada el 2026-10-26: ocho procesos
+independientes realizaron guardados y upserts concurrentes sobre una clave
+compartida; se verificaron migración simultánea, rollback al interrumpir una
+transacción y backup coherente con WAL activo. El escenario multiproceso pasó
+cinco ejecuciones consecutivas en Windows: 320 escrituras por ejecución en
+2,0–3,8 s, sin errores `SQLITE_BUSY`/`SQLITE_LOCKED`. La política se describe en
+[ADR 0011](adr/0011-sqlite-multiprocess-concurrency.md). Sigue pendiente el
+piloto con hosts y repositorios reales.
 
 La CI está definida en `.github/workflows/ci.yml`; la custodia y procedimiento
 de firma están en [release-policy.md](release-policy.md). El workflow de

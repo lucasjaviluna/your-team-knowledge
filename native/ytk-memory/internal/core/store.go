@@ -14,10 +14,14 @@ import (
 	"strings"
 	"time"
 
-	_ "modernc.org/sqlite"
+	sqlite "modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 const timestampLayout = "2006-01-02T15:04:05.000Z07:00"
+
+const sqliteBusyTimeoutMS = 10000
+const sqliteBusyRetryLimit = 6
 
 type Store struct {
 	db  *sql.DB
@@ -62,7 +66,11 @@ func Open(filename string, now func() time.Time) (*Store, error) {
 	if now == nil {
 		now = time.Now
 	}
-	db, err := sql.Open("sqlite", filename)
+	dsn := fmt.Sprintf("%s?_busy_timeout=%d&_foreign_keys=on&_txlock=immediate", filename, sqliteBusyTimeoutMS)
+	if strings.Contains(filename, "?") {
+		dsn = fmt.Sprintf("%s&_busy_timeout=%d&_foreign_keys=on&_txlock=immediate", filename, sqliteBusyTimeoutMS)
+	}
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -77,9 +85,25 @@ func Open(filename string, now func() time.Time) (*Store, error) {
 func (s *Store) Close() error { return s.db.Close() }
 
 func (s *Store) migrate(ctx context.Context) error {
-	_, err := s.db.ExecContext(ctx, `
-		PRAGMA foreign_keys = ON;
-		PRAGMA journal_mode = WAL;
+	// journal_mode cannot be changed from inside a transaction. Connection-level
+	// locking and foreign-key settings are supplied by the driver DSN.
+	if err := retrySQLiteBusy(ctx, func() error {
+		_, err := s.db.ExecContext(ctx, `PRAGMA journal_mode = WAL`)
+		return err
+	}); err != nil {
+		return err
+	}
+	var tx *sql.Tx
+	if err := retrySQLiteBusy(ctx, func() error {
+		var err error
+		tx, err = s.db.BeginTx(ctx, nil)
+		return err
+	}); err != nil {
+		return err
+	}
+	var err error
+	defer tx.Rollback()
+	_, err = tx.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS sessions (
 			id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, owner_id TEXT,
 			started_at TEXT NOT NULL, ended_at TEXT, summary TEXT
@@ -108,7 +132,7 @@ func (s *Store) migrate(ctx context.Context) error {
 	for _, column := range []struct{ name, definition string }{
 		{"owner_id", "TEXT"},
 	} {
-		if err := ensureColumn(ctx, s.db, "sessions", column.name, column.definition); err != nil {
+		if err := ensureColumn(ctx, tx, "sessions", column.name, column.definition); err != nil {
 			return err
 		}
 	}
@@ -118,39 +142,67 @@ func (s *Store) migrate(ctx context.Context) error {
 		{"review_at", "TEXT"},
 		{"archived_at", "TEXT"},
 	} {
-		if err := ensureColumn(ctx, s.db, "memory_items", column.name, column.definition); err != nil {
+		if err := ensureColumn(ctx, tx, "memory_items", column.name, column.definition); err != nil {
 			return err
 		}
 	}
-	if _, err = s.db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS memory_items_lifecycle_idx ON memory_items(workspace_id, status, valid_from, expires_at, review_at)`); err != nil {
+	if _, err = tx.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS memory_items_lifecycle_idx ON memory_items(workspace_id, status, valid_from, expires_at, review_at)`); err != nil {
 		return err
 	}
-	ftsExists, err := tableExists(ctx, s.db, "memory_items_fts")
+	ftsExists, err := tableExists(ctx, tx, "memory_items_fts")
 	if err != nil {
 		return err
 	}
 	if !ftsExists {
-		return s.createAndBackfillFTS(ctx)
+		if err := createAndBackfillFTS(ctx, tx); err != nil {
+			return err
+		}
 	}
-	return nil
+	return tx.Commit()
 }
 
-func tableExists(ctx context.Context, db *sql.DB, name string) (bool, error) {
+func retrySQLiteBusy(ctx context.Context, operation func() error) error {
+	delay := 10 * time.Millisecond
+	for attempt := 0; ; attempt++ {
+		err := operation()
+		if err == nil || !isSQLiteBusy(err) || attempt >= sqliteBusyRetryLimit-1 {
+			return err
+		}
+		timer := time.NewTimer(delay)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
+		if delay < 250*time.Millisecond {
+			delay *= 2
+		}
+	}
+}
+
+func isSQLiteBusy(err error) bool {
+	var sqliteErr *sqlite.Error
+	if !errors.As(err, &sqliteErr) {
+		return false
+	}
+	code := sqliteErr.Code() & 0xff
+	return code == sqlite3.SQLITE_BUSY || code == sqlite3.SQLITE_LOCKED
+}
+
+type schemaQueryer interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
+func tableExists(ctx context.Context, db schemaQueryer, name string) (bool, error) {
 	var count int
 	err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, name).Scan(&count)
 	return count > 0, err
 }
 
-func (s *Store) createAndBackfillFTS(ctx context.Context) (retErr error) {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if retErr != nil {
-			_ = tx.Rollback()
-		}
-	}()
+func createAndBackfillFTS(ctx context.Context, tx schemaQueryer) error {
 	if _, err := tx.ExecContext(ctx, `CREATE VIRTUAL TABLE memory_items_fts USING fts5(
 		memory_id UNINDEXED, title, content, tags, subject_key
 	)`); err != nil {
@@ -177,10 +229,10 @@ func (s *Store) createAndBackfillFTS(ctx context.Context) (retErr error) {
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	return tx.Commit()
+	return nil
 }
 
-func ensureColumn(ctx context.Context, db *sql.DB, table, column, definition string) error {
+func ensureColumn(ctx context.Context, db schemaQueryer, table, column, definition string) error {
 	rows, err := db.QueryContext(ctx, fmt.Sprintf("PRAGMA table_info(%s)", table))
 	if err != nil {
 		return err
@@ -195,8 +247,15 @@ func ensureColumn(ctx context.Context, db *sql.DB, table, column, definition str
 			return err
 		}
 		if name == column {
-			return nil
+			return rows.Close()
 		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	if err := rows.Close(); err != nil {
+		return err
 	}
 	_, err = db.ExecContext(ctx, fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, definition))
 	return err

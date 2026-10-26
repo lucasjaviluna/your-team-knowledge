@@ -69,5 +69,8 @@ en [ADR 0009](adr/0009-agent-memory-only-scope.md).
 - La memoria curada tiene prioridad sobre registros crudos de herramientas.
 - Las búsquedas respetan el proyecto y el lifecycle de cada memoria.
 - Las operaciones destructivas requieren una opción explícita.
+- SQLite usa WAL, timeout por conexión y transacciones de escritura inmediatas;
+  las migraciones y el backfill FTS5 se confirman juntos. Ver
+  [ADR 0011](adr/0011-sqlite-multiprocess-concurrency.md).
 - Los contratos de dominio no conocen transporte ni detalles de SQLite.
 - Toda decisión arquitectónica duradera se registra en `docs/adr/`.

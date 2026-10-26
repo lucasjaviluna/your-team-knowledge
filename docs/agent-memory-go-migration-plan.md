@@ -30,9 +30,10 @@ sintética entrega baseline lexical, no resultados de tareas reales.
 
 ## Pendiente
 
-1. Caracterizar concurrencia/reintentos multiproceso, recuperación WAL e
-   integridad SQLite/FTS5 con carga reproducible.
-2. Validar retrieval, recuperación entre sesiones y hosts en repositorios
+1. **Completado:** caracterizar concurrencia/reintentos multiproceso,
+   recuperación WAL e integridad SQLite/FTS5 con carga reproducible. Ver
+   [ADR 0011](adr/0011-sqlite-multiprocess-concurrency.md).
+2. **Siguiente:** validar retrieval, recuperación entre sesiones y hosts en repositorios
    consumidores mediante el [runbook del piloto](agent-memory-pilot-runbook.md).
 
 Las propuestas posteriores y sus criterios están en el
