@@ -84,12 +84,14 @@ jobs:
           $artifact = Get-ChildItem (Join-Path $env:RUNNER_TEMP 'release') -File | Where-Object { $_.Name -match '\.(zip|tar\.gz)$' } | Select-Object -First 1
           if (-not $artifact) { throw 'Release artifact is missing.' }
           $extract = Join-Path $env:RUNNER_TEMP 'release-smoke'
+          New-Item -ItemType Directory -Path $extract -Force | Out-Null
           if ($artifact.Extension -eq '.zip') {
             Expand-Archive -LiteralPath $artifact.FullName -DestinationPath $extract
           } else {
             tar -xzf $artifact.FullName -C $extract
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to extract the release archive.' }
           }
-          $binary = Get-ChildItem $extract -File | Where-Object { $_.Name -match '^ytk-memory(\.exe)?$' } | Select-Object -First 1
+          $binary = Get-ChildItem -LiteralPath $extract -File -Recurse | Where-Object { $_.Name -match '^ytk-memory(\.exe)?$' } | Select-Object -First 1
           if (-not $binary) { throw 'Packaged ytk-memory binary is missing.' }
           $actual = (& $binary.FullName version).Trim()
           if ($actual -ne $env:GITHUB_REF_NAME.TrimStart('v')) { throw "Packaged binary version '$actual' does not match tag '$env:GITHUB_REF_NAME'." }

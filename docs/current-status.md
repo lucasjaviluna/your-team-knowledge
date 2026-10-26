@@ -35,10 +35,12 @@ una medición de relevancia o adopción en tareas reales.
 
 ## Pendiente
 
-1. **Activar el release firmado:** falta verificar/configurar la clave Ed25519
-   persistente como secreto de GitHub Actions y la clave pública como variable,
-   luego crear el primer tag semántico aprobado. El workflow exige ambos valores
-   y falla antes de empaquetar/publicar si no están configurados.
+1. **Completar el primer release firmado:** el tag `v0.1.0` ya existe y CI llegó
+   a empaquetar el artefacto Linux; el job Ubuntu falló en el smoke test porque
+   el directorio de extracción no se creaba antes de ejecutar `tar`. El workflow ya
+   prepara el directorio y comprueba el código de salida de la extracción. Falta
+   integrar este arreglo y publicar un nuevo tag semántico para volver a ejecutar
+   el release con la definición corregida.
 2. **Reparar índices FTS legados:** `Open` crea la tabla FTS5 pero la migración
    no reindexa filas antiguas cuando esa tabla no existía. Implementar rebuild
    seguro y testear búsqueda después de migración.
@@ -47,10 +49,10 @@ una medición de relevancia o adopción en tareas reales.
 4. **Caracterizar concurrencia y reintentos** con más de un proceso SQLite.
 
 La CI está definida en `.github/workflows/ci.yml`; la custodia y procedimiento
-de firma están en [release-policy.md](release-policy.md). La activación de
-GitHub no pudo verificarse desde este entorno: no están presentes las variables
-de firma locales ni el CLI `gh`; por tanto el estado de secrets/variables remotos
-es desconocido y no se creó un tag.
+de firma están en [release-policy.md](release-policy.md). En el intento
+informado, la generación y comparación de la clave pública pasó;
+el fallo reportado fue la extracción del paquete Ubuntu. No se confirmó que el
+release se haya publicado.
 
 ## Verificación y referencias
 
