@@ -30,8 +30,14 @@ sintética entrega baseline lexical, no resultados de tareas reales.
 
 ## Pendiente
 
-1. Validar retrieval y hosts en repositorios consumidores y caracterizar
-   concurrencia/reintentos.
+1. Caracterizar concurrencia/reintentos multiproceso, recuperación WAL e
+   integridad SQLite/FTS5 con carga reproducible.
+2. Validar retrieval, recuperación entre sesiones y hosts en repositorios
+   consumidores mediante el [runbook del piloto](agent-memory-pilot-runbook.md).
+
+Las propuestas posteriores y sus criterios están en el
+[plan de implementación](implementation-plan.md). Esta migración Go ya está
+completada; el trabajo pendiente corresponde a madurez operativa y uso real.
 
 Ver [release-policy.md](release-policy.md), [current-status.md](current-status.md)
 y la [hoja de ruta](agent-memory-roadmap-2026-10-22.md).

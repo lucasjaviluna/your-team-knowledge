@@ -1,6 +1,6 @@
 # Estado y hoja de ruta de Agent Memory
 
-**Fecha de revisión:** 2026-10-25
+**Fecha de revisión:** 2026-10-26
 
 ## Alcance
 
@@ -65,11 +65,19 @@ corrección con historial, relaciones, consolidación con preview, corpus
 sintético y métricas de retrieval. No queda pendiente exponer esas funciones al
 agente: las tools correspondientes ya existen.
 
-### P2 — Distribución y soporte
+### P2 — Madurez operativa pendiente
 
-1. Evaluar hosts y tareas reales cuando los repositorios consumidores estén
-   disponibles.
-2. Caracterizar concurrencia/reintentos y ajustar prácticas operativas.
+1. Caracterizar primero concurrencia y reintentos multiproceso, recuperación
+   WAL, backup e integridad SQLite/FTS5 con una carga reproducible.
+2. Ejecutar después el piloto de dos repositorios y dos hosts: medir utilidad de
+   briefing/búsqueda, aislamiento, persistencia y recuperación entre sesiones.
+3. Según los hallazgos, probar mecanismos de lifecycle del host y validar en
+   uso real Codex, Claude Code, Pi y OpenCode. Evaluar CLI de lectura, doctor de
+   solo lectura, preservación de JSONC e instalación/upgrade reproducibles.
+
+La secuencia, los criterios de aceptación y las propuestas condicionadas se
+detallan en el [plan de implementación](implementation-plan.md). Ninguna de
+estas tareas pendientes se presenta como capacidad ya validada.
 
 El release firmado quedó operativo con `v0.1.5`. La política de custodia y
 rotación se describe en [release-policy.md](release-policy.md); la clave privada
@@ -77,10 +85,12 @@ no se almacena en Git, docs ni conversación.
 
 ### P3 — Decisiones opcionales
 
-- Decidir si se necesita memoria compartida personal/global, exportación o
-  sincronización. Antes de implementar, definir identidad, permisos, privacidad,
-  conflictos y recuperación en un ADR.
-- Reconsiderar HTTP/TUI sólo con consumidor concreto. RAG y conocimiento
+- Diseñar timeline, detección de conflictos y exportación portable sólo cuando
+  existan casos de uso observados y un contrato de compatibilidad.
+- Decidir si se necesita TUI, memoria compartida personal/global o
+  sincronización. Antes de implementar memoria compartida, definir identidad,
+  permisos, privacidad, conflictos y recuperación en un ADR.
+- Reconsiderar HTTP sólo con consumidor concreto. RAG y conocimiento
   documental pertenecen a otro proyecto.
 
 ## Referencias de estado

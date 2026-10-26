@@ -1,6 +1,6 @@
 # Estado actual y punto de continuación
 
-**Revisado:** 2026-10-25
+**Revisado:** 2026-10-26
 
 **Alcance:** Agent Memory y runtime nativo Go.
 
@@ -38,9 +38,17 @@ una medición de relevancia o adopción en tareas reales.
 
 ## Pendiente
 
-1. **Validar en consumidores reales:** medir calidad del briefing/búsqueda y
-   comprobar cada host cuando haya repositorios disponibles.
-2. **Caracterizar concurrencia y reintentos** con más de un proceso SQLite.
+1. **Caracterizar concurrencia y reintentos multiproceso:** probar lectores y
+   escritores sobre la misma SQLite, idempotencia, interrupciones, WAL, backup
+   y consistencia de FTS5 con una carga reproducible.
+2. **Validar en consumidores reales:** ejecutar el
+   [runbook del piloto](agent-memory-pilot-runbook.md) en dos repositorios y dos
+   hosts, medir calidad del briefing/búsqueda y recuperación entre sesiones.
+3. **Ampliar uso y operación según la evidencia:** investigar hooks de lifecycle
+   si el piloto revela omisiones; comprobar los cuatro hosts en uso real y
+   evaluar CLI de lectura, doctor de solo lectura, preservación de JSONC en
+   OpenCode e instalación reproducible. Ver criterios y dependencias en el
+   [plan de implementación](implementation-plan.md).
 
 La CI está definida en `.github/workflows/ci.yml`; la custodia y procedimiento
 de firma están en [release-policy.md](release-policy.md). El workflow de
