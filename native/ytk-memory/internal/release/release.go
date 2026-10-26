@@ -240,15 +240,23 @@ func validPlatform(goos, goarch string) bool {
 	return (goos == "windows" || goos == "linux" || goos == "darwin") && (goarch == "amd64" || goarch == "arm64")
 }
 
-func archive(binary, destination, format string) error {
+func archive(binary, destination, format string) (retErr error) {
 	if format == "zip" {
 		out, err := os.Create(destination)
 		if err != nil {
 			return err
 		}
-		defer out.Close()
+		defer func() {
+			if err := out.Close(); retErr == nil && err != nil {
+				retErr = fmt.Errorf("close archive: %w", err)
+			}
+		}()
 		zw := zip.NewWriter(out)
-		defer zw.Close()
+		defer func() {
+			if err := zw.Close(); retErr == nil && err != nil {
+				retErr = fmt.Errorf("finalize zip archive: %w", err)
+			}
+		}()
 		info, err := os.Stat(binary)
 		if err != nil {
 			return err
@@ -276,12 +284,25 @@ func archive(binary, destination, format string) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() {
+		if err := out.Close(); retErr == nil && err != nil {
+			retErr = fmt.Errorf("close archive: %w", err)
+		}
+	}()
 	gz := gzip.NewWriter(out)
 	gz.ModTime = time.Unix(0, 0)
 	gz.Name = ""
+	defer func() {
+		if err := gz.Close(); retErr == nil && err != nil {
+			retErr = fmt.Errorf("finalize gzip stream: %w", err)
+		}
+	}()
 	tw := tar.NewWriter(gz)
-	defer tw.Close()
+	defer func() {
+		if err := tw.Close(); retErr == nil && err != nil {
+			retErr = fmt.Errorf("finalize tar archive: %w", err)
+		}
+	}()
 	info, err := os.Stat(binary)
 	if err != nil {
 		return err

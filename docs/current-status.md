@@ -35,12 +35,13 @@ una medición de relevancia o adopción en tareas reales.
 
 ## Pendiente
 
-1. **Completar el primer release firmado:** el tag `v0.1.0` ya existe y CI llegó
-   a empaquetar el artefacto Linux; el job Ubuntu falló en el smoke test porque
-   el directorio de extracción no se creaba antes de ejecutar `tar`. El workflow ya
-   prepara el directorio y comprueba el código de salida de la extracción. Falta
-   integrar este arreglo y publicar un nuevo tag semántico para volver a ejecutar
-   el release con la definición corregida.
+1. **Completar el primer release firmado:** el tag `v0.1.0` existe; el intento
+   reciente de CI encontró un `.tar.gz` truncado durante la extracción Ubuntu.
+   El empaquetador ignoraba errores al cerrar los escritores de tar, gzip y ZIP,
+   por lo que podía informar éxito aunque el archivo no hubiera finalizado bien.
+   Ahora propaga esos errores. Falta integrar el cambio y publicar un nuevo tag
+   semántico para verificar el empaquetado; no se confirmó la publicación del
+   release.
 2. **Reparar índices FTS legados:** `Open` crea la tabla FTS5 pero la migración
    no reindexa filas antiguas cuando esa tabla no existía. Implementar rebuild
    seguro y testear búsqueda después de migración.
