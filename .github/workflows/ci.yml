@@ -102,20 +102,28 @@ jobs:
           if (-not $binary) { throw 'Packaged ytk-memory binary is missing.' }
           $actual = (& $binary.FullName version).Trim()
           if ($actual -ne $env:GITHUB_REF_NAME.TrimStart('v')) { throw "Packaged binary version '$actual' does not match tag '$env:GITHUB_REF_NAME'." }
+          $releaseFiles = Get-ChildItem -LiteralPath $releaseDir -File
+          if ($releaseFiles.Count -ne 5) {
+            $names = ($releaseFiles | ForEach-Object Name) -join ', '
+            throw "Expected five release files in '$releaseDir', found $($releaseFiles.Count): $names"
+          }
+          $uploadDir = Join-Path $env:RUNNER_TEMP 'ytk-memory-release-upload'
+          New-Item -ItemType Directory -Path $uploadDir -Force | Out-Null
+          $releaseFiles | Copy-Item -Destination $uploadDir -Force
       - name: Confirm release files before upload
         shell: pwsh
         run: |
-          $releaseDir = Join-Path $env:GITHUB_WORKSPACE 'release-output'
-          $files = Get-ChildItem -LiteralPath $releaseDir -File -ErrorAction Stop
+          $uploadDir = Join-Path $env:RUNNER_TEMP 'ytk-memory-release-upload'
+          $files = Get-ChildItem -LiteralPath $uploadDir -File -ErrorAction Stop
           if ($files.Count -ne 5) {
             $names = ($files | ForEach-Object Name) -join ', '
-            throw "Expected five release files in '$releaseDir', found $($files.Count): $names"
+            throw "Expected five staged release files in '$uploadDir', found $($files.Count): $names"
           }
           $files | Select-Object Name, Length | Format-Table -AutoSize
       - uses: actions/upload-artifact@v4
         with:
           name: ytk-memory-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: ${{ github.workspace }}/release-output
+          path: ${{ runner.temp }}/ytk-memory-release-upload
           if-no-files-found: error
 
   publish:
