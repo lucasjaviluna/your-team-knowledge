@@ -779,8 +779,8 @@ absoluto del binario evita depender de PATH del host, aunque mover el binario
 requiere reinstalar setup.
 
 OpenCode JSONC se convierte internamente a objeto JSON y se vuelve a serializar
-con indentación. Se preservan claves/valores del objeto, no necesariamente
-comentarios ni formato textual JSONC del archivo.
+con indentación. Se preservan claves/valores del objeto, no comentarios ni
+formato textual JSONC del archivo.
 
 ## 10. Métricas y validación funcional
 

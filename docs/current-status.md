@@ -46,7 +46,9 @@ se acepta como gate. El harness sintético no representa una medición real.
 1. **Siguiente incremento independiente: PR 09, instalación y actualización
    reproducibles.** Evaluar la instalación verificable del release firmado,
    conservar la clave pública confiable y permitir rollback. La integración
-   OpenCode con preservación de JSONC ya está implementada y verificada.
+   OpenCode admite JSONC y preserva la configuración semántica ajena, pero al
+   modificar el archivo lo reescribe como JSON indentado; no preserva comentarios
+   ni formato textual.
    Claude Code real y Linux manual siguen postergados por disponibilidad.
 
 La concurrencia local SQLite quedó caracterizada el 2026-10-26: ocho procesos

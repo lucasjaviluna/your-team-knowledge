@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Agent Memory: memoria durable, local y segura para agentes.">
+    <title>Agent Memory · Estado del proyecto</title>
+    <style>
+      :root { --ink:#172033; --muted:#65708a; --line:#dfe5ef; --canvas:#f7f8fc; --surface:#fff; --blue:#4658d6; --cyan:#20b8cc; --green:#168661; --amber:#a76813; --shadow:0 18px 48px rgba(26,38,74,.10); }
+      * { box-sizing:border-box; }
+      html { scroll-behavior:smooth; }
+      body { margin:0; color:var(--ink); background:var(--canvas); font:16px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+      a { color:inherit; text-decoration:none; }
+      .shell { width:min(1120px, calc(100% - 40px)); margin:auto; }
+      header { background:linear-gradient(130deg,#171d47 0%,#2f3f9e 54%,#147f9a 100%); color:white; padding:0 0 72px; overflow:hidden; }
+      nav { display:flex; justify-content:space-between; align-items:center; padding:22px 0; font-size:.9rem; }
+      .brand { display:flex; gap:10px; align-items:center; font-weight:750; letter-spacing:-.02em; }
+      .mark { width:28px; height:28px; display:grid; place-items:center; border-radius:9px; color:#172033; background:#b8f1ea; font-size:15px; }
+      .links { display:flex; gap:21px; color:#dce3ff; }
+      .links a:hover { color:white; }
+      .hero { display:grid; grid-template-columns:1.25fr .75fr; gap:48px; padding:76px 0 16px; align-items:end; }
+      .eyebrow { color:#a7f0e5; text-transform:uppercase; font-weight:800; letter-spacing:.13em; font-size:.72rem; }
+      h1 { font-size:clamp(2.6rem,6vw,4.7rem); line-height:1; letter-spacing:-.065em; margin:13px 0 20px; max-width:720px; }
+      .lead { font-size:1.14rem; max-width:660px; color:#e0e6ff; margin:0; }
+      .release { padding:22px; border:1px solid rgba(255,255,255,.22); border-radius:16px; background:rgba(8,13,44,.22); backdrop-filter:blur(8px); }
+      .release b { display:block; font-size:1.7rem; margin:4px 0; }
+      main { margin-top:-32px; padding-bottom:64px; }
+      .status { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; overflow:hidden; border-radius:16px; background:var(--line); box-shadow:var(--shadow); }
+      .status div { padding:19px 20px; background:var(--surface); }
+      .status strong { display:block; font-size:1.35rem; letter-spacing:-.04em; }
+      .status span { color:var(--muted); font-size:.84rem; }
+      section { padding-top:70px; }
+      .section-head { max-width:720px; margin-bottom:26px; }
+      h2 { margin:0 0 8px; font-size:2rem; letter-spacing:-.045em; }
+      .section-head p { margin:0; color:var(--muted); }
+      .notice { border-left:4px solid var(--cyan); background:#eafaf9; padding:17px 19px; border-radius:0 12px 12px 0; color:#245262; }
+      .capabilities { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+      .card { background:var(--surface); border:1px solid var(--line); border-radius:15px; padding:22px; }
+      .card .icon { width:34px; height:34px; display:grid; place-items:center; color:var(--blue); background:#eceeff; border-radius:10px; font-weight:800; }
+      .card h3 { margin:15px 0 6px; font-size:1.05rem; letter-spacing:-.02em; }
+      .card p { margin:0; color:var(--muted); font-size:.93rem; }
+      .tool-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+      .tool { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:13px 14px; }
+      code { color:#3346be; font:600 .84rem/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; }
+      .tool p { font-size:.8rem; color:var(--muted); margin:4px 0 0; }
+      .timeline { position:relative; margin:6px 0 0 9px; padding-left:31px; border-left:2px solid #d6deef; }
+      .event { position:relative; padding:0 0 28px; }
+      .event:before { content:""; position:absolute; left:-39px; top:5px; width:13px; height:13px; border:4px solid var(--canvas); border-radius:99px; background:var(--blue); box-shadow:0 0 0 2px var(--blue); }
+      .event.done:before { background:var(--green); box-shadow:0 0 0 2px var(--green); }
+      .event.todo:before { background:var(--amber); box-shadow:0 0 0 2px var(--amber); }
+      .event small { color:var(--muted); font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+      .event h3 { margin:2px 0 4px; font-size:1.05rem; }
+      .event p { margin:0; color:var(--muted); max-width:720px; }
+      .next { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+      .next .card { border-top:4px solid var(--amber); }
+      footer { border-top:1px solid var(--line); padding:26px 0 42px; color:var(--muted); font-size:.88rem; }
+      @media (max-width:760px) { .links { display:none; } .hero,.next { grid-template-columns:1fr; gap:25px; padding-top:45px; } .status { grid-template-columns:1fr 1fr; } .capabilities,.tool-grid { grid-template-columns:1fr; } section { padding-top:49px; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="shell">
+        <nav><a class="brand" href="#inicio"><span class="mark">✦</span>Agent Memory</a><div class="links"><a href="#capacidades">Capacidades</a><a href="#tools">Tools</a><a href="#progreso">Progreso</a><a href="current-status.md">Estado detallado</a></div></nav>
+        <div class="hero" id="inicio">
+          <div><div class="eyebrow">Runtime nativo · Local first</div><h1>Memoria durable para agentes que trabajan en serio.</h1><p class="lead">Un core Go con SQLite/FTS5, MCP por stdio y aislamiento por proyecto. Recupera contexto útil, conserva decisiones y mantiene el control de los datos en local.</p></div>
+          <aside class="release"><span class="eyebrow">Release firmado</span><b>v0.1.12</b><span>Windows x64 · Linux x64 · macOS arm64<br>SHA-256 + Ed25519 verificados</span></aside>
+        </div>
+      </div>
+    </header>
+    <main class="shell">
+      <div class="status" aria-label="Resumen del estado"><div><strong>12</strong><span>tools MCP</span></div><div><strong>4</strong><span>hosts configurables</span></div><div><strong>3</strong><span>plataformas en CI</span></div><div><strong>Codex</strong><span>piloto confirmado</span></div></div>
+
+      <section id="capacidades"><div class="section-head"><h2>Todo lo esencial, dentro del proyecto</h2><p>La memoria está curada, separada por proyecto y protegida por lifecycle. El runtime no depende de red, proveedores LLM ni servicios remotos.</p></div><div class="capabilities">
+        <article class="card"><div class="icon">◈</div><h3>Memoria con contexto</h3><p>Sesiones, resúmenes, decisiones, descubrimientos, preferencias, relaciones y actualización idempotente mediante <code>subjectKey</code>.</p></article>
+        <article class="card"><div class="icon">⌕</div><h3>Recuperación local</h3><p>Búsqueda lexical FTS5, briefing compacto, listado de memoria activa y filtros por proyecto, área y lifecycle.</p></article>
+        <article class="card"><div class="icon">✓</div><h3>Operación recuperable</h3><p>Doctor de sólo lectura, backup, upgrade y rollback. Migraciones FTS5 atómicas, WAL y reintentos acotados para concurrencia multiproceso.</p></article>
+        <article class="card"><div class="icon">↺</div><h3>Conocimiento corregible</h3><p>Revisión programada, correcciones con historial y relaciones versionadas. La consolidación requiere vista previa y confirmación explícita.</p></article>
+        <article class="card"><div class="icon">⌘</div><h3>Integración por host</h3><p>Setup y uninstall idempotentes para Codex, Claude Code, Pi y OpenCode. Conservan configuración ajena y no eliminan la base local.</p></article>
+        <article class="card"><div class="icon">⌁</div><h3>Distribución verificable</h3><p>CI en tres plataformas y releases firmados con manifiestos, hashes SHA-256 y firmas Ed25519 antes de publicar.</p></article>
+      </div></section>
+
+      <section id="tools"><div class="section-head"><h2>Las 12 tools MCP</h2><p>El servidor queda fijado al proyecto configurado. Las consultas son de sólo lectura; las escrituras mantienen los controles del core.</p></div><div class="tool-grid">
+        <div class="tool"><code>memory_session_start</code><p>Abre sesión y devuelve briefing o búsqueda inicial.</p></div><div class="tool"><code>memory_search</code><p>Busca memoria relevante con una consulta enfocada.</p></div><div class="tool"><code>memory_list</code><p>Explora memoria activa sin requerir consulta.</p></div>
+        <div class="tool"><code>memory_get</code><p>Lee una memoria por ID dentro del proyecto.</p></div><div class="tool"><code>memory_save</code><p>Guarda o actualiza conocimiento durable.</p></div><div class="tool"><code>memory_session_finish</code><p>Cierra una sesión y guarda un handoff opcional.</p></div>
+        <div class="tool"><code>memory_review_list</code><p>Encuentra memorias que requieren revisión.</p></div><div class="tool"><code>memory_review_complete</code><p>Registra una revisión y agenda la próxima.</p></div><div class="tool"><code>memory_correct</code><p>Crea una corrección sin perder el historial.</p></div>
+        <div class="tool"><code>memory_relations</code><p>Inspecciona relaciones y versiones vinculadas.</p></div><div class="tool"><code>memory_consolidation_preview</code><p>Previsualiza una consolidación sin escribir.</p></div><div class="tool"><code>memory_consolidate</code><p>Aplica una consolidación confirmada.</p></div>
+      </div></section>
+
+      <section id="progreso"><div class="section-head"><h2>Timeline de progreso</h2><p>El producto pasó de contratos y core local a una distribución nativa validada con Codex. Los siguientes pasos se separan de las validaciones que dependen de hosts disponibles.</p></div><div class="timeline">
+        <article class="event done"><small>Completado · base</small><h3>Core Go y compatibilidad de datos</h3><p>SQLite/FTS5 sin CGo, sesiones, lifecycle, relaciones, control de contenido sensible y migración de bases heredadas.</p></article>
+        <article class="event done"><small>Completado · transporte</small><h3>MCP y CLI operacional</h3><p>Servidor stdio con 12 tools, doctor, lectura local, backup, upgrade, rollback y evaluación sintética.</p></article>
+        <article class="event done"><small>Completado · resiliencia</small><h3>Concurrencia y release firmado</h3><p>WAL, transacciones inmediatas, recuperación y pruebas multiproceso; CI y release firmado para Windows, Linux y macOS.</p></article>
+        <article class="event done"><small>Completado · uso real</small><h3>Piloto con Codex</h3><p>El usuario confirmó que el binario Go funciona con Codex. Claude Code queda postergado hasta que el host esté disponible.</p></article>
+        <article class="event done"><small>Completado · configuración</small><h3>OpenCode con compatibilidad JSONC</h3><p>Setup, doctor y uninstall aceptan JSON y JSONC. La reescritura conserva claves y valores, y normaliza el archivo a JSON indentado.</p></article>
+        <article class="event todo"><small>Siguiente candidato</small><h3>Instalación y actualización reproducibles</h3><p>Definir un canal verificable por plataforma que conserve la clave pública, instale el release firmado y permita volver a una versión anterior.</p></article>
+      </div></section>
+
+      <section><div class="next"><article class="card"><h3>Siguiente trabajo</h3><p>Instalación y actualización reproducibles del release firmado, con verificación de clave pública y rollback probado sobre bases representativas.</p></article><article class="card"><h3>Validaciones postergadas</h3><p>Lifecycle de Claude Code, hosts adicionales y uso manual en Linux dependen de disponibilidad. La CI Linux continúa como gate automatizado.</p></article></div></section>
+    </main>
+    <footer><div class="shell">Agent Memory · documentación de estado actualizada el 2026-10-27 · <a href="current-status.md">ver estado detallado</a> · <a href="technical-architecture.md">ver arquitectura técnica</a></div></footer>
+  </body>
+</html>

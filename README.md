@@ -8,8 +8,8 @@ documentado en [ADR 0009](docs/adr/0009-agent-memory-only-scope.md).
 
 El binario `ytk-memory` ofrece:
 
-- once herramientas MCP para sesiones, búsqueda, guardado, revisión, corrección
-  versionada y consulta de relaciones;
+- doce herramientas MCP para sesiones, listado y búsqueda, guardado, revisión,
+  corrección versionada, relaciones y consolidación confirmada;
 - aislamiento por proyecto;
 - `doctor`, `backup`, `upgrade` y `rollback`;
 - `doctor --read-only` para inspeccionar SQLite sin aplicar migraciones;
@@ -37,6 +37,8 @@ Los comandos respetan el proyecto y área de `.ytk-memory.json`; aceptan
 
 La guía de instalación está en [docs/agent-memory-installation.md](docs/agent-memory-installation.md)
 y la guía de consumidores en [docs/agent-memory-native-consumer-guide.md](docs/agent-memory-native-consumer-guide.md).
+El portal visual de capacidades, estado y evolución está en
+[docs/index.html](docs/index.html).
 La descripción detallada de capas Go, esquema SQLite/FTS5, índices, tools,
 métricas, seguridad y distribución está en
 [docs/technical-architecture.md](docs/technical-architecture.md).

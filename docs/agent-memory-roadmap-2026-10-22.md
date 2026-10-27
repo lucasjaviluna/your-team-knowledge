@@ -47,7 +47,7 @@ queda aplazada y la CI Linux es el gate aceptado por ahora.
 | Release firmado | Operativo: `v0.1.12` publicado tras CI verde; activos confirmados en Windows, Linux y macOS. | Rotar la clave sólo según [release-policy.md](release-policy.md) y conservar la custodia fuera del repositorio. |
 | Índice FTS legado | Resuelto: la apertura crea y rellena FTS5 de forma transaccional si la tabla falta. | Mantener la prueba de migración y búsqueda al cambiar el esquema. |
 | Evaluación real | Piloto con Codex confirmado como funcional por el usuario. Claude Code no está disponible y queda postergado; no se afirma cobertura de otros hosts. | Continuar con mejoras independientes. Reabrir validación de hosts adicionales cuando estén disponibles o el usuario quiera ampliar el piloto. |
-| Configuración OpenCode | Resuelto: setup/uninstall/doctor soportan JSON y JSONC, preservan configuración ajena y rechazan colisiones no administradas. | Mantener pruebas de preservación y compatibilidad al cambiar el adaptador. |
+| Configuración OpenCode | Resuelto: setup/uninstall/doctor soportan JSON y JSONC, preservan configuración semántica ajena y rechazan colisiones no administradas. Al modificar JSONC se reserializa como JSON indentado. | Mantener pruebas de compatibilidad al cambiar el adaptador; preservar comentarios/formato requeriría un editor JSONC específico. |
 | Concurrencia | WAL, timeout, transacciones `IMMEDIATE` y migración transaccional implementados. Prueba de ocho procesos y lector simultáneo pasó cinco veces en Windows sin `SQLITE_BUSY`/`SQLITE_LOCKED`. | Mantener la regresión y comprobarla en CI de las plataformas soportadas. |
 | Plataformas | Windows x64, Linux x64 y macOS arm64 en CI/release. | Añadir arm64 u otros gestores sólo con demanda y soporte. |
 
@@ -76,8 +76,10 @@ agente: las tools correspondientes ya existen.
    host disponible; probar mecanismos del host sólo si se observaron omisiones.
 4. **Completado:** doctor `--read-only` inspecciona compatibilidad sin ejecutar
    migraciones.
-5. **Completado:** integración OpenCode con preservación JSONC, idempotencia,
+5. **Completado:** integración OpenCode con compatibilidad JSONC, idempotencia,
    detección de colisiones, doctor y uninstall; verificada con pruebas y smoke.
+   El contenido semántico ajeno se conserva, pero los comentarios y formato
+   textual JSONC se reescriben como JSON indentado.
 6. **Siguiente candidato:** instalación y actualización reproducibles del
    release firmado, con clave pública confiable y rollback.
 7. **Diferido:** validar lifecycle de Claude Code cuando el host esté

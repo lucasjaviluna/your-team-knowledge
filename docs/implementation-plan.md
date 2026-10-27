@@ -42,7 +42,8 @@ el piloto con el binario Go funciona en Codex. PR 06, CLI de lectura, y PR 07,
 doctor de solo lectura, ya se completaron. La validación con Claude Code queda
 postergada porque el host no está disponible. El próximo incremento
 independiente es PR 09: instalación y actualización reproducibles del release
-firmado; la preservación JSONC de OpenCode (PR 08) ya está completada.
+firmado. PR 08 completó la compatibilidad JSONC de OpenCode, pero su reescritura
+actual conserva contenido semántico, no comentarios ni formato textual.
 
 ### P0 — Estabilidad y validación
 
@@ -84,12 +85,14 @@ para el tramo actual y no se presentará como una prueba de uso con un host real
    abre SQLite con `mode=ro` y `query_only`, compara tablas/columnas/índices/FTS5
    con el schema esperado e informa los cambios e incompatibilidades sin
    ejecutar migraciones.
-8. **PR 08: preservación JSONC en OpenCode — completado.** `setup opencode`,
+8. **PR 08: compatibilidad JSONC en OpenCode — completado.** `setup opencode`,
    `uninstall opencode` y `doctor --host opencode` administran configuración
    JSON/JSONC por proyecto, preservan servidores y opciones ajenos, son
    idempotentes y rechazan colisiones no administradas. Las pruebas y smoke
    setup/doctor/uninstall cubrieron JSON y JSONC; también se actualizó la
-   documentación. Ver [arquitectura técnica](technical-architecture.md).
+   documentación. Al modificar JSONC, el adaptador lo reserializa como JSON
+   indentado: no afirma preservar comentarios ni formato textual. Ver
+   [arquitectura técnica](technical-architecture.md).
 9. **PR 09: instalación y actualización reproducibles — siguiente candidato.**
    Evaluar un canal verificable por plataforma que instale el release firmado,
    conserve la clave pública confiable y permita volver a una versión anterior.
