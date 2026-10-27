@@ -96,6 +96,7 @@ func run(args []string) error {
 	database := fs.String("database", "", "SQLite path")
 	area := fs.String("area", "", "memory area")
 	host := fs.String("host", "codex", "consumer host for doctor: codex, claude, pi, or opencode")
+	readOnlyDoctor := fs.Bool("read-only", false, "inspect SQLite without applying migrations (doctor only)")
 	to := fs.String("to", "", "backup target")
 	backupTo := fs.String("backup-to", "", "upgrade backup target")
 	from := fs.String("from", "", "rollback source")
@@ -108,6 +109,9 @@ func run(args []string) error {
 	}
 	if fs.NArg() != 0 {
 		return fmt.Errorf("unexpected argument: %s", fs.Arg(0))
+	}
+	if *readOnlyDoctor && command != "doctor" {
+		return errors.New("--read-only is supported only by doctor.")
 	}
 	requireLocalConfig := command == "mcp"
 	cfg, err := resolve(*project, *database, *area, requireLocalConfig)
@@ -129,7 +133,7 @@ func run(args []string) error {
 		if *host != "codex" && *host != "claude" && *host != "pi" && *host != "opencode" {
 			return errors.New("--host must be codex, claude, pi, or opencode.")
 		}
-		return doctor(cfg, *jsonOutput, *host)
+		return doctorWithOptions(cfg, *jsonOutput, *host, *readOnlyDoctor)
 	}
 	if command == "backup" {
 		return doBackup(cfg, *to, *overwrite, *jsonOutput)
@@ -684,6 +688,10 @@ func doctorResolveFailure(project, database string, cause error, jsonOutput bool
 }
 
 func doctor(c config, jsonOutput bool, host string) error {
+	return doctorWithOptions(c, jsonOutput, host, false)
+}
+
+func doctorWithOptions(c config, jsonOutput bool, host string, readOnly bool) error {
 	dbInfo, statErr := os.Stat(c.database)
 	if os.IsNotExist(statErr) {
 		result := map[string]any{"operation": "doctor", "healthy": false, "state": "missing_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "missing", "message": "No se encontró la base de datos. Ejecutá `ytk-memory setup codex` para crearla o restaurá un backup."}}}
@@ -696,24 +704,59 @@ func doctor(c config, jsonOutput bool, host string) error {
 		result := map[string]any{"operation": "doctor", "healthy": false, "state": "invalid_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "invalid", "message": "La ruta configurada para SQLite no es un archivo regular. Revisá .ytk-memory.json y los permisos del directorio."}}}
 		return printDoctor(result, jsonOutput)
 	}
-	s, err := core.Open(c.database, nil)
+	var s *core.Store
+	var err error
+	if readOnly {
+		s, err = core.OpenReadOnly(c.database, nil)
+	} else {
+		s, err = core.Open(c.database, nil)
+	}
 	if err != nil {
-		result := map[string]any{"operation": "doctor", "healthy": false, "state": "invalid_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "invalid", "message": "No se pudo abrir la base SQLite. Revisá permisos de lectura/escritura y acceso al directorio: " + err.Error()}}}
+		message := "No se pudo abrir la base SQLite. Revisá permisos de lectura/escritura y acceso al directorio: "
+		if readOnly {
+			message = "No se pudo abrir la base SQLite en modo read-only. Revisá permisos y, si usa WAL, que sus archivos -wal/-shm requeridos sean legibles: "
+		}
+		result := map[string]any{"operation": "doctor", "healthy": false, "state": "invalid_configuration", "mode": doctorMode(readOnly), "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "invalid", "message": message + err.Error()}}}
 		return printDoctor(result, jsonOutput)
 	}
 	defer s.Close()
-	life, err := s.InspectLifecycle(context.Background(), c.project)
+	schema, err := s.InspectSchema(context.Background())
 	if err != nil {
-		result := map[string]any{"operation": "doctor", "healthy": false, "state": "invalid_configuration", "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "database", "status": "invalid", "message": "No se pudo leer el esquema SQLite: " + err.Error()}}}
+		result := map[string]any{"operation": "doctor", "healthy": false, "state": "invalid_configuration", "mode": doctorMode(readOnly), "projectId": c.project, "database": c.database, "checks": []map[string]string{{"name": "schema", "status": "invalid", "message": "No se pudo inspeccionar el esquema SQLite: " + err.Error()}}}
 		return printDoctor(result, jsonOutput)
 	}
-	checks := []map[string]string{{"name": "database", "status": "ok", "message": "SQLite schema is readable."}}
+	checks := []map[string]string{{"name": "database", "status": "ok", "message": "SQLite opened in " + doctorMode(readOnly) + " mode."}}
 	healthy := true
+	state := "healthy"
+	if schema.Ready {
+		checks = append(checks, map[string]string{"name": "schema", "status": "ok", "message": "SQLite schema is compatible; no upgrade changes are required."})
+	} else {
+		healthy = false
+		status, message := "needs_upgrade", "The schema needs changes before the current runtime can use it."
+		state = "upgrade_required"
+		if len(schema.Incompatibilities) > 0 {
+			status, message = "invalid", "The schema contains differences the automatic upgrade does not repair."
+			state = "incompatible_schema"
+		}
+		checks = append(checks, map[string]string{"name": "schema", "status": status, "message": message})
+	}
 	if err := s.IntegrityCheck(context.Background()); err != nil {
 		checks = append(checks, map[string]string{"name": "integrity", "status": "invalid", "message": err.Error()})
 		healthy = false
 	} else {
 		checks = append(checks, map[string]string{"name": "integrity", "status": "ok", "message": "SQLite quick_check passed."})
+	}
+	var life *core.Lifecycle
+	if schema.CanInspectLifecycle {
+		inspected, err := s.InspectLifecycle(context.Background(), c.project)
+		if err != nil {
+			checks = append(checks, map[string]string{"name": "lifecycle", "status": "invalid", "message": "No se pudo leer el lifecycle SQLite: " + err.Error()})
+			healthy = false
+		} else {
+			life = &inspected
+		}
+	} else {
+		checks = append(checks, map[string]string{"name": "lifecycle", "status": "needs_upgrade", "message": "Lifecycle totals are unavailable until memory_items has its current column layout."})
 	}
 	if host == "codex" {
 		home, homeErr := codexHome()
@@ -743,8 +786,23 @@ func doctor(c config, jsonOutput bool, host string) error {
 			healthy = false
 		}
 	}
-	result := map[string]any{"operation": "doctor", "healthy": healthy, "host": host, "projectId": c.project, "database": c.database, "lifecycle": life, "go": runtime.Version(), "checks": checks}
+	if !healthy && state == "healthy" {
+		state = "unhealthy"
+	}
+	result := map[string]any{
+		"operation": "doctor", "healthy": healthy, "state": state,
+		"mode": doctorMode(readOnly), "host": host, "projectId": c.project,
+		"database": c.database, "schema": schema, "lifecycle": life,
+		"go": runtime.Version(), "checks": checks,
+	}
 	return printDoctor(result, jsonOutput)
+}
+
+func doctorMode(readOnly bool) string {
+	if readOnly {
+		return "read_only"
+	}
+	return "migrating"
 }
 
 func inspectOpenCodeSetup(filename, markerFile string) map[string]string {
@@ -868,6 +926,9 @@ func writeDoctor(output io.Writer, result map[string]any, jsonOutput bool) error
 	if value, ok := result["go"]; ok {
 		fmt.Fprintf(output, "Go: %v\n", value)
 	}
+	if mode, ok := result["mode"]; ok {
+		fmt.Fprintf(output, "Modo SQLite: %v\n", mode)
+	}
 	if checks, ok := result["checks"].([]map[string]string); ok && len(checks) > 0 {
 		fmt.Fprintln(output, "\nVerificaciones:")
 		for _, check := range checks {
@@ -876,8 +937,24 @@ func writeDoctor(output io.Writer, result map[string]any, jsonOutput bool) error
 				icon = "✓"
 			} else if check["status"] == "invalid" || check["status"] == "missing" {
 				icon = "✗"
+			} else if check["status"] == "needs_upgrade" {
+				icon = "!"
 			}
 			fmt.Fprintf(output, "  %s %s: %s\n", icon, check["name"], check["message"])
+		}
+	}
+	if schema, ok := result["schema"].(core.SchemaInspection); ok && !schema.Ready {
+		if len(schema.UpgradeChanges) > 0 {
+			fmt.Fprintln(output, "\nCambios que aplicaría el upgrade:")
+			for _, change := range schema.UpgradeChanges {
+				fmt.Fprintf(output, "  • %s\n", change)
+			}
+		}
+		if len(schema.Incompatibilities) > 0 {
+			fmt.Fprintln(output, "\nIncompatibilidades que requieren revisión:")
+			for _, issue := range schema.Incompatibilities {
+				fmt.Fprintf(output, "  • %s\n", issue)
+			}
 		}
 	}
 	if lifecycle, ok := result["lifecycle"].(core.Lifecycle); ok {

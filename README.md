@@ -12,6 +12,7 @@ El binario `ytk-memory` ofrece:
   versionada y consulta de relaciones;
 - aislamiento por proyecto;
 - `doctor`, `backup`, `upgrade` y `rollback`;
+- `doctor --read-only` para inspeccionar SQLite sin aplicar migraciones;
 - CLI de lectura local: `search`, `list`, `get` y `stats`, limitada al proyecto
   resuelto desde `.ytk-memory.json` o los flags explícitos;
 - setup y uninstall idempotentes de Codex, Claude Code, Pi y OpenCode; Codex usa

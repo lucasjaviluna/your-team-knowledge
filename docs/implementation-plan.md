@@ -80,9 +80,10 @@ para el tramo actual y no se presentará como una prueba de uso con un host real
 6. **PR 06: CLI de lectura — completado.** `search`, `list`, `get` y `stats`
    usan los servicios del core, limitan lecturas al proyecto, aplican filtros de
    lifecycle/área y admiten `--json`. No incorporan otro transporte.
-7. **PR 07: diagnóstico de solo lectura.** Añadir un modo `doctor --read-only`
-   que inspeccione configuración, integridad y compatibilidad sin llamar a una
-   apertura que migre la base. Informar qué cambiaría un upgrade.
+7. **PR 07: diagnóstico de solo lectura — completado.** `doctor --read-only`
+   abre SQLite con `mode=ro` y `query_only`, compara tablas/columnas/índices/FTS5
+   con el schema esperado e informa los cambios e incompatibilidades sin
+   ejecutar migraciones.
 8. **PR 08: conservación de JSONC en OpenCode.** Evitar que setup/uninstall
    descarten comentarios o formato ajenos; probar archivos reales con JSONC y
    configuración de otros servidores.

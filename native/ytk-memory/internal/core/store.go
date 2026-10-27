@@ -9,7 +9,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -80,6 +83,40 @@ func Open(filename string, now func() time.Time) (*Store, error) {
 		return nil, err
 	}
 	return store, nil
+}
+
+// OpenReadOnly opens an existing SQLite database without running migrations or
+// changing journal mode. SQLite's URI mode=ro and query_only setting reject
+// writes at the connection level.
+func OpenReadOnly(filename string, now func() time.Time) (*Store, error) {
+	if now == nil {
+		now = time.Now
+	}
+	absolute, err := filepath.Abs(filename)
+	if err != nil {
+		return nil, err
+	}
+	path := filepath.ToSlash(absolute)
+	if runtime.GOOS == "windows" && len(path) >= 2 && path[1] == ':' {
+		path = "/" + path
+	}
+	u := url.URL{Scheme: "file", Path: path}
+	query := u.Query()
+	query.Set("mode", "ro")
+	query.Set("_busy_timeout", fmt.Sprint(sqliteBusyTimeoutMS))
+	query.Set("_foreign_keys", "on")
+	query.Set("_query_only", "1")
+	u.RawQuery = query.Encode()
+	db, err := sql.Open("sqlite", u.String())
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(1)
+	if err := db.PingContext(context.Background()); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	return &Store{db: db, now: now}, nil
 }
 
 func (s *Store) Close() error { return s.db.Close() }

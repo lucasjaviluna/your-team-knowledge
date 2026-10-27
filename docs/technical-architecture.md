@@ -462,7 +462,7 @@ incluso cuando surface ya restringió inputs.
 | --- | --- | --- |
 | `mcp` | Servidor MCP fijado al proyecto local. | Interfaz primaria del agente. |
 | `setup <host>` / `uninstall <host>` | Configura/quita archivos de Codex, Claude, Pi u OpenCode; acepta `--dry-run`, `--json`. | Automatiza formatos distintos y hace cambios repetibles/reversibles. |
-| `doctor` | Comprueba config, SQLite, lifecycle, integridad y registro de host. | Convierte fallos locales en pasos de reparación. |
+| `doctor [--read-only]` | Comprueba config, SQLite, lifecycle, integridad y registro de host; read-only compara el esquema y muestra cambios pendientes sin migrar. | Convierte fallos locales en pasos de reparación y permite diagnosticar una base antes de actualizarla. |
 | `search --query TEXT` | Busca memorias actuales por FTS5 en el proyecto resuelto. | Inspección y scripting local sin iniciar una sesión MCP. |
 | `list` | Lista memorias activas, vigentes y no vencidas para inspección, hasta 100. | Permite inspeccionar memoria existente con los filtros lifecycle del core. |
 | `get --id ID` | Recupera una memoria completa dentro del proyecto y área configurados. | Inspecciona un resultado sin permitir lecturas entre proyectos. |
@@ -491,8 +491,22 @@ base antigua, igual que otros accesos actuales al core.
 
 Devuelve `operation`, `healthy`, `projectId`, `database`, lifecycle, versión Go
 y lista de checks con nombre/status/mensaje. Valida ruta existente y archivo
-regular, abre SQLite, inspecciona esquema/lifecycle, corre `quick_check` y
-revisa el host pedido.
+regular, inspecciona esquema/lifecycle, corre `quick_check` y revisa el host
+pedido. El modo normal llama `core.Open`, que migra la base antes del
+diagnóstico. `doctor --read-only` usa `core.OpenReadOnly`: URI SQLite `mode=ro`,
+`query_only` y una conexión sin llamada a migración ni cambio de journal mode.
+El resultado incluye `schema.ready`, `upgradeChanges` e
+`incompatibilities`; enumera tablas, columnas, índices y el índice FTS5 que el
+upgrade normal añadiría. Sólo consulta lifecycle si el layout actual de
+`memory_items` permite leerlo con seguridad.
+
+La conexión `mode=ro` y `query_only` impide escrituras a la base y a través de
+esa conexión. En modo WAL, SQLite también puede necesitar acceso a los sidecars
+`-wal` y `-shm`; según el estado de la base, puede requerir crearlos o
+actualizarlos. Si el directorio no permite ese acceso, el doctor reporta el
+error y no recurre al modo normal ni aplica migraciones. No se usa `immutable=1`,
+porque omite la detección de cambios externos y no es apropiado para una base
+que puede estar abierta por la aplicación.
 
 Para Codex analiza el TOML completo, busca el bloque administrado, valida
 `args=["mcp"]`, disponibilidad de command y compara identidad de archivo con el
@@ -500,8 +514,9 @@ ejecutable actual del doctor. Detecta otra copia registrada, no compara
 versión/hash del binario. Los otros hosts validan formato/config MCP y que el
 ejecutable exista. Errores sugieren corregir config, rutas y permisos.
 
-Límite operacional: doctor llama `core.Open`, que puede ejecutar migración
-idempotente; no es un chequeo read-only de una base antigua.
+El modo normal mantiene el comportamiento de migración idempotente. El modo
+`--read-only` es el diagnóstico previo a upgrade y reporta qué cambios aplicaría
+el migrador sin realizarlos.
 
 ## 9. Adaptadores por host
 

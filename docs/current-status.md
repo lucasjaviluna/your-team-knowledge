@@ -47,10 +47,10 @@ como gate. El harness sintético no representa una medición real.
    [runbook del piloto](agent-memory-pilot-runbook.md) los dos repositorios,
    los dos hosts, resultados de consultas/tareas, métricas e incidencias; luego
    confirmar si cumple todos los umbrales. No hace falta repetir las pruebas.
-2. **Siguiente incremento de código: PR 07, doctor de solo lectura.** Claude
-   Code no está disponible para el usuario; la evaluación de su lifecycle queda
-   diferida. Implementar el doctor read-only no depende del host y evita que el
-   diagnóstico de compatibilidad abra SQLite mediante `core.Open`.
+2. **Siguiente incremento independiente: PR 08, conservación de JSONC en
+   OpenCode.** Claude Code no está disponible para el usuario; su evaluación de
+   lifecycle queda diferida. El doctor `--read-only` ya permite inspeccionar
+   schema e integridad sin migrar.
 
 La concurrencia local SQLite quedó caracterizada el 2026-10-26: ocho procesos
 independientes realizaron guardados y upserts concurrentes sobre una clave

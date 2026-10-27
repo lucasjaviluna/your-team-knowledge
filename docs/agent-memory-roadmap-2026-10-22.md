@@ -75,10 +75,10 @@ agente: las tools correspondientes ya existen.
    correcto.
 3. **Diferido:** revisar omisiones del lifecycle de Claude Code cuando haya un
    host disponible; probar mecanismos del host sólo si se observaron omisiones.
-4. **Siguiente incremento independiente:** doctor de solo lectura para que el
-   diagnóstico no abra SQLite mediante `core.Open`. Luego validar en uso real
-   Codex, Claude Code, Pi y OpenCode; quedan además la preservación de JSONC y
-   la instalación/upgrade reproducibles.
+4. **Completado:** doctor `--read-only` inspecciona compatibilidad sin ejecutar
+   migraciones. Como siguiente incremento independiente, preservar comentarios
+   y formato JSONC en OpenCode; validar lifecycle de Claude Code queda diferido
+   hasta disponer del host. También quedan instalación/upgrade reproducibles.
 
 La secuencia, los criterios de aceptación y las propuestas condicionadas se
 detallan en el [plan de implementación](implementation-plan.md). Ninguna de
