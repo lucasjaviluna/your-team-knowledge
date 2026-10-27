@@ -51,6 +51,9 @@ as a substitute.
   matching entry was found if those searches are also empty.
 - Do not infer that the database is empty or count all entries from search
   results. These tools do not provide a full listing or total-count operation.
+- Use `memory_timeline` to inspect records by their latest recorded update.
+  `since` is inclusive and `until` is exclusive; lifecycle transitions are not
+  reconstructed when the database has no event record for them.
 - Use `memory_get` to read a result by ID when its preview is insufficient.
 - Keep `limit` between 1 and 100 and `maxChars` between 100 and 20000.
 

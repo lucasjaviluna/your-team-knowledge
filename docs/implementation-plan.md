@@ -40,10 +40,12 @@ consumidores disponibles; los tests actuales validan adaptadores y archivos.
 La concurrencia multiproceso ya está caracterizada y el usuario confirmó que
 el piloto con el binario Go funciona en Codex. PR 06, CLI de lectura, y PR 07,
 doctor de solo lectura, ya se completaron. La validación con Claude Code queda
-postergada porque el host no está disponible. El próximo incremento
-independiente es PR 09: instalación y actualización reproducibles del release
-firmado. PR 08 completó la compatibilidad JSONC de OpenCode, pero su reescritura
-actual conserva contenido semántico, no comentarios ni formato textual.
+postergada porque el host no está disponible. PR 09, instalación y
+actualización reproducibles del release firmado, sigue pendiente. La prioridad
+actual acordada es timeline de memorias, detección revisable
+de conflictos y exportación portable versionada. PR 08 completó la
+compatibilidad JSONC de OpenCode, pero su reescritura actual conserva contenido
+semántico, no comentarios ni formato textual.
 
 ### P0 — Estabilidad y validación
 
@@ -103,21 +105,26 @@ El PR 03 depende de la disponibilidad de Claude Code. El orden de los PR 06–09
 puede ajustarse por incidencias reales, conservando sus criterios de seguridad
 y compatibilidad.
 
-### P2 — Capacidades condicionadas a casos de uso
+### P2 — Capacidades priorizadas por el usuario
 
-10. **Timeline y conflictos.** Diseñar navegación temporal, detección de
-    decisiones contradictorias o sugerencias de `subjectKey` sólo para casos
-    observados en el piloto. Antes de añadir tools MCP, comprobar si bastan
-    consultas del core y una interfaz de lectura.
-11. **Exportación portable versionada.** Definir formato, identidad de memorias,
-    validación de importación y compatibilidad antes de mover datos entre
-    máquinas. No implica sincronización automática.
+10. **Timeline de memorias — v1 completada.** `memory_timeline` expone una vista
+    de sólo lectura ordenada por última actualización, con rango temporal y
+    estado actual del registro. Las relaciones/versiones se siguen con
+    `memory_relations`. No inventa eventos históricos que el esquema actual no
+    registre.
+11. **Detección de conflictos — planificado.** Identificar pares candidatos y
+    devolver razones/evidencia para que el agente los evalúe; no crear relaciones
+    `conflicts_with`, corregir ni archivar automáticamente.
+12. **Exportación portable versionada — planificada.** Definir formato,
+    identidad de memorias, validación y vista previa de importación, con
+    compatibilidad explícita entre versiones/workspaces. No incluye
+    sincronización automática.
 
 ### P3 — Opciones exploratorias
 
-12. **Interfaz visual local.** Considerar una TUI sobre el core y la CLI de
+13. **Interfaz visual local.** Considerar una TUI sobre el core y la CLI de
     lectura si la inspección manual demuestra demanda sostenida.
-13. **Memoria compartida o sincronización.** Evaluar identidad, permisos,
+14. **Memoria compartida o sincronización.** Evaluar identidad, permisos,
     privacidad, conflictos y recuperación en un ADR antes de implementar.
 
 HTTP, RAG, PostgreSQL/pgvector, embeddings e ingesta documental siguen fuera

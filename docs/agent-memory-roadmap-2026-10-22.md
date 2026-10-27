@@ -16,7 +16,8 @@ de calidad en tareas/hosts reales.
 
 - Runtime Go único con SQLite/FTS5, sesiones, memorias, upsert por
   `subjectKey`, búsqueda lexical, relaciones y lifecycle.
-- Once herramientas MCP por `stdio`: sesión/briefing, search/get/save, cierre,
+- Trece herramientas MCP por `stdio`: sesión/briefing, listado y timeline,
+  search/get/save, cierre,
   revisión, corrección versionada, relaciones y consolidación con preview y
   confirmación explícita.
 - Filtro de patrones sensibles antes de persistir memorias y handoffs; ownership
@@ -80,10 +81,18 @@ agente: las tools correspondientes ya existen.
    detección de colisiones, doctor y uninstall; verificada con pruebas y smoke.
    El contenido semántico ajeno se conserva, pero los comentarios y formato
    textual JSONC se reescriben como JSON indentado.
-6. **Siguiente candidato:** instalación y actualización reproducibles del
-   release firmado, con clave pública confiable y rollback.
-7. **Diferido:** validar lifecycle de Claude Code cuando el host esté
-   disponible. Linux manual continúa aplazado; CI Linux es el gate aceptado.
+6. **Completado (v1):** timeline de memorias de sólo lectura ordenado por última
+   actualización, con rango temporal y estado actual. Las versiones y
+   relaciones se recorren con `memory_relations`. No reconstruye eventos de
+   lifecycle que no se persistieron.
+7. **Siguiente:** detección de candidatos a conflicto; presentar evidencia
+   para revisión y nunca resolver, enlazar o archivar automáticamente.
+8. **Después:** exportación portable versionada y validación previa a
+    importar memorias en otro workspace. No incluye sincronización automática.
+9. **Pendiente:** instalación y actualización reproducibles del release
+   firmado, con clave pública confiable y rollback.
+10. **Diferido:** validar lifecycle de Claude Code cuando el host esté
+    disponible. Linux manual continúa aplazado; CI Linux es el gate aceptado.
 
 La secuencia, los criterios de aceptación y las propuestas condicionadas se
 detallan en el [plan de implementación](implementation-plan.md). Ninguna de
@@ -95,8 +104,6 @@ no se almacena en Git, docs ni conversación.
 
 ### P3 — Decisiones opcionales
 
-- Diseñar timeline, detección de conflictos y exportación portable sólo cuando
-  existan casos de uso observados y un contrato de compatibilidad.
 - Decidir si se necesita TUI, memoria compartida personal/global o
   sincronización. Antes de implementar memoria compartida, definir identidad,
   permisos, privacidad, conflictos y recuperación en un ADR.

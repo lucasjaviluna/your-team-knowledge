@@ -403,13 +403,14 @@ como argumento. Tool results contienen JSON en texto y `structuredContent`;
 errores se devuelven como `IsError` MCP. `ReadOnlyHint` describe consultas;
 `DestructiveHint=false` no reemplaza policy de dominio ni autorización del host.
 
-### 7.2 Catálogo de 12 tools
+### 7.2 Catálogo de 13 tools
 
 | Tool | Argumentos principales | Función y motivo |
 | --- | --- | --- |
 | `memory_session_start` | `query?`, `limit?`, `maxChars?` | Abre sesión propia; devuelve briefing o búsqueda inicial para combinar contexto y bootstrap. |
 | `memory_search` | `query`, límites | Busca sólo en scope fijo; sólo lectura. |
 | `memory_list` | límites | Lista memorias activas y vigentes del scope sin consulta; sólo lectura. |
+| `memory_timeline` | `since?`, `until?`, límites | Lista por última actualización, con estados históricos y filtro temporal; no inventa eventos lifecycle que no se guardan. |
 | `memory_get` | `memoryId`, `maxChars?` | Lee por ID y workspace, evitando acceso cruzado. |
 | `memory_save` | type/title/content, subjectKey/tags/source/session opcionales | Guarda conocimiento curado con filtro sensible e idempotencia. |
 | `memory_session_finish` | `sessionId`, `summary?` | Cierra sesión propia y guarda handoff opcional. |

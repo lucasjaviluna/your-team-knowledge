@@ -322,6 +322,7 @@ func protocol(project string) string {
 		"",
 		"- Use a short, focused keyword or phrase, preferably one topic per `memory_search` call (for example, `Go` or `installer`). Avoid combining many synonyms or writing a long question as one query.",
 		"- Use `memory_list` when you need to browse current memories but do not have a focused search query. It returns a bounded list, not a database-wide count.",
+		"- Use `memory_timeline` to inspect records by latest recorded update. `since` is inclusive and `until` is exclusive; it does not reconstruct lifecycle events the database never recorded.",
 		"- If a search is empty, retry with a simpler or more distinctive term. Try alternate wording or language separately when useful, then report that no matching entry was found if those searches are also empty.",
 		"- Do not infer that the database is empty or count all entries from search results. These tools do not provide a full listing or total-count operation.",
 		"- Use `memory_get` to read a result by ID when its preview is insufficient.",

@@ -147,6 +147,54 @@ func TestSearchExpandsAuthenticationSynonyms(t *testing.T) {
 	}
 }
 
+func TestListTimelineUsesProjectAreaAndUpdatedAtBounds(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 1, 1, 10, 0, 0, 0, time.UTC)
+	store, err := Open(filepath.Join(t.TempDir(), "timeline.sqlite"), func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	_, err = store.Save(ctx, SaveInput{ID: "old", WorkspaceID: "project-a", Type: "decision", Title: "Old", Content: "First record.", Tags: []string{"area:engineering"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(30 * time.Minute)
+	if _, err := store.Transition(ctx, "old", "archived", "No longer current."); err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(time.Hour)
+	_, err = store.Save(ctx, SaveInput{ID: "new", WorkspaceID: "project-a", Type: "decision", Title: "New", Content: "Second record.", Tags: []string{"area:engineering"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = store.Save(ctx, SaveInput{ID: "other-area", WorkspaceID: "project-a", Type: "decision", Title: "Other", Content: "Other area.", Tags: []string{"area:design"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = store.Save(ctx, SaveInput{ID: "other-project", WorkspaceID: "project-b", Type: "decision", Title: "Foreign", Content: "Other project."})
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, err := store.ListTimeline(ctx, "project-a", "engineering", "2026-01-01T10:45:00.000Z", "", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 || items[0].ID != "new" {
+		t.Fatalf("unexpected timeline result: %#v", items)
+	}
+	items, err = store.ListTimeline(ctx, "project-a", "", "", "2026-01-01T12:00:00.000Z", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 3 || items[0].ID != "new" || items[1].ID != "other-area" || items[2].ID != "old" {
+		t.Fatalf("timeline should be project-scoped and newest first: %#v", items)
+	}
+	if items[2].Status != "archived" || items[2].ArchivedAt == nil {
+		t.Fatalf("timeline omitted the current historical status: %#v", items[2])
+	}
+}
+
 func TestSaveRollsBackWhenIndexingFails(t *testing.T) {
 	store, err := Open(filepath.Join(t.TempDir(), "memory.sqlite"), nil)
 	if err != nil {

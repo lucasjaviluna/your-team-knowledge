@@ -38,8 +38,8 @@ backup, upgrade y rollback. SQLite es local-first y no requiere servicios
 externos.
 
 El contrato provider-neutral separa al consumidor del almacenamiento. Incluye
-disponibilidad, listado acotado, búsqueda, lectura individual, guardado
-idempotente, sesiones y revisión. El protocolo define bootstrap, búsqueda
+disponibilidad, listado acotado, timeline por última actualización, búsqueda,
+lectura individual, guardado idempotente, sesiones y revisión. El protocolo define bootstrap, búsqueda
 previa a decisiones, persistencia durable y handoff de sesión.
 
 ## Runtime y distribución

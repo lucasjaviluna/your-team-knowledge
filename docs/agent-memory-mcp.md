@@ -86,6 +86,7 @@ registrar en el host. También se puede configurar directamente:
 | `memory_session_start`  | Inicia una sesión y devuelve un briefing compacto; acepta una consulta para recuperación dirigida. |
 | `memory_search`         | Busca memoria del proyecto configurado. Sólo lectura.                    |
 | `memory_list`           | Lista memorias activas y vigentes del proyecto sin requerir consulta. Sólo lectura. |
+| `memory_timeline`       | Lista registros del proyecto por su última actualización conocida, incluidos estados históricos. Sólo lectura. |
 | `memory_get`            | Recupera una memoria por ID. Sólo lectura y sin revelar otros proyectos. |
 | `memory_save`           | Crea o actualiza memoria; `subjectKey` habilita idempotencia.            |
 | `memory_session_finish` | Cierra la sesión y opcionalmente guarda su resumen.                      |
@@ -112,6 +113,13 @@ consulta concreta. Devuelve hasta 20 entradas activas, vigentes y visibles en
 el área del proyecto por defecto; `limit` (1-100) y `maxChars` (100-20000)
 ajustan cantidad y presupuesto total de texto. Para preguntas concretas,
 `memory_search` sigue siendo la opción preferida.
+
+`memory_timeline` presenta hasta 50 registros por defecto, del más actualizado
+al más antiguo. Acepta `since` inclusivo y `until` exclusivo en RFC3339, además
+de `limit` y `maxChars`. `activityAt` significa la última actualización
+registrada de la fila; la base no conserva cada transición de lifecycle como
+evento, por lo que el timeline no reconstruye cambios intermedios que no estén
+registrados.
 
 `memory_review_list` devuelve memorias activas, vigentes y con la fecha de
 revisión vencida. `memory_review_complete` exige que la memoria esté vencida y

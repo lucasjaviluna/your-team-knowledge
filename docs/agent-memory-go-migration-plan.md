@@ -12,7 +12,8 @@ retirados.
 - Sesiones, resúmenes, memorias tipadas, `subjectKey`, relaciones, corrección
   versionada, briefing, búsqueda lexical, lifecycle, revisión, retención y
   consolidación con vista previa.
-- Once herramientas MCP sobre `stdio`, con proceso fijado a un proyecto.
+- Trece herramientas MCP sobre `stdio`, con proceso fijado a un proyecto,
+  incluido el timeline de memorias de sólo lectura.
 - CLI de setup/uninstall para Codex, Claude Code, Pi y OpenCode, además de
   doctor, backup, upgrade, rollback, conformance, evaluate y release.
 - CI para Windows x64, Linux x64 y macOS arm64.

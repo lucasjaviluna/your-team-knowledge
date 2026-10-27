@@ -579,6 +579,51 @@ func (s *Store) ListActive(ctx context.Context, workspaceID, area string, limit 
 	return items, nil
 }
 
+// ListTimeline returns project memories in reverse order of their latest
+// recorded update. It includes historical statuses, but does not synthesize
+// lifecycle events that the schema does not retain.
+func (s *Store) ListTimeline(ctx context.Context, workspaceID, area, since, until string, limit int) ([]Memory, error) {
+	workspaceID = required(workspaceID, "workspaceId")
+	if limit < 1 || limit > 100 {
+		return nil, errors.New("limit must be between 1 and 100.")
+	}
+	query := `SELECT * FROM memory_items WHERE workspace_id=?`
+	args := []any{workspaceID}
+	if since != "" {
+		query += ` AND updated_at>=?`
+		args = append(args, since)
+	}
+	if until != "" {
+		query += ` AND updated_at<?`
+		args = append(args, until)
+	}
+	query += ` ORDER BY updated_at DESC, id ASC`
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Memory{}
+	for rows.Next() {
+		item, err := scanMemory(rows)
+		if err != nil {
+			return nil, err
+		}
+		itemArea := memoryArea(item.Tags)
+		if area != "" && itemArea != "" && itemArea != area {
+			continue
+		}
+		items = append(items, item)
+		if len(items) == limit {
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 // Context returns a compact, project-scoped briefing ordered by explicit
 // priority, recent session summaries, then other durable memories.
 func (s *Store) Context(ctx context.Context, workspaceID string, limit int) ([]Memory, error) {

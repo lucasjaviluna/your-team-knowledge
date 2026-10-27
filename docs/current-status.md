@@ -16,7 +16,7 @@ retirados del alcance; ver [ADR 0009](adr/0009-agent-memory-only-scope.md).
   lifecycle, revisión, retención y consolidación.
 - Migración FTS5 para bases heredadas: crea y rellena el índice de forma
   transaccional cuando falta, con rollback si alguna memoria no se puede indexar.
-- MCP `stdio` con doce herramientas y proceso ligado a un proyecto; briefing
+- MCP `stdio` con trece herramientas y proceso ligado a un proyecto; briefing
   compacto, búsqueda lexical, corrección versionada y consolidación confirmada.
 - Setup/uninstall para Codex, Claude Code, Pi y OpenCode. Codex registra MCP en
   `CODEX_HOME/config.toml` y activa instrucciones por proyecto; los otros hosts
@@ -43,13 +43,18 @@ se acepta como gate. El harness sintético no representa una medición real.
 
 ## Pendiente
 
-1. **Siguiente incremento independiente: PR 09, instalación y actualización
-   reproducibles.** Evaluar la instalación verificable del release firmado,
-   conservar la clave pública confiable y permitir rollback. La integración
-   OpenCode admite JSONC y preserva la configuración semántica ajena, pero al
-   modificar el archivo lo reescribe como JSON indentado; no preserva comentarios
-   ni formato textual.
-   Claude Code real y Linux manual siguen postergados por disponibilidad.
+1. **Completado (v1): timeline de memorias.** `memory_timeline` lista registros
+   por última actualización, permite acotar el rango temporal e incluye estados
+   históricos. La tabla no conserva todas las transiciones de lifecycle.
+2. **A continuación: candidatos a conflicto y exportación portable versionada.**
+   La detección será revisable y la importación validará el formato antes de
+   escribir. No incluye sincronización.
+3. **PR 09: instalación y actualización reproducibles.** Evaluar la instalación
+   verificable del release firmado, conservar la clave pública confiable y
+   permitir rollback. La integración OpenCode admite JSONC y preserva la
+   configuración semántica ajena, pero al modificar el archivo lo reescribe
+   como JSON indentado; no preserva comentarios ni formato textual. Claude Code
+   real y Linux manual siguen postergados por disponibilidad.
 
 La concurrencia local SQLite quedó caracterizada el 2026-10-26: ocho procesos
 independientes realizaron guardados y upserts concurrentes sobre una clave

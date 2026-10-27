@@ -2,6 +2,13 @@
 
 All notable changes to this internal package are documented here.
 
+## [Unreleased]
+
+### Added
+
+- Read-only `memory_timeline` MCP tool with project/area isolation, RFC3339
+  date bounds, current statuses and latest recorded activity timestamps.
+
 ## [0.1.12] — Current release
 
 ### Added

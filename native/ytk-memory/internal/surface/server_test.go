@@ -35,8 +35,8 @@ func TestMCPToolsRoundTripAndSessionOwnership(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tools.Tools) != 12 {
-		t.Fatalf("got %d tools, want 12", len(tools.Tools))
+	if len(tools.Tools) != 13 {
+		t.Fatalf("got %d tools, want 13", len(tools.Tools))
 	}
 	started, err := clientSession.CallTool(ctx, &mcp.CallToolParams{Name: "memory_session_start", Arguments: map[string]any{}})
 	if err != nil {
@@ -87,6 +87,28 @@ func TestMCPToolsRoundTripAndSessionOwnership(t *testing.T) {
 	}
 	if len(listResponse.Entries) != 1 || listResponse.Entries[0].ID != memory.EntryID {
 		t.Fatalf("list returned unexpected memories: %#v", listResponse.Entries)
+	}
+	timelineResult, err := clientSession.CallTool(ctx, &mcp.CallToolParams{Name: "memory_timeline", Arguments: map[string]any{"limit": 10}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if timelineResult.IsError {
+		t.Fatalf("timeline failed: %+v", timelineResult)
+	}
+	var timelineResponse struct {
+		Entries []struct {
+			Entry struct {
+				ID string `json:"id"`
+			} `json:"entry"`
+			ActivityAt string `json:"activityAt"`
+		} `json:"entries"`
+		ActivityMeaning string `json:"activityMeaning"`
+	}
+	if err := decodeContent(timelineResult, &timelineResponse); err != nil {
+		t.Fatal(err)
+	}
+	if len(timelineResponse.Entries) != 1 || timelineResponse.Entries[0].Entry.ID != memory.EntryID || timelineResponse.Entries[0].ActivityAt == "" || timelineResponse.ActivityMeaning == "" {
+		t.Fatalf("unexpected timeline response: %#v", timelineResponse)
 	}
 	ownerMismatch := NewService(store, Config{ProjectID: "project-a"})
 	foreignSave, _, err := ownerMismatch.save(ctx, nil, saveInput{Type: "decision", Title: "Foreign write", Content: "Must be rejected.", SessionID: session.SessionID})
