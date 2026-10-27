@@ -13,7 +13,7 @@ criterios de producto están en la [hoja de ruta](agent-memory-roadmap-2026-10-2
   relaciones, lifecycle, revisión, retención y consolidación.
 - La migración crea y rellena FTS5 de forma transaccional cuando falta en una
   base heredada; una falla de backfill revierte el índice completo.
-- Once herramientas MCP por `stdio`, con proceso fijado a proyecto, owner de
+- Doce herramientas MCP por `stdio`, con proceso fijado a proyecto, owner de
   sesión, briefing inicial, búsqueda lexical y confirmación previa a consolidar.
 - CLI `doctor`, backup, upgrade y rollback; el doctor diagnostica TOML de
   Codex, ruta/acceso SQLite y ejecutable MCP registrado. Hay cobertura de
@@ -37,12 +37,12 @@ consumidores disponibles; los tests actuales validan adaptadores y archivos.
 
 ## Plan de evolución
 
-La concurrencia multiproceso ya está caracterizada y el usuario informa haber
-ejecutado el piloto con resultado preliminar correcto; falta consolidar sus
-evidencias en el runbook. PR 06, CLI de lectura, ya se completó. El próximo
-incremento independiente es el doctor de solo lectura; las ampliaciones de
-lifecycle que requieren hosts reales quedan sujetas a disponibilidad y a los
-hallazgos del piloto.
+La concurrencia multiproceso ya está caracterizada y el usuario confirmó que
+el piloto con el binario Go funciona en Codex. PR 06, CLI de lectura, y PR 07,
+doctor de solo lectura, ya se completaron. La validación con Claude Code queda
+postergada porque el host no está disponible. El próximo incremento
+independiente es PR 09: instalación y actualización reproducibles del release
+firmado; la preservación JSONC de OpenCode (PR 08) ya está completada.
 
 ### P0 — Estabilidad y validación
 
@@ -54,12 +54,10 @@ hallazgos del piloto.
    mientras hay una transacción WAL abierta; pasó cinco ejecuciones
    consecutivas en Windows con cero errores `SQLITE_BUSY`/`SQLITE_LOCKED`.
    Ver [ADR 0011](adr/0011-sqlite-multiprocess-concurrency.md).
-2. **PR 02: piloto reproducible en consumidores reales.** El usuario informa
-   que ya ejecutó el runbook y que el resultado parece correcto. Falta registrar
-   los dos repositorios, los dos hosts, versión, corpus, consultas, resultados,
-   métricas e incidencias para poder confirmar formalmente la matriz y los
-   umbrales. Ver [runbook](agent-memory-pilot-runbook.md); no declarar el PR
-   completo hasta consolidar esa evidencia.
+2. **PR 02: piloto con Codex — completado según confirmación del usuario.** El
+   usuario ejecutó el binario Go con Codex y confirmó que funciona. El runbook
+   conserva el procedimiento para repetir o documentar más detalle. La
+   cobertura con Claude Code queda postergada y no bloquea este alcance.
 
 El PR 01 y el PR 02 son incrementos revisables por separado. La prueba manual
 Linux continúa aplazada; CI Linux sigue siendo el gate automatizado aceptado
@@ -67,16 +65,18 @@ para el tramo actual y no se presentará como una prueba de uso con un host real
 
 ### P1 — Uso agéntico y operación
 
-3. **PR 03: lifecycle de Claude Code.** Medir si el host omite inicio,
+3. **PR 03: lifecycle de Claude Code — postergado.** Cuando el host esté
+   disponible, medir si omite inicio,
    recuperación o handoff durante tareas reales. Si ocurre, probar hooks
    específicos que llamen al MCP existente y comparar su efecto con la línea
    base. Mantener las reglas de memoria en el core.
 4. **PR 04: lifecycle opcional de Pi.** Aplicar el mismo criterio de medición;
    añadir una integración específica sólo si mejora la persistencia o la
    recuperación sin generar duplicados.
-5. **PR 05: pruebas de los cuatro hosts.** Ejecutar setup, doctor, sesión,
-   búsqueda, guardado, reinicio y uninstall en Codex, Claude Code, Pi y
-   OpenCode reales, preservando configuración ajena.
+5. **PR 05: validación de hosts adicionales — postergada.** Ejecutar setup,
+   doctor, sesión, búsqueda, guardado, reinicio y uninstall en hosts reales
+   conforme estén disponibles, preservando configuración ajena. Codex ya fue
+   validado por el usuario.
 6. **PR 06: CLI de lectura — completado.** `search`, `list`, `get` y `stats`
    usan los servicios del core, limitan lecturas al proyecto, aplican filtros de
    lifecycle/área y admiten `--json`. No incorporan otro transporte.
@@ -84,15 +84,19 @@ para el tramo actual y no se presentará como una prueba de uso con un host real
    abre SQLite con `mode=ro` y `query_only`, compara tablas/columnas/índices/FTS5
    con el schema esperado e informa los cambios e incompatibilidades sin
    ejecutar migraciones.
-8. **PR 08: conservación de JSONC en OpenCode.** Evitar que setup/uninstall
-   descarten comentarios o formato ajenos; probar archivos reales con JSONC y
-   configuración de otros servidores.
-9. **PR 09: instalación y actualización reproducibles.** Evaluar un canal
-   verificable por plataforma que instale el release firmado, conserve la clave
-   pública confiable y permita volver a una versión anterior. Probar upgrades
-   entre releases con bases representativas antes de recomendarlo.
+8. **PR 08: preservación JSONC en OpenCode — completado.** `setup opencode`,
+   `uninstall opencode` y `doctor --host opencode` administran configuración
+   JSON/JSONC por proyecto, preservan servidores y opciones ajenos, son
+   idempotentes y rechazan colisiones no administradas. Las pruebas y smoke
+   setup/doctor/uninstall cubrieron JSON y JSONC; también se actualizó la
+   documentación. Ver [arquitectura técnica](technical-architecture.md).
+9. **PR 09: instalación y actualización reproducibles — siguiente candidato.**
+   Evaluar un canal verificable por plataforma que instale el release firmado,
+   conserve la clave pública confiable y permita volver a una versión anterior.
+   Probar upgrades entre releases con bases representativas antes de
+   recomendarlo.
 
-Los PR 03 y 04 dependen de los hallazgos del piloto. El orden de los PR 06–09
+El PR 03 depende de la disponibilidad de Claude Code. El orden de los PR 06–09
 puede ajustarse por incidencias reales, conservando sus criterios de seguridad
 y compatibilidad.
 
@@ -123,7 +127,8 @@ superficie de seguridad.
 - Integridad SQLite/FTS5, aislamiento por proyecto e idempotencia bajo la carga
   multiproceso definida en PR 01.
 - Recuperación útil entre sesiones y, donde aplique, después de compactación,
-  respaldada por consultas y tareas reales del PR 02.
+  respaldada por consultas y tareas reales; Codex está validado para el alcance
+  ejecutado por el usuario.
 - Cuatro hosts comprobados en uso real antes de anunciar ese alcance; builds y
   firmas válidos en todas las plataformas que anuncie el release.
 - Upgrade/rollback sin pérdida de datos, diagnóstico accionable y métricas de

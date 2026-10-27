@@ -85,6 +85,7 @@ registrar en el host. También se puede configurar directamente:
 | ----------------------- | ------------------------------------------------------------------------ |
 | `memory_session_start`  | Inicia una sesión y devuelve un briefing compacto; acepta una consulta para recuperación dirigida. |
 | `memory_search`         | Busca memoria del proyecto configurado. Sólo lectura.                    |
+| `memory_list`           | Lista memorias activas y vigentes del proyecto sin requerir consulta. Sólo lectura. |
 | `memory_get`            | Recupera una memoria por ID. Sólo lectura y sin revelar otros proyectos. |
 | `memory_save`           | Crea o actualiza memoria; `subjectKey` habilita idempotencia.            |
 | `memory_session_finish` | Cierra la sesión y opcionalmente guarda su resumen.                      |
@@ -105,6 +106,12 @@ memorias durables recientes. Se excluyen entradas expiradas, archivadas, futuras
 o pendientes de revisión. `limit` y `maxChars` permiten ajustar el briefing
 (1-100 y 100-20000). Un `query` solicita búsqueda dirigida en lugar del
 briefing. El proyecto y el área configurados siguen limitando los resultados.
+
+`memory_list` sirve para inspeccionar memorias actuales cuando no hay una
+consulta concreta. Devuelve hasta 20 entradas activas, vigentes y visibles en
+el área del proyecto por defecto; `limit` (1-100) y `maxChars` (100-20000)
+ajustan cantidad y presupuesto total de texto. Para preguntas concretas,
+`memory_search` sigue siendo la opción preferida.
 
 `memory_review_list` devuelve memorias activas, vigentes y con la fecha de
 revisión vencida. `memory_review_complete` exige que la memoria esté vencida y

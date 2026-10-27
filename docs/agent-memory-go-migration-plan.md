@@ -24,17 +24,21 @@ retirados.
 ## Validación
 
 La CI ejecuta `gofmt`, `go vet ./...`, `go test ./...` y build en las tres
-plataformas. El piloto manual se confirmó en Windows; la prueba manual Linux
-queda aplazada y el gate Linux de CI es suficiente por ahora. La evaluación
-sintética entrega baseline lexical, no resultados de tareas reales.
+plataformas. El usuario confirmó que el piloto del binario Go funciona con
+Codex. La validación manual con Claude Code queda postergada porque no está
+disponible; la prueba manual Linux también queda aplazada y el gate Linux de CI
+es suficiente por ahora. La evaluación sintética entrega baseline lexical, no
+resultados de tareas reales.
 
 ## Pendiente
 
 1. **Completado:** caracterizar concurrencia/reintentos multiproceso,
    recuperación WAL e integridad SQLite/FTS5 con carga reproducible. Ver
    [ADR 0011](adr/0011-sqlite-multiprocess-concurrency.md).
-2. **Siguiente:** validar retrieval, recuperación entre sesiones y hosts en repositorios
-   consumidores mediante el [runbook del piloto](agent-memory-pilot-runbook.md).
+2. **Validado con Codex:** el usuario ejecutó el binario Go y confirmó que
+   funciona. El [runbook del piloto](agent-memory-pilot-runbook.md) permite
+   reproducir y ampliar esta validación. Claude Code queda postergado hasta que
+   esté disponible.
 
 Las propuestas posteriores y sus criterios están en el
 [plan de implementación](implementation-plan.md). Esta migración Go ya está

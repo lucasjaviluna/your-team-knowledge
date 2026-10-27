@@ -1,8 +1,19 @@
 # Runbook de validación real de Agent Memory
 
-**Objetivo:** medir la utilidad del briefing y la búsqueda en repositorios y
-hosts MCP usados por el equipo, y comprobar persistencia y recuperación con el
-release firmado.
+**Objetivo:** reproducir o ampliar la validación del briefing y la búsqueda en
+repositorios y hosts MCP usados por el equipo, y comprobar persistencia y
+recuperación con el release firmado.
+
+## Estado conocido
+
+El usuario confirmó que ejecutó el binario Go con Codex y que funciona. Esta
+validación se considera completada para el alcance ejecutado. No se registraron
+aquí los nombres de repositorios, consultas ni métricas, por lo que no se
+atribuyen detalles no proporcionados. Claude Code no está disponible y su
+validación queda postergada. Las tablas y pasos siguientes sirven para
+reproducir la comprobación con más detalle o extenderla a otros repositorios y
+hosts cuando estén disponibles; completar cuatro combinaciones no es requisito
+para dar por validado el uso con Codex.
 
 **Release de referencia:** `v0.1.12`. Si se aprueba uno más reciente antes de
 ejecutar el piloto, usá esa versión y anotala en el registro.
@@ -13,10 +24,12 @@ para la prueba.
 
 ## Criterios de aprobación
 
-El piloto cubre dos repositorios consumidores y dos hosts MCP: cuatro
-combinaciones repo-host. Se aprueba cuando:
+Para una validación ampliada, se pueden cubrir dos repositorios consumidores y
+dos hosts MCP. Cada combinación que se ejecute se registra en la matriz; los
+hosts no disponibles se marcan como postergados. Para considerar aprobada una
+combinación ejecutada:
 
-- `doctor` informa `healthy: true` en las cuatro combinaciones.
+- `doctor` informa `healthy: true` en cada combinación que se evalúe.
 - Cada host inicia el servidor MCP, guarda y encuentra memorias del repo
   correspondiente.
 - Las memorias sobreviven al cierre completo y reinicio del host.
@@ -256,8 +269,8 @@ Para cada incidencia registrá paso, versión, SO, host, resultado esperado,
 resultado observado, integridad de la base y recuperación aplicada. No copies
 transcripciones ni contenido confidencial.
 
-El piloto queda aprobado si las cuatro combinaciones superan los criterios del
-inicio. Si una falla, corregí el problema, repetí el caso y actualizá la
-evidencia. Al cerrar, actualizá `docs/current-status.md` con el alcance real de
-la validación; los checks Linux de GitHub Actions no cuentan como uso real en
-un host Linux.
+La validación ampliada queda aprobada para las combinaciones ejecutadas que
+superen sus criterios. Si una falla, corregí el problema, repetí el caso y
+actualizá la evidencia. Al cerrar, actualizá `docs/current-status.md` con el
+alcance real de la validación; los checks Linux de GitHub Actions no cuentan
+como uso real en un host Linux.

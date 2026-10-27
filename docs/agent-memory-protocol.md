@@ -54,6 +54,7 @@ El runtime que ejecute estas instrucciones debería ofrecer capacidades equivale
 
 ```text
 memory.context(project, area?)
+memory.list(project, area?, limit?, maxChars?)
 memory.search(query, project, area?, limit?, maxChars?)
 memory.save(type, title, content, project, area?, tags?, subjectKey?)
 memory.update(existingId, content/title/tags/subjectKey)

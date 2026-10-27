@@ -35,8 +35,8 @@ func TestMCPToolsRoundTripAndSessionOwnership(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tools.Tools) != 11 {
-		t.Fatalf("got %d tools, want 11", len(tools.Tools))
+	if len(tools.Tools) != 12 {
+		t.Fatalf("got %d tools, want 12", len(tools.Tools))
 	}
 	started, err := clientSession.CallTool(ctx, &mcp.CallToolParams{Name: "memory_session_start", Arguments: map[string]any{}})
 	if err != nil {
@@ -71,6 +71,22 @@ func TestMCPToolsRoundTripAndSessionOwnership(t *testing.T) {
 	}
 	if searched.IsError {
 		t.Fatalf("search failed: %+v", searched)
+	}
+	listed, err := clientSession.CallTool(ctx, &mcp.CallToolParams{Name: "memory_list", Arguments: map[string]any{"limit": 10}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if listed.IsError {
+		t.Fatalf("list failed: %+v", listed)
+	}
+	var listResponse struct {
+		Entries []entry `json:"entries"`
+	}
+	if err := decodeContent(listed, &listResponse); err != nil {
+		t.Fatal(err)
+	}
+	if len(listResponse.Entries) != 1 || listResponse.Entries[0].ID != memory.EntryID {
+		t.Fatalf("list returned unexpected memories: %#v", listResponse.Entries)
 	}
 	ownerMismatch := NewService(store, Config{ProjectID: "project-a"})
 	foreignSave, _, err := ownerMismatch.save(ctx, nil, saveInput{Type: "decision", Title: "Foreign write", Content: "Must be rejected.", SessionID: session.SessionID})

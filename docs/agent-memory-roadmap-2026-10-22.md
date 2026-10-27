@@ -1,6 +1,6 @@
 # Estado y hoja de ruta de Agent Memory
 
-**Fecha de revisión:** 2026-10-26
+**Fecha de revisión:** 2026-10-27
 
 ## Alcance
 
@@ -35,11 +35,10 @@ de calidad en tareas/hosts reales.
 - Documentación técnica integral en
   [technical-architecture.md](technical-architecture.md).
 
-La CI ejecuta `gofmt`, `go vet ./...`, `go test ./...` y build. El piloto de
-uso se confirmó en Windows. La prueba manual Linux queda aplazada y la CI Linux
-es el gate aceptado por ahora. La automatización de cada host está probada en
-configuración; pruebas en repositorios consumidores dependen de disponibilidad
-de esos hosts.
+La CI ejecuta `gofmt`, `go vet ./...`, `go test ./...` y build. El usuario
+confirmó que el piloto del binario Go funciona con Codex. Claude Code no está
+disponible y su validación queda postergada. La prueba manual Linux también
+queda aplazada y la CI Linux es el gate aceptado por ahora.
 
 ## Brechas actuales
 
@@ -47,7 +46,8 @@ de esos hosts.
 | --- | --- | --- |
 | Release firmado | Operativo: `v0.1.12` publicado tras CI verde; activos confirmados en Windows, Linux y macOS. | Rotar la clave sólo según [release-policy.md](release-policy.md) y conservar la custodia fuera del repositorio. |
 | Índice FTS legado | Resuelto: la apertura crea y rellena FTS5 de forma transaccional si la tabla falta. | Mantener la prueba de migración y búsqueda al cambiar el esquema. |
-| Evaluación real | El usuario informa que ejecutó el runbook con resultado preliminar correcto; aún no se registraron las evidencias ni métricas. | Completar la matriz repo-host y registrar relevancia, ruido, latencia, aislamiento y persistencia para cerrar el piloto. |
+| Evaluación real | Piloto con Codex confirmado como funcional por el usuario. Claude Code no está disponible y queda postergado; no se afirma cobertura de otros hosts. | Continuar con mejoras independientes. Reabrir validación de hosts adicionales cuando estén disponibles o el usuario quiera ampliar el piloto. |
+| Configuración OpenCode | Resuelto: setup/uninstall/doctor soportan JSON y JSONC, preservan configuración ajena y rechazan colisiones no administradas. | Mantener pruebas de preservación y compatibilidad al cambiar el adaptador. |
 | Concurrencia | WAL, timeout, transacciones `IMMEDIATE` y migración transaccional implementados. Prueba de ocho procesos y lector simultáneo pasó cinco veces en Windows sin `SQLITE_BUSY`/`SQLITE_LOCKED`. | Mantener la regresión y comprobarla en CI de las plataformas soportadas. |
 | Plataformas | Windows x64, Linux x64 y macOS arm64 en CI/release. | Añadir arm64 u otros gestores sólo con demanda y soporte. |
 
@@ -70,15 +70,18 @@ agente: las tools correspondientes ya existen.
 1. **Completado:** caracterizar concurrencia multiproceso, recuperación WAL,
    backup e integridad SQLite/FTS5 con una carga reproducible; ver
    [ADR 0011](adr/0011-sqlite-multiprocess-concurrency.md).
-2. **En cierre:** consolidar la evidencia del piloto de dos repositorios y dos
-   hosts, que el usuario informa haber ejecutado con resultado preliminar
-   correcto.
+2. **Completado para Codex:** el usuario confirmó que el binario Go funciona
+   con ese host. La validación con otros hosts no se considera ejecutada.
 3. **Diferido:** revisar omisiones del lifecycle de Claude Code cuando haya un
    host disponible; probar mecanismos del host sólo si se observaron omisiones.
 4. **Completado:** doctor `--read-only` inspecciona compatibilidad sin ejecutar
-   migraciones. Como siguiente incremento independiente, preservar comentarios
-   y formato JSONC en OpenCode; validar lifecycle de Claude Code queda diferido
-   hasta disponer del host. También quedan instalación/upgrade reproducibles.
+   migraciones.
+5. **Completado:** integración OpenCode con preservación JSONC, idempotencia,
+   detección de colisiones, doctor y uninstall; verificada con pruebas y smoke.
+6. **Siguiente candidato:** instalación y actualización reproducibles del
+   release firmado, con clave pública confiable y rollback.
+7. **Diferido:** validar lifecycle de Claude Code cuando el host esté
+   disponible. Linux manual continúa aplazado; CI Linux es el gate aceptado.
 
 La secuencia, los criterios de aceptación y las propuestas condicionadas se
 detallan en el [plan de implementación](implementation-plan.md). Ninguna de

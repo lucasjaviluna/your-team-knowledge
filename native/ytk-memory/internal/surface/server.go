@@ -32,6 +32,7 @@ func (s *Service) Server() *mcp.Server {
 	}
 	mcp.AddTool(server, add("memory_session_start", "Start a project-scoped session and return compact context or query matches.", false), s.start)
 	mcp.AddTool(server, add("memory_search", "Search reusable memory in the configured project.", true), s.search)
+	mcp.AddTool(server, add("memory_list", "List current project memories without requiring a search query.", true), s.list)
 	mcp.AddTool(server, add("memory_get", "Read one memory from the configured project.", true), s.get)
 	mcp.AddTool(server, add("memory_save", "Create or update durable project memory.", false), s.save)
 	mcp.AddTool(server, add("memory_session_finish", "Finish a project-scoped session and optionally save its summary.", false), s.finish)
@@ -207,6 +208,28 @@ func (s *Service) search(ctx context.Context, _ *mcp.CallToolRequest, in searchI
 	found, err := s.find(ctx, in.Query, in.Limit, in.MaxChars)
 	return toolResult(map[string]any{"entries": found}, err)
 }
+
+func (s *Service) list(ctx context.Context, _ *mcp.CallToolRequest, in reviewListInput) (*mcp.CallToolResult, map[string]any, error) {
+	limit, maxChars := in.Limit, in.MaxChars
+	if limit == 0 {
+		limit = 20
+	}
+	if limit < 1 || limit > 100 {
+		return toolResult(nil, errors.New("limit must be between 1 and 100."))
+	}
+	if maxChars == 0 {
+		maxChars = 4000
+	}
+	if maxChars < 100 || maxChars > 20000 {
+		return toolResult(nil, errors.New("maxChars must be between 100 and 20000."))
+	}
+	items, err := s.Store.ListActive(ctx, s.ProjectID, s.Area, limit)
+	if err != nil {
+		return toolResult(nil, err)
+	}
+	return toolResult(map[string]any{"entries": s.contextEntries(items, limit, maxChars)}, nil)
+}
+
 func (s *Service) find(ctx context.Context, query string, limit, maxChars int) ([]entry, error) {
 	query = strings.TrimSpace(query)
 	if err := validate(query, 2000, true); err != nil {
