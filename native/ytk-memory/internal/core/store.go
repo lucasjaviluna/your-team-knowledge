@@ -503,6 +503,45 @@ func (s *Store) Search(ctx context.Context, workspaceID, query string, limit int
 	return items, rows.Err()
 }
 
+// ListActive returns current, project-scoped memories using the same lifecycle
+// visibility rules as Search. Memories without an area tag are visible in any
+// configured area, matching the MCP surface behavior.
+func (s *Store) ListActive(ctx context.Context, workspaceID, area string, limit int) ([]Memory, error) {
+	workspaceID = required(workspaceID, "workspaceId")
+	if limit < 1 || limit > 100 {
+		return nil, errors.New("limit must be between 1 and 100.")
+	}
+	now := formatTime(s.now())
+	rows, err := s.db.QueryContext(ctx, `SELECT * FROM memory_items
+		WHERE workspace_id=? AND status='active' AND valid_from<=?
+		AND (expires_at IS NULL OR expires_at>?)
+		AND (review_at IS NULL OR review_at>?)
+		ORDER BY updated_at DESC, id ASC`, workspaceID, now, now, now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Memory{}
+	for rows.Next() {
+		item, err := scanMemory(rows)
+		if err != nil {
+			return nil, err
+		}
+		itemArea := memoryArea(item.Tags)
+		if area != "" && itemArea != "" && itemArea != area {
+			continue
+		}
+		items = append(items, item)
+		if len(items) == limit {
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 // Context returns a compact, project-scoped briefing ordered by explicit
 // priority, recent session summaries, then other durable memories.
 func (s *Store) Context(ctx context.Context, workspaceID string, limit int) ([]Memory, error) {
@@ -720,6 +759,12 @@ type Lifecycle struct {
 }
 
 func (s *Store) InspectLifecycle(ctx context.Context, workspaceID string) (Lifecycle, error) {
+	return s.InspectLifecycleArea(ctx, workspaceID, "")
+}
+
+// InspectLifecycleArea returns lifecycle counts for a project and optional
+// memory area. Untagged memories remain visible in every area.
+func (s *Store) InspectLifecycleArea(ctx context.Context, workspaceID, area string) (Lifecycle, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT * FROM memory_items WHERE workspace_id=?`, workspaceID)
 	if err != nil {
 		return Lifecycle{}, err
@@ -731,6 +776,10 @@ func (s *Store) InspectLifecycle(ctx context.Context, workspaceID string) (Lifec
 		item, err := scanMemory(rows)
 		if err != nil {
 			return Lifecycle{}, err
+		}
+		itemArea := memoryArea(item.Tags)
+		if area != "" && itemArea != "" && itemArea != area {
+			continue
 		}
 		result.Total++
 		result.ByStatus[item.Status]++
@@ -745,6 +794,15 @@ func (s *Store) InspectLifecycle(ctx context.Context, workspaceID string) (Lifec
 		}
 	}
 	return result, rows.Err()
+}
+
+func memoryArea(tags []string) string {
+	for _, tag := range tags {
+		if strings.HasPrefix(tag, "area:") {
+			return strings.TrimPrefix(tag, "area:")
+		}
+	}
+	return ""
 }
 
 func (s *Store) ArchiveExpired(ctx context.Context, workspaceID string) (int64, error) {

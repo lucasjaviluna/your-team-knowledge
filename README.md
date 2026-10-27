@@ -12,6 +12,8 @@ El binario `ytk-memory` ofrece:
   versionada y consulta de relaciones;
 - aislamiento por proyecto;
 - `doctor`, `backup`, `upgrade` y `rollback`;
+- CLI de lectura local: `search`, `list`, `get` y `stats`, limitada al proyecto
+  resuelto desde `.ytk-memory.json` o los flags explícitos;
 - setup y uninstall idempotentes de Codex, Claude Code, Pi y OpenCode; Codex usa
   registro MCP global y los demás hosts configuración por proyecto;
 - compilación y pruebas en Windows, Linux y macOS arm64 desde el módulo Go.
@@ -19,6 +21,18 @@ El binario `ytk-memory` ofrece:
 El comando `ytk-memory evaluate` ejecuta el corpus sintético de recuperación y
 emite métricas JSON para comparar cambios de ranking y briefing. Consultá
 [docs/local-development.md](docs/local-development.md) para ejecutarlo.
+
+La CLI también permite inspeccionar la memoria del proyecto configurado:
+
+```text
+ytk-memory search --query "SQLite concurrency" --json
+ytk-memory list --limit 20
+ytk-memory get --id <memory-id>
+ytk-memory stats --json
+```
+
+Los comandos respetan el proyecto y área de `.ytk-memory.json`; aceptan
+`--project`, `--database` y `--area` para fijarlos explícitamente.
 
 La guía de instalación está en [docs/agent-memory-installation.md](docs/agent-memory-installation.md)
 y la guía de consumidores en [docs/agent-memory-native-consumer-guide.md](docs/agent-memory-native-consumer-guide.md).

@@ -463,6 +463,10 @@ incluso cuando surface ya restringió inputs.
 | `mcp` | Servidor MCP fijado al proyecto local. | Interfaz primaria del agente. |
 | `setup <host>` / `uninstall <host>` | Configura/quita archivos de Codex, Claude, Pi u OpenCode; acepta `--dry-run`, `--json`. | Automatiza formatos distintos y hace cambios repetibles/reversibles. |
 | `doctor` | Comprueba config, SQLite, lifecycle, integridad y registro de host. | Convierte fallos locales en pasos de reparación. |
+| `search --query TEXT` | Busca memorias actuales por FTS5 en el proyecto resuelto. | Inspección y scripting local sin iniciar una sesión MCP. |
+| `list` | Lista memorias activas, vigentes y no vencidas para inspección, hasta 100. | Permite inspeccionar memoria existente con los filtros lifecycle del core. |
+| `get --id ID` | Recupera una memoria completa dentro del proyecto y área configurados. | Inspecciona un resultado sin permitir lecturas entre proyectos. |
+| `stats` | Informa totales y estados lifecycle de la memoria del proyecto. | Muestra el estado del corpus sin exportar su contenido. |
 | `backup --to PATH` | Backup coherente; `--overwrite` opt-in. | Recuperación manual antes de operaciones riesgosas. |
 | `upgrade --backup-to PATH` | Respalda y abre esquema para migrarlo. | Nunca se actualiza sin copia previa declarada. |
 | `rollback --from PATH --backup-current-to PATH --confirm` | Verifica fuente y reemplaza base dejando copia del estado actual. | Evita pérdidas por rollback precipitado. |
@@ -474,6 +478,14 @@ incluso cuando surface ya restringió inputs.
 `--project`, `--database` y `--area` pueden fijar scope de operación; MCP
 requiere config local. `--json` produce salida de máquina. Doctor ante error de
 resolución también devuelve check estructurado en vez de abortar sin contexto.
+Los comandos `search`, `list`, `get` y `stats` reutilizan `Store.Search`,
+`Store.ListActive`, `Store.Get` e `InspectLifecycle`; limitan las consultas al
+proyecto y respetan la visibilidad por área y lifecycle. `search` y `list`
+devuelven hasta 100 entradas (20 por defecto); `stats` cuenta también memorias
+archivadas, futuras o vencidas para reflejar el lifecycle completo. Los cuatro
+comandos requieren que la base indicada ya exista. Su semántica no modifica
+memorias, aunque `core.Open` puede aplicar migraciones idempotentes al abrir una
+base antigua, igual que otros accesos actuales al core.
 
 ### 8.2 Doctor en detalle
 
@@ -825,10 +837,12 @@ versión, plataforma, formato, SHA-256, schema version `1`, protocol version
 `release verify` recalcula SHA-256, valida nombre/manifest, tamaños hex de
 firma/clave, versiones soportadas, firma Ed25519 y consistencia de public key.
 Las firmas `--ephemeral-key` sirven sólo para smoke/prueba y no son release
-aprobado. Tags CI requieren material persistente, cotejan clave pública
-esperada, extraen y ejecutan binario para comprobar versión contra tag y
-verifican artefactos antes de publicar. Ver [política](release-policy.md) para
-custodia, rotación y revocación.
+aprobado. Tags CI requieren material persistente y cotejan la clave pública
+esperada. Un job Ubuntu compila los tres targets secuencialmente, comprueba el
+ZIP de Windows, el tarball de macOS y ejecuta el binario Linux para comparar su
+versión con el tag. Sube los quince archivos a un release en borrador; un job
+final descarga los activos, verifica checksums y firmas y publica sólo si todos
+pasan. Ver [política](release-policy.md) para custodia, rotación y revocación.
 
 Reproducible build es intención respaldada por flags y proceso fijado; no se
 debe afirmar identidad byte a byte entre builders sin comparación efectiva.
@@ -838,9 +852,10 @@ Firma/hash demuestran integridad/origen de clave, no ausencia de vulnerabilidade
 
 La CI por push/PR usa Ubuntu, Windows 2022 y macOS 26 arm64; fija Go desde
 `go.mod`, verifica `gofmt`, corre `go vet ./...`, `go test ./...` y compila a
-temporal. En tags añade build/package de cada plataforma, firma, verificación,
-smoke de versión y publish. Esto da feedback de compilación/test y prueba el
-artefacto distribuido antes de publicarlo.
+temporal. En tags, un job Ubuntu compila los targets de release con
+`CGO_ENABLED=0`, empaqueta y firma; el job final verifica los cinco archivos de
+cada target y las firmas antes de publicar. Esto da feedback de
+compilación/test y prueba el artefacto distribuido antes de publicarlo.
 
 Cobertura por paquete: core (migración legacy, WAL backup, store/search,
 lifecycle, transacciones, relaciones/retención y estrés SQLite con ocho

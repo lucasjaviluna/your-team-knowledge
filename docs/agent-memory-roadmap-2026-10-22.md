@@ -45,9 +45,9 @@ de esos hosts.
 
 | Área | Estado | Siguiente trabajo |
 | --- | --- | --- |
-| Release firmado | Operativo: `v0.1.5` publicado tras CI verde en Windows, Linux y macOS. | Rotar la clave sólo según [release-policy.md](release-policy.md) y conservar la custodia fuera del repositorio. |
+| Release firmado | Operativo: `v0.1.12` publicado tras CI verde; activos confirmados en Windows, Linux y macOS. | Rotar la clave sólo según [release-policy.md](release-policy.md) y conservar la custodia fuera del repositorio. |
 | Índice FTS legado | Resuelto: la apertura crea y rellena FTS5 de forma transaccional si la tabla falta. | Mantener la prueba de migración y búsqueda al cambiar el esquema. |
-| Evaluación real | Hay baseline sintética reproducible, no medición de utilidad o calidad con tareas reales. | Evaluar búsqueda/briefing en repos consumidores, registrar relevancia, ruido y latencia. |
+| Evaluación real | El usuario informa que ejecutó el runbook con resultado preliminar correcto; aún no se registraron las evidencias ni métricas. | Completar la matriz repo-host y registrar relevancia, ruido, latencia, aislamiento y persistencia para cerrar el piloto. |
 | Concurrencia | WAL, timeout, transacciones `IMMEDIATE` y migración transaccional implementados. Prueba de ocho procesos y lector simultáneo pasó cinco veces en Windows sin `SQLITE_BUSY`/`SQLITE_LOCKED`. | Mantener la regresión y comprobarla en CI de las plataformas soportadas. |
 | Plataformas | Windows x64, Linux x64 y macOS arm64 en CI/release. | Añadir arm64 u otros gestores sólo con demanda y soporte. |
 
@@ -70,17 +70,21 @@ agente: las tools correspondientes ya existen.
 1. **Completado:** caracterizar concurrencia multiproceso, recuperación WAL,
    backup e integridad SQLite/FTS5 con una carga reproducible; ver
    [ADR 0011](adr/0011-sqlite-multiprocess-concurrency.md).
-2. **Siguiente:** ejecutar el piloto de dos repositorios y dos hosts: medir utilidad de
-   briefing/búsqueda, aislamiento, persistencia y recuperación entre sesiones.
-3. Según los hallazgos, probar mecanismos de lifecycle del host y validar en
-   uso real Codex, Claude Code, Pi y OpenCode. Evaluar CLI de lectura, doctor de
-   solo lectura, preservación de JSONC e instalación/upgrade reproducibles.
+2. **En cierre:** consolidar la evidencia del piloto de dos repositorios y dos
+   hosts, que el usuario informa haber ejecutado con resultado preliminar
+   correcto.
+3. **Diferido:** revisar omisiones del lifecycle de Claude Code cuando haya un
+   host disponible; probar mecanismos del host sólo si se observaron omisiones.
+4. **Siguiente incremento independiente:** doctor de solo lectura para que el
+   diagnóstico no abra SQLite mediante `core.Open`. Luego validar en uso real
+   Codex, Claude Code, Pi y OpenCode; quedan además la preservación de JSONC y
+   la instalación/upgrade reproducibles.
 
 La secuencia, los criterios de aceptación y las propuestas condicionadas se
 detallan en el [plan de implementación](implementation-plan.md). Ninguna de
 estas tareas pendientes se presenta como capacidad ya validada.
 
-El release firmado quedó operativo con `v0.1.5`. La política de custodia y
+El release firmado quedó operativo con `v0.1.12`. La política de custodia y
 rotación se describe en [release-policy.md](release-policy.md); la clave privada
 no se almacena en Git, docs ni conversación.
 

@@ -33,6 +33,17 @@ type configFile struct {
 }
 type config struct{ project, database, area, root string }
 
+type readResult struct {
+	Operation string          `json:"operation"`
+	ProjectID string          `json:"projectId"`
+	Database  string          `json:"database"`
+	Area      string          `json:"area,omitempty"`
+	Count     int             `json:"count"`
+	Items     []core.Memory   `json:"items,omitempty"`
+	Item      *core.Memory    `json:"item,omitempty"`
+	Lifecycle *core.Lifecycle `json:"lifecycle,omitempty"`
+}
+
 func main() {
 	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -41,13 +52,16 @@ func main() {
 }
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: ytk-memory <mcp|setup|uninstall|conformance|evaluate|release|doctor|backup|upgrade|rollback> [options]")
+		return errors.New("usage: ytk-memory <mcp|setup|uninstall|search|list|get|stats|conformance|evaluate|release|doctor|backup|upgrade|rollback> [options]")
 	}
 	if args[0] == "--version" || args[0] == "version" {
 		fmt.Println(version)
 		return nil
 	}
 	command := args[0]
+	if command == "search" || command == "list" || command == "get" || command == "stats" {
+		return runRead(command, args[1:])
+	}
 	if command == "conformance" {
 		fixture, database, err := conformanceArguments(args[1:])
 		if err != nil {
@@ -127,6 +141,178 @@ func run(args []string) error {
 		return doRollback(cfg, *from, *currentTo, *confirm, *jsonOutput)
 	}
 	return fmt.Errorf("unknown operation: %s", command)
+}
+
+func runRead(command string, args []string) error {
+	fs := flag.NewFlagSet(command, flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	query := fs.String("query", "", "lexical search query (search only)")
+	memoryID := fs.String("id", "", "memory ID (get only)")
+	limit := fs.Int("limit", 20, "maximum memories to return (1-100)")
+	project := fs.String("project", "", "project ID")
+	database := fs.String("database", "", "SQLite path")
+	area := fs.String("area", "", "memory area")
+	jsonOutput := fs.Bool("json", false, "print machine-readable JSON")
+	fs.Usage = func() {
+		fmt.Fprintf(fs.Output(), "usage: ytk-memory %s [options]\n", command)
+		fs.PrintDefaults()
+	}
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() != 0 {
+		return fmt.Errorf("unexpected argument: %s", fs.Arg(0))
+	}
+	provided := map[string]bool{}
+	fs.Visit(func(value *flag.Flag) { provided[value.Name] = true })
+	if provided["query"] && command != "search" {
+		return errors.New("--query is supported only by search.")
+	}
+	if provided["id"] && command != "get" {
+		return errors.New("--id is supported only by get.")
+	}
+	if provided["limit"] && command != "search" && command != "list" {
+		return errors.New("--limit is supported only by search and list.")
+	}
+	if command == "search" {
+		*query = strings.TrimSpace(*query)
+		if *query == "" {
+			return errors.New("--query is required for search.")
+		}
+		if len([]rune(*query)) > 2000 {
+			return errors.New("--query exceeds the 2000 character limit.")
+		}
+	}
+	if command == "get" && strings.TrimSpace(*memoryID) == "" {
+		return errors.New("--id is required for get.")
+	}
+	if command == "get" && len([]rune(strings.TrimSpace(*memoryID))) > 200 {
+		return errors.New("--id exceeds the 200 character limit.")
+	}
+	if (command == "search" || command == "list") && (*limit < 1 || *limit > 100) {
+		return errors.New("--limit must be between 1 and 100.")
+	}
+
+	cfg, err := resolve(*project, *database, *area, false)
+	if err != nil {
+		return err
+	}
+	info, err := os.Stat(cfg.database)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("memory database does not exist at %s; run `ytk-memory setup <host>` first", cfg.database)
+		}
+		return fmt.Errorf("cannot inspect memory database: %w", err)
+	}
+	if !info.Mode().IsRegular() {
+		return errors.New("configured SQLite database path is not a regular file.")
+	}
+	store, err := core.Open(cfg.database, nil)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+
+	result := readResult{Operation: command, ProjectID: cfg.project, Database: cfg.database, Area: cfg.area}
+	ctx := context.Background()
+	switch command {
+	case "search":
+		items, err := store.Search(ctx, cfg.project, *query, 100)
+		if err != nil {
+			return err
+		}
+		result.Items = make([]core.Memory, 0, *limit)
+		for _, item := range items {
+			if !memoryMatchesArea(item, cfg.area) {
+				continue
+			}
+			result.Items = append(result.Items, item)
+			if len(result.Items) == *limit {
+				break
+			}
+		}
+		result.Count = len(result.Items)
+	case "list":
+		result.Items, err = store.ListActive(ctx, cfg.project, cfg.area, *limit)
+		if err != nil {
+			return err
+		}
+		result.Count = len(result.Items)
+	case "get":
+		item, found, err := store.Get(ctx, strings.TrimSpace(*memoryID), cfg.project)
+		if err != nil {
+			return err
+		}
+		if !found || !memoryMatchesArea(item, cfg.area) {
+			return errors.New("memory was not found in this project.")
+		}
+		result.Item, result.Count = &item, 1
+	case "stats":
+		lifecycle, err := store.InspectLifecycleArea(ctx, cfg.project, cfg.area)
+		if err != nil {
+			return err
+		}
+		result.Lifecycle, result.Count = &lifecycle, lifecycle.Total
+	default:
+		return fmt.Errorf("unknown read operation: %s", command)
+	}
+	return writeReadResult(os.Stdout, result, *jsonOutput)
+}
+
+func memoryMatchesArea(item core.Memory, area string) bool {
+	if area == "" {
+		return true
+	}
+	for _, tag := range item.Tags {
+		if strings.HasPrefix(tag, "area:") {
+			itemArea := strings.TrimPrefix(tag, "area:")
+			return itemArea == "" || itemArea == area
+		}
+	}
+	return true
+}
+
+func writeReadResult(output io.Writer, result readResult, jsonOutput bool) error {
+	if jsonOutput {
+		encoder := json.NewEncoder(output)
+		encoder.SetIndent("", "  ")
+		return encoder.Encode(result)
+	}
+	fmt.Fprintf(output, "Agent Memory · %s\nProyecto: %s\nBase de datos: %s\n", result.Operation, result.ProjectID, result.Database)
+	if result.Area != "" {
+		fmt.Fprintf(output, "Área: %s\n", result.Area)
+	}
+	switch result.Operation {
+	case "search", "list":
+		fmt.Fprintf(output, "Resultados: %d\n", result.Count)
+		for _, item := range result.Items {
+			fmt.Fprintf(output, "\n%s [%s · %s] %s\n", item.ID, item.Type, item.Status, item.Title)
+			if item.SubjectKey != nil {
+				fmt.Fprintf(output, "  subjectKey: %s\n", *item.SubjectKey)
+			}
+			fmt.Fprintf(output, "  actualizado: %s\n", item.UpdatedAt)
+			preview := []rune(item.Content)
+			if len(preview) > 180 {
+				preview = append(preview[:180], '…')
+			}
+			fmt.Fprintf(output, "  %s\n", string(preview))
+		}
+	case "get":
+		item := result.Item
+		fmt.Fprintf(output, "ID: %s\nTipo: %s\nEstado: %s\nTítulo: %s\n", item.ID, item.Type, item.Status, item.Title)
+		if item.SubjectKey != nil {
+			fmt.Fprintf(output, "subjectKey: %s\n", *item.SubjectKey)
+		}
+		fmt.Fprintf(output, "Creado: %s\nActualizado: %s\nVálido desde: %s\nContenido:\n%s\n", item.CreatedAt, item.UpdatedAt, item.ValidFrom, item.Content)
+	case "stats":
+		lifecycle := result.Lifecycle
+		fmt.Fprintf(output, "Memorias: %d\n", lifecycle.Total)
+		for _, status := range []string{"active", "needs_review", "superseded", "archived"} {
+			fmt.Fprintf(output, "  %s: %d\n", status, lifecycle.ByStatus[status])
+		}
+		fmt.Fprintf(output, "Futuras: %d · Vencidas: %d · Revisión pendiente: %d\n", lifecycle.Future, lifecycle.Expired, lifecycle.DueForReview)
+	}
+	return nil
 }
 
 func runRelease(args []string) error {

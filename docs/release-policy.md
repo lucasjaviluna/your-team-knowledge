@@ -53,10 +53,12 @@ El secreto comprometido se elimina de GitHub después de reemplazarlo. Los
 releases afectados se marcan como retirados; no se eliminan sus metadatos de
 verificación sin dejar una referencia al aviso.
 
-## Primer release
+## Activación y operación inicial
 
-El workflow de tags no puede configurar por sí mismo la custodia de claves. Antes
-del primer tag aprobado, una persona responsable debe:
+El canal firmado se activó y verificó con el release `v0.1.12`. Esta lista
+documenta los controles de configuración inicial y sirve para auditorías o una
+futura rotación; no se debe repetir la generación de claves para cada release.
+El workflow de tags no puede configurar por sí mismo la custodia de claves:
 
 1. Generar el par Ed25519 fuera del repositorio y verificar que la clave pública
    corresponda a la clave privada.
@@ -75,6 +77,5 @@ del primer tag aprobado, una persona responsable debe:
 6. Descargar los artefactos publicados y ejecutar `ytk-memory release verify`
    antes de distribuirlos a repos consumidores.
 
-El workflow y el código de empaquetado ya están implementados. La activación
-real sólo se completa cuando el secret, la variable y el primer tag aprobado
-existen en el repositorio. No registrar material privado en este documento.
+El workflow y el código de empaquetado están implementados. No registrar
+material privado en este documento.

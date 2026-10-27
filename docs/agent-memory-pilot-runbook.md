@@ -4,8 +4,8 @@
 hosts MCP usados por el equipo, y comprobar persistencia y recuperación con el
 release firmado.
 
-**Release de referencia:** `v0.1.5`. Si ya existe un release aprobado más
-reciente cuando se ejecute el piloto, usá esa versión y anotala en el registro.
+**Release de referencia:** `v0.1.12`. Si se aprueba uno más reciente antes de
+ejecutar el piloto, usá esa versión y anotala en el registro.
 
 **No registrar:** claves, tokens, credenciales, datos personales innecesarios ni
 transcripciones completas. Usá decisiones y ejemplos revisados o preparados
@@ -59,18 +59,18 @@ Descargá del release aprobado el paquete de tu plataforma y sus archivos
 este patrón:
 
 ```text
-ytk-memory_0.1.5_windows_amd64.zip
-ytk-memory_0.1.5_windows_amd64.zip.manifest.json
-ytk-memory_0.1.5_windows_amd64.zip.sig
-ytk-memory_0.1.5_windows_amd64.zip.pub
-ytk-memory_0.1.5_windows_amd64.zip.sha256
+ytk-memory_0.1.12_windows_amd64.zip
+ytk-memory_0.1.12_windows_amd64.zip.manifest.json
+ytk-memory_0.1.12_windows_amd64.zip.sig
+ytk-memory_0.1.12_windows_amd64.zip.pub
+ytk-memory_0.1.12_windows_amd64.zip.sha256
 ```
 
 Desde el directorio donde descargaste los cinco archivos, compará el checksum
 con el asset `.sha256`:
 
 ```powershell
-$artifact = 'ytk-memory_0.1.5_windows_amd64.zip'
+$artifact = 'ytk-memory_0.1.12_windows_amd64.zip'
 $expectedHash = ((Get-Content "$artifact.sha256") -split '\s+')[0].ToLowerInvariant()
 $actualHash = (Get-FileHash $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($actualHash -ne $expectedHash) { throw 'El checksum del release no coincide.' }
@@ -97,7 +97,7 @@ confirmá:
 ytk-memory --version
 ```
 
-Debe devolver `0.1.5` (o la versión más nueva que hayas elegido). Para Linux,
+Debe devolver `0.1.12` (o la versión más nueva que hayas elegido). Para Linux,
 usá el paquete `.tar.gz` con `linux_amd64`; para macOS arm64, el paquete
 `.tar.gz` con `darwin_arm64`. Aplicá los mismos pasos de verificación con el
 nombre del paquete correspondiente.

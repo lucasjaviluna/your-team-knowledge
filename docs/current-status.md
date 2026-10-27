@@ -23,29 +23,34 @@ retirados del alcance; ver [ADR 0009](adr/0009-agent-memory-only-scope.md).
   usan registros de proyecto.
 - CLI doctor, backup, upgrade y rollback. Doctor valida TOML Codex, acceso y
   tipo de ruta SQLite, integridad `quick_check` y registro/ejecutable del host.
+- CLI de lectura `search`, `list`, `get` y `stats`, con scope de proyecto,
+  visibilidad por área y lifecycle; admite salida `--json`.
 - Evaluación sintética de retrieval y conformance; salida JSON con métricas
   reproducibles.
 - CI en Windows x64, Linux x64 y macOS arm64 con formato, vet, pruebas y build.
-- Canal de release firmado operativo: `v0.1.5` publicado tras CI verde en
-  Windows x64, Linux x64 y macOS arm64. Genera paquetes, manifiesto, SHA-256,
-  firma Ed25519, verificación de artefactos y smoke test por tag.
+- Canal de release firmado operativo: `v0.1.12` publicado tras CI verde; se
+  confirmaron los activos de Windows x64, Linux x64 y macOS arm64. El job de
+  release compila secuencialmente los tres targets y la publicación verifica
+  manifiestos, SHA-256 y firmas Ed25519 antes de publicar el borrador.
 - Documentación técnica integral en
   [technical-architecture.md](technical-architecture.md).
 
-El usuario confirmó el piloto en Windows. La validación manual Linux está
-aplazada; la CI Linux se acepta como gate. El harness sintético no representa
-una medición de relevancia o adopción en tareas reales.
+El usuario informó que ya ejecutó la comprobación del runbook y que el
+resultado parece correcto. Aún falta registrar en el runbook las combinaciones
+repo-host, consultas, métricas e incidencias para confirmar formalmente sus
+criterios. La validación manual Linux sigue aplazada; la CI Linux se acepta
+como gate. El harness sintético no representa una medición real.
 
 ## Pendiente
 
-1. **Validar en consumidores reales:** ejecutar el
-   [runbook del piloto](agent-memory-pilot-runbook.md) en dos repositorios y dos
-   hosts, medir calidad del briefing/búsqueda y recuperación entre sesiones.
-2. **Ampliar uso y operación según la evidencia:** investigar hooks de lifecycle
-   si el piloto revela omisiones; comprobar los cuatro hosts en uso real y
-   evaluar CLI de lectura, doctor de solo lectura, preservación de JSONC en
-   OpenCode e instalación reproducible. Ver criterios y dependencias en el
-   [plan de implementación](implementation-plan.md).
+1. **Cerrar el registro del piloto:** incorporar al
+   [runbook del piloto](agent-memory-pilot-runbook.md) los dos repositorios,
+   los dos hosts, resultados de consultas/tareas, métricas e incidencias; luego
+   confirmar si cumple todos los umbrales. No hace falta repetir las pruebas.
+2. **Siguiente incremento de código: PR 07, doctor de solo lectura.** Claude
+   Code no está disponible para el usuario; la evaluación de su lifecycle queda
+   diferida. Implementar el doctor read-only no depende del host y evita que el
+   diagnóstico de compatibilidad abra SQLite mediante `core.Open`.
 
 La concurrencia local SQLite quedó caracterizada el 2026-10-26: ocho procesos
 independientes realizaron guardados y upserts concurrentes sobre una clave
@@ -53,12 +58,14 @@ compartida; se verificaron migración simultánea, rollback al interrumpir una
 transacción y backup coherente con WAL activo. El escenario multiproceso pasó
 cinco ejecuciones consecutivas en Windows: 320 escrituras por ejecución en
 2,0–3,8 s, sin errores `SQLITE_BUSY`/`SQLITE_LOCKED`. La política se describe en
-[ADR 0011](adr/0011-sqlite-multiprocess-concurrency.md). Sigue pendiente el
-piloto con hosts y repositorios reales.
+[ADR 0011](adr/0011-sqlite-multiprocess-concurrency.md). El usuario informó
+que ejecutó el piloto del runbook con resultado preliminar correcto; queda
+pendiente consolidar las evidencias antes de declarar satisfechos todos los
+criterios.
 
 La CI está definida en `.github/workflows/ci.yml`; la custodia y procedimiento
 de firma están en [release-policy.md](release-policy.md). El workflow de
-`v0.1.5` empaquetó, verificó y publicó el release firmado correctamente.
+`v0.1.12` empaquetó, verificó y publicó el release firmado correctamente.
 
 ## Verificación y referencias
 

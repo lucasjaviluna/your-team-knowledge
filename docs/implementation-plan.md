@@ -23,8 +23,10 @@ criterios de producto están en la [hoja de ruta](agent-memory-roadmap-2026-10-2
 - Evaluación sintética de retrieval y runner de conformance.
 - CI de Go en Windows x64, Linux x64 y macOS arm64 con `gofmt`, `go vet`,
   `go test` y build.
-- Release firmado Ed25519 operativo: `v0.1.5` fue empaquetado, verificado y
-  publicado tras CI verde en Windows x64, Linux x64 y macOS arm64.
+- Release firmado Ed25519 operativo: `v0.1.12` fue empaquetado, verificado y
+  publicado tras CI verde; se confirmaron los activos Windows x64, Linux x64 y
+  macOS arm64. El job de release compila secuencialmente los tres targets y
+  publica el borrador sólo después de verificar los activos y sus firmas.
 - Documentación técnica integral en
   [technical-architecture.md](technical-architecture.md).
 
@@ -35,11 +37,12 @@ consumidores disponibles; los tests actuales validan adaptadores y archivos.
 
 ## Plan de evolución
 
-El trabajo inmediato es demostrar consistencia con varios procesos antes de
-atribuir a un host los fallos de recuperación. Después se mide el uso real con
-el [runbook del piloto](agent-memory-pilot-runbook.md). Las ampliaciones de
-superficie se deciden con esas evidencias; las tools MCP existentes ya cubren
-el ciclo básico y no necesitan duplicarse.
+La concurrencia multiproceso ya está caracterizada y el usuario informa haber
+ejecutado el piloto con resultado preliminar correcto; falta consolidar sus
+evidencias en el runbook. PR 06, CLI de lectura, ya se completó. El próximo
+incremento independiente es el doctor de solo lectura; las ampliaciones de
+lifecycle que requieren hosts reales quedan sujetas a disponibilidad y a los
+hallazgos del piloto.
 
 ### P0 — Estabilidad y validación
 
@@ -51,14 +54,12 @@ el ciclo básico y no necesitan duplicarse.
    mientras hay una transacción WAL abierta; pasó cinco ejecuciones
    consecutivas en Windows con cero errores `SQLITE_BUSY`/`SQLITE_LOCKED`.
    Ver [ADR 0011](adr/0011-sqlite-multiprocess-concurrency.md).
-2. **PR 02: piloto reproducible en consumidores reales.** Usar dos repositorios
-   y dos hosts; medir relevancia, ruido, latencia y aplicación correcta de
-   memorias en tareas reales. Comprobar reinicio, aislamiento, actualización,
-   backup, upgrade y rollback. En hosts que tengan compactación de contexto,
-   medir también si se recupera el conocimiento necesario al reanudar. Registrar
-   versión, corpus, consultas, resultados e incidencias sin secretos. Criterio:
-   superar la matriz y los umbrales fijados antes de ejecutar el
-   [runbook](agent-memory-pilot-runbook.md).
+2. **PR 02: piloto reproducible en consumidores reales.** El usuario informa
+   que ya ejecutó el runbook y que el resultado parece correcto. Falta registrar
+   los dos repositorios, los dos hosts, versión, corpus, consultas, resultados,
+   métricas e incidencias para poder confirmar formalmente la matriz y los
+   umbrales. Ver [runbook](agent-memory-pilot-runbook.md); no declarar el PR
+   completo hasta consolidar esa evidencia.
 
 El PR 01 y el PR 02 son incrementos revisables por separado. La prueba manual
 Linux continúa aplazada; CI Linux sigue siendo el gate automatizado aceptado
@@ -76,9 +77,9 @@ para el tramo actual y no se presentará como una prueba de uso con un host real
 5. **PR 05: pruebas de los cuatro hosts.** Ejecutar setup, doctor, sesión,
    búsqueda, guardado, reinicio y uninstall en Codex, Claude Code, Pi y
    OpenCode reales, preservando configuración ajena.
-6. **PR 06: CLI de lectura.** Exponer `search`, `list`, `get` y `stats` mediante
-   los servicios del core, con el mismo aislamiento y filtros lifecycle que
-   MCP. Esto permite inspección local sin incorporar otro transporte.
+6. **PR 06: CLI de lectura — completado.** `search`, `list`, `get` y `stats`
+   usan los servicios del core, limitan lecturas al proyecto, aplican filtros de
+   lifecycle/área y admiten `--json`. No incorporan otro transporte.
 7. **PR 07: diagnóstico de solo lectura.** Añadir un modo `doctor --read-only`
    que inspeccione configuración, integridad y compatibilidad sin llamar a una
    apertura que migre la base. Informar qué cambiaría un upgrade.
