@@ -91,6 +91,10 @@ a consultar antes de actuar.
    implementación esté verificada. Un ADR sólo es necesario si se adopta una
    decisión arquitectónica duradera nueva.
 
+El [corpus sintético de casos](agent-memory-conflict-test-cases.md) y la
+[guía de ejecución y registro](agent-memory-conflict-test-guide.md) están
+preparados; todavía no constituyen una evaluación ejecutada.
+
 ## Pruebas y criterios de aceptación
 
 - Tests del core con reloj y datos deterministas: señales y evidencia,
