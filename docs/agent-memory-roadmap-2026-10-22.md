@@ -17,13 +17,13 @@ de calidad en tareas/hosts reales.
 - Runtime Go único con SQLite/FTS5, sesiones, memorias, upsert por
   `subjectKey`, búsqueda lexical, relaciones y lifecycle.
 - Catorce herramientas MCP por `stdio`: sesión/briefing, listado y timeline,
-  search/get/save, cierre,
+  search/get/save, candidatos de conflicto, cierre,
   revisión, corrección versionada, relaciones y consolidación con preview y
   confirmación explícita.
 - Filtro de patrones sensibles antes de persistir memorias y handoffs; ownership
   de sesión y aislamiento por proyecto.
 - CLI para setup/uninstall, doctor, backup, upgrade, rollback, conformance,
-  evaluation y release.
+  evaluation, release y transferencia portable.
 - Configuración de Codex, Claude Code, Pi y OpenCode con alcance y archivos
   documentados en [arquitectura técnica](technical-architecture.md).
 - Doctor valida TOML completo de Codex, tipo/acceso de ruta SQLite,

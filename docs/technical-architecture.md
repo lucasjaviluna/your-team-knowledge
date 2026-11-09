@@ -1,6 +1,6 @@
 # Arquitectura técnica de Agent Memory
 
-**Revisado:** 2026-10-25
+**Revisado:** 2026-11-09
 
 **Runtime:** Go, módulo `native/ytk-memory`
 **Audiencia:** ingeniería, SRE, seguridad y mantenedores de integraciones.
@@ -190,6 +190,12 @@ los agentes deben omitir secretos aunque pasen el filtro.
 `expiresAt` debe ser posterior a `validFrom`; `reviewAt` no puede precederlo.
 El tipo/status deben estar en las enumeraciones permitidas. Estas reglas se
 centralizan en core para que MCP, CLI y fixtures no diverjan.
+
+La transferencia portable valida JSON v1 en el core. La identidad de origen y
+los mapeos por destino viven en `portable_namespaces` y `portable_imports`.
+Preview usa lectura sin migración; la importación revalida token y destino y
+confirma memorias, mapeos, relaciones e índice FTS en una transacción. El
+[ADR 0012](adr/0012-portable-memory-transfer.md) detalla identidad y límites.
 
 ### 4.3 Transacciones y consistencia
 
@@ -403,7 +409,7 @@ como argumento. Tool results contienen JSON en texto y `structuredContent`;
 errores se devuelven como `IsError` MCP. `ReadOnlyHint` describe consultas;
 `DestructiveHint=false` no reemplaza policy de dominio ni autorización del host.
 
-### 7.2 Catálogo de 13 tools
+### 7.2 Catálogo de 14 tools
 
 | Tool | Argumentos principales | Función y motivo |
 | --- | --- | --- |
@@ -411,6 +417,7 @@ errores se devuelven como `IsError` MCP. `ReadOnlyHint` describe consultas;
 | `memory_search` | `query`, límites | Busca sólo en scope fijo; sólo lectura. |
 | `memory_list` | límites | Lista memorias activas y vigentes del scope sin consulta; sólo lectura. |
 | `memory_timeline` | `since?`, `until?`, límites | Lista por última actualización, con estados históricos y filtro temporal; no inventa eventos lifecycle que no se guardan. |
+| `memory_conflict_candidates` | `memoryId`, `limit?`, `maxChars?` | Sugiere memorias relacionadas para revisión; similitud léxica no confirma contradicción. |
 | `memory_get` | `memoryId`, `maxChars?` | Lee por ID y workspace, evitando acceso cruzado. |
 | `memory_save` | type/title/content, subjectKey/tags/source/session opcionales | Guarda conocimiento curado con filtro sensible e idempotencia. |
 | `memory_session_finish` | `sessionId`, `summary?` | Cierra sesión propia y guarda handoff opcional. |
@@ -429,6 +436,7 @@ Límites de entradas importantes en `surface`:
 | `memory_search.limit` | 1–100; default 20. | Limita volumen de resultados. |
 | Search `maxChars` | 100–20000; default 4000. | Presupuesto de texto de respuesta. |
 | `memory_session_start.limit/maxChars` | 1–100/default 8; 100–20000/default 2400. | Briefing compacto al inicio. |
+| Conflictos | `limit` 1–50/default 10; `maxChars` 100–20000/default 4000; hasta 200 coincidencias examinadas. | Acota trabajo y salida; la ausencia de candidatos no demuestra consistencia. |
 | `memory_get.memoryId` | 1–200; `maxChars` 100–20000/default 20000. | Lookup acotado y cuerpo limitado. |
 | `memory_save` | type 20; title 500; content 50000; subject key 500; source 200; session ID 200; máximo 50 tags de 1–100 cada uno. | Mantiene registros manejables y tags normalizadas. |
 | `memory_session_finish` | session ID 200; summary hasta 50000. | Permite handoff amplio, no transcript automático. |
@@ -469,6 +477,7 @@ incluso cuando surface ya restringió inputs.
 | `list` | Lista memorias activas, vigentes y no vencidas para inspección, hasta 100. | Permite inspeccionar memoria existente con los filtros lifecycle del core. |
 | `get --id ID` | Recupera una memoria completa dentro del proyecto y área configurados. | Inspecciona un resultado sin permitir lecturas entre proyectos. |
 | `stats` | Informa totales y estados lifecycle de la memoria del proyecto. | Muestra el estado del corpus sin exportar su contenido. |
+| `portable-export`, `portable-preview`, `portable-import` | Exporta una selección, previsualiza y aplica una importación confirmada. | Transfiere memorias entre proyectos sin sincronización; ver [guía](agent-memory-portable-transfer.md). |
 | `backup --to PATH` | Backup coherente; `--overwrite` opt-in. | Recuperación manual antes de operaciones riesgosas. |
 | `upgrade --backup-to PATH` | Respalda y abre esquema para migrarlo. | Nunca se actualiza sin copia previa declarada. |
 | `rollback --from PATH --backup-current-to PATH --confirm` | Verifica fuente y reemplaza base dejando copia del estado actual. | Evita pérdidas por rollback precipitado. |

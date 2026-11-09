@@ -23,6 +23,8 @@ retirados del alcance; ver [ADR 0009](adr/0009-agent-memory-only-scope.md).
   usan registros de proyecto.
 - CLI doctor, backup, upgrade y rollback. Doctor valida TOML Codex, acceso y
   tipo de ruta SQLite, integridad `quick_check` y registro/ejecutable del host.
+- Transferencia portable v1 por CLI: exportación seleccionada, preview y
+  aplicación confirmada; ver [guía](agent-memory-portable-transfer.md).
 - CLI de lectura `search`, `list`, `get` y `stats`, con scope de proyecto,
   visibilidad por área y lifecycle; admite salida `--json`.
 - Evaluación sintética de retrieval y conformance; salida JSON con métricas
@@ -34,6 +36,13 @@ retirados del alcance; ver [ADR 0009](adr/0009-agent-memory-only-scope.md).
   manifiestos, SHA-256 y firmas Ed25519 antes de publicar el borrador.
 - Documentación técnica integral en
   [technical-architecture.md](technical-architecture.md).
+
+El último release publicado comprobado es `v0.1.12`; el commit local `2b86fb1`
+está ocho commits por delante y sus capacidades nuevas, incluida transferencia
+portable, no deben atribuirse a ese release. Al revisar el 2026-11-09, la
+[CI de ese commit](https://github.com/lucasjaviluna/your-team-knowledge/actions/runs/42646238871)
+estaba en cola; no se afirma que haya pasado. La suite Go, vet y build pasaron
+localmente en Windows en la implementación.
 
 El usuario confirmó que el piloto con el binario Go en Codex funciona. La
 validación con Codex se considera completada para el alcance que ejecutó el

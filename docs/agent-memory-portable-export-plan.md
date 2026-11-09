@@ -1,7 +1,7 @@
 # Plan: exportación portable versionada de Agent Memory
 
-**Estado:** v1 implementada para CLI; ver [guía de uso](agent-memory-portable-transfer.md) y [ADR 0012](adr/0012-portable-memory-transfer.md). Los detalles propuestos en este plan se interpretan junto con esas fuentes. **Prioridad:** siguiente
-incremento de producto. **Alcance:** transferencia local explícita entre
+**Estado:** v1 implementada para CLI; ver [guía de uso](agent-memory-portable-transfer.md) y [ADR 0012](adr/0012-portable-memory-transfer.md). El cuerpo conserva el diseño y los criterios originales; ante diferencias
+prevalecen la guía y el ADR. La siguiente prioridad operativa es PR 09. **Alcance:** transferencia local explícita entre
 workspaces, sin sincronización automática ni servicios externos.
 
 ## Resultado buscado
@@ -48,7 +48,7 @@ Ejemplo ilustrativo, sin datos reales:
   }],
   "relations": []
 }
-``
+```
 
 El origen no envía rutas, sessionId, nombre de usuario ni configuración de
 host. Exportar sólo memorias activas, vigentes y visibles por proyecto/área;
@@ -56,12 +56,9 @@ no exportar memorias vencidas, archivadas, superseded o futuras en v1. La
 selección explícita se valida completamente; un ID inexistente o fuera del
 alcance produce error genérico. La selección no expande dependencias: sólo se
 exportan relaciones cuyos dos extremos estén seleccionados y cuya clase esté
-soportada. Informar las relaciones omitidas sin revelar contenido fuera de
-alcance. Fechas de creación y actualización son metadatos de origen; nunca se
-interpretan como autorización para sobrescribir contenido local. Establecer
-antes de implementar cómo conservar y validar `validFrom`, `expiresAt` y
-`reviewAt`; si no se soporta preservarlos, rechazar entradas que los
-necesiten, sin descartar silenciosamente lifecycle. Validar tipo, campos,
+soportada. La CLI no informa la cantidad de relaciones omitidas. Fechas de creación y actualización son metadatos de origen; nunca se
+interpretan como autorización para sobrescribir contenido local. `validFrom`, `expiresAt` y `reviewAt` se conservan en destino normalizados
+a UTC con precisión de milisegundos. Validar tipo, campos,
 etiquetas, claves, fechas y relaciones con las reglas existentes del core.
 
 ## Identidad y colisiones
@@ -71,8 +68,8 @@ ser un UUID aleatorio estable para la identidad de origen, persistido de forma
 transaccional y reutilizado entre exportaciones. No derivarlo sólo del nombre
 editable del proyecto ni de una ruta. Definir su custodia al copiar/restaurar
 bases y una migración compatible; restaurar un backup conserva identidad,
-mientras que clonar un proyecto independiente requiere una operación explícita
-para crear una identidad nueva. No prometer sincronización entre clones.
+y los clones conservan el mismo namespace. La v1 no ofrece regenerarlo;
+para un proyecto independiente se usa una base/proyecto nuevo. No prometer sincronización entre clones.
 
 El destino asigna IDs locales nuevos y guarda un mapeo persistente y único por
 proyecto de destino e identidad portable. Una repetición con contenido y
@@ -95,13 +92,12 @@ resolución selectiva requerirá contrato explícito y nuevas pruebas.
 
 1. **Exportación:** consultar snapshot coherente con scope local y validar el
    conjunto. Escribir a un archivo nuevo mediante temporal en el mismo
-   directorio, permisos restrictivos donde el sistema los soporte y rename
-   atómico; no sobrescribir archivos existentes por defecto. Si falla, limpiar
+   directorio, permisos restrictivos donde el sistema los soporte y un enlace
+   que publica sin reemplazo; no sobrescribir archivos existentes por defecto. Si falla, limpiar
    sólo el temporal creado por la operación. No emitir contenido por logs.
 2. **Preview:** leer el archivo con límites; validar formato, relaciones,
    lifecycle y contenido sensible antes de cualquier persistencia. La salida
-   identifica destino, entradas nuevas, sin cambios, bloqueadas, relaciones
-   importables/omitidas y motivos, con texto acotado. No modifica memorias,
+   identifica destino, entradas nuevas, sin cambios, bloqueadas, cantidad de relaciones incluidas y motivos, con texto acotado. No modifica memorias,
    relaciones, FTS, identidad ni archivos del destino. No incluir contenido
    sensible detectado en errores o resultados. La detección existente se aplica
    al menos a título y contenido y a todo otro campo persistido que cubran los
@@ -121,11 +117,8 @@ resolución selectiva requerirá contrato explícito y nuevas pruebas.
 
 El hash es una huella de integridad y vinculación de vista previa, no una
 firma de autenticidad. No se afirma cifrado ni procedencia confiable: quien
-comparta el archivo debe controlar su almacenamiento y distribución. La
-exportación no debe modificar la base salvo, si se adopta, la creación
-transaccional y documentada de identidad de origen; considerar inicializarla en
-setup/migración para que exportar desde una base de sólo lectura siga siendo
-posible. Resolver este detalle antes de fijar el contrato de CLI.
+comparta el archivo debe controlar su almacenamiento y distribución. La exportación crea la identidad de origen en la base si todavía no existe;
+por eso requiere apertura normal. El preview abre la base sin migrar.
 
 ## Integración y secuencia
 

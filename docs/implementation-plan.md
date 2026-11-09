@@ -1,6 +1,6 @@
 # Plan de implementación
 
-**Revisado:** 2026-10-26
+**Revisado:** 2026-11-09
 
 Este documento refleja el estado del runtime de Agent Memory y el trabajo que
 falta para su distribución y operación sostenibles. El detalle arquitectónico
@@ -13,7 +13,7 @@ criterios de producto están en la [hoja de ruta](agent-memory-roadmap-2026-10-2
   relaciones, lifecycle, revisión, retención y consolidación.
 - La migración crea y rellena FTS5 de forma transaccional cuando falta en una
   base heredada; una falla de backfill revierte el índice completo.
-- Doce herramientas MCP por `stdio`, con proceso fijado a proyecto, owner de
+- Catorce herramientas MCP por `stdio`, con proceso fijado a proyecto, owner de
   sesión, briefing inicial, búsqueda lexical y confirmación previa a consolidar.
 - CLI `doctor`, backup, upgrade y rollback; el doctor diagnostica TOML de
   Codex, ruta/acceso SQLite y ejecutable MCP registrado. Hay cobertura de
@@ -42,8 +42,9 @@ el piloto con el binario Go funciona en Codex. PR 06, CLI de lectura, y PR 07,
 doctor de solo lectura, ya se completaron. La validación con Claude Code queda
 postergada porque el host no está disponible. PR 09, instalación y
 actualización reproducibles del release firmado, sigue pendiente. La prioridad
-actual acordada es timeline de memorias, detección revisable
-de conflictos y exportación portable versionada. PR 08 completó la
+acordada de timeline, detección revisable de conflictos y transferencia
+portable ya tiene una v1 implementada. El siguiente incremento operativo es
+PR 09. PR 08 completó la
 compatibilidad JSONC de OpenCode, pero su reescritura actual conserva contenido
 semántico, no comentarios ni formato textual.
 

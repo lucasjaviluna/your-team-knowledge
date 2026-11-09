@@ -63,12 +63,12 @@
         <nav><a class="brand" href="#inicio"><span class="mark">✦</span>Agent Memory</a><div class="links"><a href="#capacidades">Capacidades</a><a href="#tools">Tools</a><a href="#progreso">Progreso</a><a href="current-status.md">Estado detallado</a></div></nav>
         <div class="hero" id="inicio">
           <div><div class="eyebrow">Runtime nativo · Local first</div><h1>Memoria durable para agentes que trabajan en serio.</h1><p class="lead">Un core Go con SQLite/FTS5, MCP por stdio y aislamiento por proyecto. Recupera contexto útil, conserva decisiones y mantiene el control de los datos en local.</p></div>
-          <aside class="release"><span class="eyebrow">Release firmado</span><b>v0.1.12</b><span>Windows x64 · Linux x64 · macOS arm64<br>SHA-256 + Ed25519 verificados</span></aside>
+          <aside class="release"><span class="eyebrow">Último release publicado · firmado</span><b>v0.1.12</b><span>Windows x64 · Linux x64 · macOS arm64<br>SHA-256 + Ed25519 verificados<br>Las capacidades del código actual incluyen cambios posteriores a este release.</span></aside>
         </div>
       </div>
     </header>
     <main class="shell">
-      <div class="status" aria-label="Resumen del estado"><div><strong>12</strong><span>tools MCP</span></div><div><strong>4</strong><span>hosts configurables</span></div><div><strong>3</strong><span>plataformas en CI</span></div><div><strong>Codex</strong><span>piloto confirmado</span></div></div>
+      <div class="status" aria-label="Resumen del estado"><div><strong>14</strong><span>tools MCP en el código actual</span></div><div><strong>4</strong><span>hosts configurables</span></div><div><strong>3</strong><span>plataformas en CI</span></div><div><strong>Codex</strong><span>piloto confirmado</span></div></div>
 
       <section id="capacidades"><div class="section-head"><h2>Todo lo esencial, dentro del proyecto</h2><p>La memoria está curada, separada por proyecto y protegida por lifecycle. El runtime no depende de red, proveedores LLM ni servicios remotos.</p></div><div class="capabilities">
         <article class="card"><div class="icon">◈</div><h3>Memoria con contexto</h3><p>Sesiones, resúmenes, decisiones, descubrimientos, preferencias, relaciones y actualización idempotente mediante <code>subjectKey</code>.</p></article>
@@ -79,9 +79,10 @@
         <article class="card"><div class="icon">⌁</div><h3>Distribución verificable</h3><p>CI en tres plataformas y releases firmados con manifiestos, hashes SHA-256 y firmas Ed25519 antes de publicar.</p></article>
       </div></section>
 
-      <section id="tools"><div class="section-head"><h2>Las 13 tools MCP</h2><p>El servidor queda fijado al proyecto configurado. Las consultas son de sólo lectura; las escrituras mantienen los controles del core.</p></div><div class="tool-grid">
+      <section id="tools"><div class="section-head"><h2>Las 14 tools MCP</h2><p>El servidor queda fijado al proyecto configurado. Las consultas son de sólo lectura; las escrituras mantienen los controles del core.</p></div><div class="tool-grid">
         <div class="tool"><code>memory_session_start</code><p>Abre sesión y devuelve briefing o búsqueda inicial.</p></div><div class="tool"><code>memory_search</code><p>Busca memoria relevante con una consulta enfocada.</p></div><div class="tool"><code>memory_list</code><p>Explora memoria activa sin requerir consulta.</p></div>
         <div class="tool"><code>memory_timeline</code><p>Recorre registros por última actualización, con filtros de fecha.</p></div>
+        <div class="tool"><code>memory_conflict_candidates</code><p>Sugiere memorias relacionadas para revisión; la similitud no confirma conflictos.</p></div>
         <div class="tool"><code>memory_get</code><p>Lee una memoria por ID dentro del proyecto.</p></div><div class="tool"><code>memory_save</code><p>Guarda o actualiza conocimiento durable.</p></div><div class="tool"><code>memory_session_finish</code><p>Cierra una sesión y guarda un handoff opcional.</p></div>
         <div class="tool"><code>memory_review_list</code><p>Encuentra memorias que requieren revisión.</p></div><div class="tool"><code>memory_review_complete</code><p>Registra una revisión y agenda la próxima.</p></div><div class="tool"><code>memory_correct</code><p>Crea una corrección sin perder el historial.</p></div>
         <div class="tool"><code>memory_relations</code><p>Inspecciona relaciones y versiones vinculadas.</p></div><div class="tool"><code>memory_consolidation_preview</code><p>Previsualiza una consolidación sin escribir.</p></div><div class="tool"><code>memory_consolidate</code><p>Aplica una consolidación confirmada.</p></div>
@@ -89,18 +90,18 @@
 
       <section id="progreso"><div class="section-head"><h2>Timeline de progreso</h2><p>El producto pasó de contratos y core local a una distribución nativa validada con Codex. Los siguientes pasos se separan de las validaciones que dependen de hosts disponibles.</p></div><div class="timeline">
         <article class="event done"><small>Completado · base</small><h3>Core Go y compatibilidad de datos</h3><p>SQLite/FTS5 sin CGo, sesiones, lifecycle, relaciones, control de contenido sensible y migración de bases heredadas.</p></article>
-        <article class="event done"><small>Completado · transporte</small><h3>MCP y CLI operacional</h3><p>Servidor stdio con 12 tools iniciales, doctor, lectura local, backup, upgrade, rollback y evaluación sintética.</p></article>
+        <article class="event done"><small>Completado · transporte</small><h3>MCP y CLI operacional</h3><p>Servidor stdio, doctor, lectura local, backup, upgrade, rollback y evaluación sintética.</p></article>
         <article class="event done"><small>Completado · resiliencia</small><h3>Concurrencia y release firmado</h3><p>WAL, transacciones inmediatas, recuperación y pruebas multiproceso; CI y release firmado para Windows, Linux y macOS.</p></article>
         <article class="event done"><small>Completado · uso real</small><h3>Piloto con Codex</h3><p>El usuario confirmó que el binario Go funciona con Codex. Claude Code queda postergado hasta que el host esté disponible.</p></article>
         <article class="event done"><small>Completado · configuración</small><h3>OpenCode con compatibilidad JSONC</h3><p>Setup, doctor y uninstall aceptan JSON y JSONC. La reescritura conserva claves y valores, y normaliza el archivo a JSON indentado.</p></article>
         <article class="event todo"><small>Siguiente candidato</small><h3>Instalación y actualización reproducibles</h3><p>Definir un canal verificable por plataforma que conserve la clave pública, instale el release firmado y permita volver a una versión anterior.</p></article>
         <article class="event done"><small>Completado · v1</small><h3>Timeline de memorias</h3><p>La nueva tool ordena registros por última actualización, filtra por fechas y muestra el estado actual de cada registro. Las versiones se siguen con memory_relations.</p></article>
         <article class="event"><small>Completado v1 · revisión humana</small><h3>Candidatos a conflicto</h3><p>Detecta memorias relacionadas por términos compartidos para revisión. La similitud no confirma contradicciones ni modifica memorias.</p></article>
-        <article class="event"><small>Implementado · CLI</small><h3>Exportación portable</h3><p>Archivo versionado, vista previa e importación confirmada, sin sincronización automática.</p></article>
+        <article class="event"><small>Implementado · CLI</small><h3>Exportación portable</h3><p>Archivo versionado, vista previa e importación confirmada por CLI, sin sincronización automática. <a href="agent-memory-portable-transfer.md">Ver guía de transferencia</a>.</p></article>
       </div></section>
 
       <section><div class="next"><article class="card"><h3>Siguiente trabajo</h3><p>Instalación y actualización reproducibles del release firmado, con verificación de clave pública y rollback probado sobre bases representativas.</p></article><article class="card"><h3>Validaciones postergadas</h3><p>Lifecycle de Claude Code, hosts adicionales y uso manual en Linux dependen de disponibilidad. La CI Linux continúa como gate automatizado.</p></article></div></section>
     </main>
-    <footer><div class="shell">Agent Memory · documentación de estado actualizada el 2026-10-27 · <a href="current-status.md">ver estado detallado</a> · <a href="technical-architecture.md">ver arquitectura técnica</a></div></footer>
+    <footer><div class="shell">Agent Memory · documentación de estado actualizada el 2026-11-09 · <a href="current-status.md">ver estado detallado</a> · <a href="technical-architecture.md">ver arquitectura técnica</a></div></footer>
   </body>
 </html>

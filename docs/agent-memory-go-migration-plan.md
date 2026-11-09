@@ -12,10 +12,11 @@ retirados.
 - Sesiones, resúmenes, memorias tipadas, `subjectKey`, relaciones, corrección
   versionada, briefing, búsqueda lexical, lifecycle, revisión, retención y
   consolidación con vista previa.
-- Trece herramientas MCP sobre `stdio`, con proceso fijado a un proyecto,
-  incluido el timeline de memorias de sólo lectura.
+- Catorce herramientas MCP sobre `stdio`, con proceso fijado a un proyecto,
+  incluidos timeline y candidatos de conflicto de sólo lectura.
 - CLI de setup/uninstall para Codex, Claude Code, Pi y OpenCode, además de
-  doctor, backup, upgrade, rollback, conformance, evaluate y release.
+  doctor, backup, upgrade, rollback, conformance, evaluate, release y
+  transferencia portable por CLI.
 - CI para Windows x64, Linux x64 y macOS arm64.
 - Paquetes firmados Ed25519, SHA-256, manifiesto y verificación. El workflow de
   tags construye, smoke-testea y verifica antes de publicar.
