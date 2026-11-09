@@ -87,6 +87,7 @@ registrar en el host. También se puede configurar directamente:
 | `memory_search`         | Busca memoria del proyecto configurado. Sólo lectura.                    |
 | `memory_list`           | Lista memorias activas y vigentes del proyecto sin requerir consulta. Sólo lectura. |
 | `memory_timeline`       | Lista registros del proyecto por su última actualización conocida, incluidos estados históricos. Sólo lectura. |
+| `memory_conflict_candidates` | Sugiere memorias relacionadas para revisión; sólo lectura y sin veredicto automático. |
 | `memory_get`            | Recupera una memoria por ID. Sólo lectura y sin revelar otros proyectos. |
 | `memory_save`           | Crea o actualiza memoria; `subjectKey` habilita idempotencia.            |
 | `memory_session_finish` | Cierra la sesión y opcionalmente guarda su resumen.                      |
@@ -120,6 +121,18 @@ de `limit` y `maxChars`. `activityAt` significa la última actualización
 registrada de la fila; la base no conserva cada transición de lifecycle como
 evento, por lo que el timeline no reconstruye cambios intermedios que no estén
 registrados.
+
+`memory_conflict_candidates` recibe `memoryId`, `limit` (1–50,
+por defecto 10) y `maxChars` (100–20000, por defecto 4000). Examina hasta
+200 coincidencias léxicas visibles y vigentes del proyecto y área; devuelve
+la base, candidatos, términos compartidos, `truncated` y
+`explorationLimited`. El presupuesto cuenta títulos, contenidos y evidencia
+en caracteres Unicode; los IDs y metadatos permanecen disponibles. La
+similitud no demuestra contradicción y la ausencia de resultados no garantiza
+consistencia. La selección usa hasta 16 términos y puede omitir sinónimos,
+variantes acentuadas y conflictos sin vocabulario común. Revisá el contenido
+completo y las relaciones antes de tomar una decisión. No escribe ni resuelve
+conflictos automáticamente.
 
 `memory_review_list` devuelve memorias activas, vigentes y con la fecha de
 revisión vencida. `memory_review_complete` exige que la memoria esté vencida y

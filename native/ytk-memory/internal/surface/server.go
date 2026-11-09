@@ -34,6 +34,7 @@ func (s *Service) Server() *mcp.Server {
 	mcp.AddTool(server, add("memory_search", "Search reusable memory in the configured project.", true), s.search)
 	mcp.AddTool(server, add("memory_list", "List current project memories without requiring a search query.", true), s.list)
 	mcp.AddTool(server, add("memory_timeline", "List project memory records by latest recorded update, including historical statuses.", true), s.timeline)
+	mcp.AddTool(server, add("memory_conflict_candidates", "Find related memories for human review; lexical similarity does not prove conflict.", true), s.conflictCandidates)
 	mcp.AddTool(server, add("memory_get", "Read one memory from the configured project.", true), s.get)
 	mcp.AddTool(server, add("memory_save", "Create or update durable project memory.", false), s.save)
 	mcp.AddTool(server, add("memory_session_finish", "Finish a project-scoped session and optionally save its summary.", false), s.finish)
@@ -53,6 +54,11 @@ type startInput struct {
 }
 type searchInput struct {
 	Query    string `json:"query"`
+	Limit    int    `json:"limit,omitempty"`
+	MaxChars int    `json:"maxChars,omitempty"`
+}
+type conflictInput struct {
+	MemoryID string `json:"memoryId"`
 	Limit    int    `json:"limit,omitempty"`
 	MaxChars int    `json:"maxChars,omitempty"`
 }
@@ -214,6 +220,17 @@ func (s *Service) contextEntries(items []core.Memory, limit, maxChars int) []ent
 func (s *Service) search(ctx context.Context, _ *mcp.CallToolRequest, in searchInput) (*mcp.CallToolResult, map[string]any, error) {
 	found, err := s.find(ctx, in.Query, in.Limit, in.MaxChars)
 	return toolResult(map[string]any{"entries": found}, err)
+}
+
+func (s *Service) conflictCandidates(ctx context.Context, _ *mcp.CallToolRequest, in conflictInput) (*mcp.CallToolResult, map[string]any, error) {
+	if in.Limit == 0 {
+		in.Limit = 10
+	}
+	if in.MaxChars == 0 {
+		in.MaxChars = 4000
+	}
+	result, err := s.Store.ConflictCandidates(ctx, s.ProjectID, s.Area, in.MemoryID, in.Limit, in.MaxChars)
+	return toolResult(map[string]any{"base": result.Base, "candidates": result.Candidates, "truncated": result.Truncated, "explorationLimited": result.ExplorationLimited}, err)
 }
 
 func (s *Service) list(ctx context.Context, _ *mcp.CallToolRequest, in reviewListInput) (*mcp.CallToolResult, map[string]any, error) {

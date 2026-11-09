@@ -112,8 +112,8 @@ y compatibilidad.
     estado actual del registro. Las relaciones/versiones se siguen con
     `memory_relations`. No inventa eventos históricos que el esquema actual no
     registre.
-11. **Detección de conflictos — planificado.** Identificar pares candidatos y
-    devolver razones/evidencia para que el agente los evalúe; no crear relaciones
+11. **Detección de candidatos a conflicto — implementada.** Ver el [plan de detección](agent-memory-conflict-detection-plan.md). Devuelve candidatos léxicos y
+    evidencia para que el agente los evalúe; no crear relaciones
     `conflicts_with`, corregir ni archivar automáticamente.
 12. **Exportación portable versionada — planificada.** Definir formato,
     identidad de memorias, validación y vista previa de importación, con

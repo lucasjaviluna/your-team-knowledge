@@ -16,7 +16,7 @@ retirados del alcance; ver [ADR 0009](adr/0009-agent-memory-only-scope.md).
   lifecycle, revisión, retención y consolidación.
 - Migración FTS5 para bases heredadas: crea y rellena el índice de forma
   transaccional cuando falta, con rollback si alguna memoria no se puede indexar.
-- MCP `stdio` con trece herramientas y proceso ligado a un proyecto; briefing
+- MCP `stdio` con catorce herramientas y proceso ligado a un proyecto; briefing
   compacto, búsqueda lexical, corrección versionada y consolidación confirmada.
 - Setup/uninstall para Codex, Claude Code, Pi y OpenCode. Codex registra MCP en
   `CODEX_HOME/config.toml` y activa instrucciones por proyecto; los otros hosts
@@ -46,9 +46,10 @@ se acepta como gate. El harness sintético no representa una medición real.
 1. **Completado (v1): timeline de memorias.** `memory_timeline` lista registros
    por última actualización, permite acotar el rango temporal e incluye estados
    históricos. La tabla no conserva todas las transiciones de lifecycle.
-2. **A continuación: candidatos a conflicto y exportación portable versionada.**
-   La detección será revisable y la importación validará el formato antes de
-   escribir. No incluye sincronización.
+2. **Candidatos a conflicto:** implementados como consulta léxica revisable y
+   de sólo lectura. La calidad en tareas reales todavía no se ha medido.
+   **A continuación:** exportación portable versionada, con validación antes
+   de escribir y sin sincronización.
 3. **PR 09: instalación y actualización reproducibles.** Evaluar la instalación
    verificable del release firmado, conservar la clave pública confiable y
    permitir rollback. La integración OpenCode admite JSONC y preserva la

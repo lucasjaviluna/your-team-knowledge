@@ -16,7 +16,7 @@ de calidad en tareas/hosts reales.
 
 - Runtime Go único con SQLite/FTS5, sesiones, memorias, upsert por
   `subjectKey`, búsqueda lexical, relaciones y lifecycle.
-- Trece herramientas MCP por `stdio`: sesión/briefing, listado y timeline,
+- Catorce herramientas MCP por `stdio`: sesión/briefing, listado y timeline,
   search/get/save, cierre,
   revisión, corrección versionada, relaciones y consolidación con preview y
   confirmación explícita.
@@ -85,8 +85,8 @@ agente: las tools correspondientes ya existen.
    actualización, con rango temporal y estado actual. Las versiones y
    relaciones se recorren con `memory_relations`. No reconstruye eventos de
    lifecycle que no se persistieron.
-7. **Siguiente:** detección de candidatos a conflicto; presentar evidencia
-   para revisión y nunca resolver, enlazar o archivar automáticamente.
+7. **Implementado:** detección léxica de candidatos a conflicto para revisión;
+   no resuelve, enlaza ni archiva automáticamente. Calidad real no medida.
 8. **Después:** exportación portable versionada y validación previa a
     importar memorias en otro workspace. No incluye sincronización automática.
 9. **Pendiente:** instalación y actualización reproducibles del release

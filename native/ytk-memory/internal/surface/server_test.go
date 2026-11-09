@@ -35,8 +35,8 @@ func TestMCPToolsRoundTripAndSessionOwnership(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tools.Tools) != 13 {
-		t.Fatalf("got %d tools, want 13", len(tools.Tools))
+	if len(tools.Tools) != 14 {
+		t.Fatalf("got %d tools, want 14", len(tools.Tools))
 	}
 	started, err := clientSession.CallTool(ctx, &mcp.CallToolParams{Name: "memory_session_start", Arguments: map[string]any{}})
 	if err != nil {
@@ -109,6 +109,17 @@ func TestMCPToolsRoundTripAndSessionOwnership(t *testing.T) {
 	}
 	if len(timelineResponse.Entries) != 1 || timelineResponse.Entries[0].Entry.ID != memory.EntryID || timelineResponse.Entries[0].ActivityAt == "" || timelineResponse.ActivityMeaning == "" {
 		t.Fatalf("unexpected timeline response: %#v", timelineResponse)
+	}
+	if _, err := store.Save(ctx, core.SaveInput{ID: "related", WorkspaceID: "project-a", Type: "decision", Title: "Project boundary", Content: "The project boundary stays scoped."}); err != nil {
+		t.Fatal(err)
+	}
+	conflicts, err := clientSession.CallTool(ctx, &mcp.CallToolParams{Name: "memory_conflict_candidates", Arguments: map[string]any{"memoryId": memory.EntryID}})
+	if err != nil || conflicts.IsError {
+		t.Fatalf("candidate call: %+v %v", conflicts, err)
+	}
+	var result core.ConflictResult
+	if err := decodeContent(conflicts, &result); err != nil || len(result.Candidates) != 1 || result.Candidates[0].ID != "related" {
+		t.Fatalf("candidate result: %+v %v", result, err)
 	}
 	ownerMismatch := NewService(store, Config{ProjectID: "project-a"})
 	foreignSave, _, err := ownerMismatch.save(ctx, nil, saveInput{Type: "decision", Title: "Foreign write", Content: "Must be rejected.", SessionID: session.SessionID})

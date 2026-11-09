@@ -8,7 +8,7 @@ documentado en [ADR 0009](docs/adr/0009-agent-memory-only-scope.md).
 
 El binario `ytk-memory` ofrece:
 
-- trece herramientas MCP para sesiones, listado, búsqueda y timeline, guardado, revisión,
+- catorce herramientas MCP para sesiones, listado, búsqueda y timeline, guardado, revisión,
   corrección versionada, relaciones y consolidación confirmada;
 - aislamiento por proyecto;
 - `doctor`, `backup`, `upgrade` y `rollback`;
