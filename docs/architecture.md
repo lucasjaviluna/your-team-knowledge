@@ -50,7 +50,7 @@ la vista previa y la aplicación transaccional conservan el aislamiento. Ver
 
 El runtime Go es la única implementación de Agent Memory. El comando
 `ytk-memory` ofrece MCP, comandos administrativos y setup/uninstall de Codex,
-Claude Code, Pi y OpenCode.
+Claude Code, Pi, OpenCode y Copilot en VS Code.
 
 `setup codex` registra un servidor MCP genérico en
 `CODEX_HOME/config.toml`; la activación de cada proyecto vive en

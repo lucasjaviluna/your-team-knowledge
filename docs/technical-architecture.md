@@ -22,7 +22,7 @@ almacena y recupera para un proceso ligado a un solo proyecto.
 
 ```mermaid
 flowchart TD
-  Agent[Codex / Claude Code / Pi / OpenCode]
+  Agent[Codex / Claude Code / Pi / OpenCode / Copilot]
   Host[Host MCP]
   Bin[ytk-memory]
   MCP[MCP por stdio]
@@ -59,7 +59,7 @@ El módulo declara `go 1.27.0` y `github.com/corporate-knowledge/ytk-memory`.
 | `cmd/ytk-memory` | Arranque, flags, resolución de config, comandos, serialización CLI, construcción y lanzamiento MCP. | El dominio no debe conocer argumentos ni comportamiento de hosts. |
 | `internal/core` | Entidades, reglas, lifecycle, consultas, transacciones, SQLite/FTS5, conformance y evaluación. | Las reglas se prueban sin iniciar protocolo MCP. |
 | `internal/surface` | Schemas/handlers MCP, validación de entradas, aislamiento de proyecto/área/owner y shape de respuestas. | MCP no debe filtrarse a las entidades ni al almacenamiento. |
-| `internal/setup` | Setup/uninstall y transformaciones de config de Codex, Claude Code, Pi y OpenCode. | Cada host tiene formato, scope y reglas propios. |
+| `internal/setup` | Setup/uninstall y transformaciones de config de Codex, Claude Code, Pi, OpenCode y Copilot en VS Code. | Cada host tiene formato, scope y reglas propios. |
 | `internal/release` | Cross-build, archivo, manifiesto, hash, firma y verificación. | El canal de distribución es independiente del ciclo de datos. |
 
 Los paquetes son `internal`: no constituyen API Go pública estable. Las
@@ -471,7 +471,7 @@ incluso cuando surface ya restringió inputs.
 | Comando | Uso funcional | Por qué existe |
 | --- | --- | --- |
 | `mcp` | Servidor MCP fijado al proyecto local. | Interfaz primaria del agente. |
-| `setup <host>` / `uninstall <host>` | Configura/quita archivos de Codex, Claude, Pi u OpenCode; acepta `--dry-run`, `--json`. | Automatiza formatos distintos y hace cambios repetibles/reversibles. |
+| `setup <host>` / `uninstall <host>` | Configura/quita archivos de Codex, Claude, Pi, OpenCode o Copilot; acepta `--dry-run`, `--json`. | Automatiza formatos distintos y hace cambios repetibles/reversibles. |
 | `doctor [--read-only]` | Comprueba config, SQLite, lifecycle, integridad y registro de host; read-only compara el esquema y muestra cambios pendientes sin migrar. | Convierte fallos locales en pasos de reparación y permite diagnosticar una base antes de actualizarla. |
 | `search --query TEXT` | Busca memorias actuales por FTS5 en el proyecto resuelto. | Inspección y scripting local sin iniciar una sesión MCP. |
 | `list` | Lista memorias activas, vigentes y no vencidas para inspección, hasta 100. | Permite inspeccionar memoria existente con los filtros lifecycle del core. |
@@ -542,6 +542,7 @@ completa del usuario y permite inspeccionar antes de instalar.
 | Claude Code | `.mcp.json`. | `CLAUDE.md`. | Registro `mcpServers.ytk-memory` local; Claude puede exigir confianza/aprobación. |
 | Pi | `.pi/mcp.json`. | `AGENTS.md`. | MCP local; el proyecto debe ser confiable y puede requerir `/reload`. |
 | OpenCode | `opencode.json` o JSONC. | `AGENTS.md`. | MCP local dentro de `mcp`; setup acepta JSONC y actualiza el objeto de configuración. |
+| Copilot en VS Code | `.vscode/mcp.json` bajo `servers`. | `.github/copilot-instructions.md`. | MCP stdio con directorio de trabajo explícito; JSON estricto y marcador de propiedad independiente. |
 
 ### 9.1 Preparación común del proceso
 
@@ -698,12 +699,22 @@ desconocidas parseables, no comentarios ni formato textual. `doctor --host
 opencode` comprueba marcador, parseo de JSON/JSONC, tipo local, array del
 comando y existencia del ejecutable; no consulta el estado live del host.
 
+### Copilot en VS Code
+
+El adaptador configura `.vscode/mcp.json` con `type: stdio`, comando,
+argumento `mcp` y directorio del workspace; añade un bloque en
+`.github/copilot-instructions.md`. La marca `.ytk-memory/copilot-vscode-managed.json`
+identifica la entrada exacta. Setup y uninstall rechazan modificaciones ajenas
+a la entrada y aceptan sólo JSON estricto, sin reescribir archivos JSONC.
+`doctor --host copilot` comprueba configuración y ejecutable, no una sesión
+real. Ver [guía MCP](agent-memory-mcp.md#github-copilot-en-vs-code).
+
 ### 9.6 Qué es común y qué queda bajo control del provider
 
 En esta documentación, “provider” se refiere al host de agente compatible
-(Codex, Claude Code, Pi u OpenCode), no al proveedor de inferencia del modelo.
+(Codex, Claude Code, Pi, OpenCode o Copilot en VS Code), no al proveedor de inferencia del modelo.
 El runtime no invoca APIs LLM ni contiene adaptadores por modelo: MCP es la
-frontera neutral. Los cuatro hosts ejecutan el mismo binario, toolset, core, DB
+frontera neutral. Los cinco hosts configurables ejecutan el mismo binario, toolset, core, DB
 y contrato MCP. Lo que cambia es cómo descubren el comando y dónde leen
 instrucciones. El usuario todavía debe atender políticas propias del host:
 confianza/aprobación de Claude, confianza y reload de Pi, permisos/sandbox del

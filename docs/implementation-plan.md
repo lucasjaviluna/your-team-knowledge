@@ -18,7 +18,7 @@ criterios de producto están en la [hoja de ruta](agent-memory-roadmap-2026-10-2
 - CLI `doctor`, backup, upgrade y rollback; el doctor diagnostica TOML de
   Codex, ruta/acceso SQLite y ejecutable MCP registrado. Hay cobertura de
   recuperación de base heredada.
-- Setup/uninstall de Codex, Claude Code, Pi y OpenCode, con archivos
+- Setup/uninstall de Codex, Claude Code, Pi, OpenCode y Copilot en VS Code, con archivos
   administrados y preservación de configuración ajena.
 - Evaluación sintética de retrieval y runner de conformance.
 - CI de Go en Windows x64, Linux x64 y macOS arm64 con `gofmt`, `go vet`,

@@ -18,7 +18,7 @@ retirados del alcance; ver [ADR 0009](adr/0009-agent-memory-only-scope.md).
   transaccional cuando falta, con rollback si alguna memoria no se puede indexar.
 - MCP `stdio` con catorce herramientas y proceso ligado a un proyecto; briefing
   compacto, búsqueda lexical, corrección versionada y consolidación confirmada.
-- Setup/uninstall para Codex, Claude Code, Pi y OpenCode. Codex registra MCP en
+- Setup/uninstall para Codex, Claude Code, Pi, OpenCode y Copilot en VS Code. Codex registra MCP en
   `CODEX_HOME/config.toml` y activa instrucciones por proyecto; los otros hosts
   usan registros de proyecto.
 - CLI doctor, backup, upgrade y rollback. Doctor valida TOML Codex, acceso y

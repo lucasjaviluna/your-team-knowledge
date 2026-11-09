@@ -121,6 +121,19 @@ la integración sin borrar memoria ni servidores ajenos:
 ytk-memory uninstall pi
 ```
 
+### GitHub Copilot en VS Code
+
+```text
+ytk-memory setup copilot --dry-run
+ytk-memory setup copilot
+ytk-memory doctor --host copilot
+ytk-memory uninstall copilot
+```
+
+La configuración es por workspace; las reglas de propiedad, la limitación de
+JSONC y los pasos de verificación están en la [guía MCP](agent-memory-mcp.md#github-copilot-en-vs-code).
+La integración aún no tiene validación en un host real.
+
 ### OpenCode
 
 OpenCode admite servidores MCP locales por proyecto en `opencode.json` y

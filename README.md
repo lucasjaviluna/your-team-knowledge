@@ -16,7 +16,7 @@ El binario `ytk-memory` ofrece:
 - transferencia portable v1 por CLI con vista previa e importación confirmada;
 - CLI de lectura local: `search`, `list`, `get` y `stats`, limitada al proyecto
   resuelto desde `.ytk-memory.json` o los flags explícitos;
-- setup y uninstall idempotentes de Codex, Claude Code, Pi y OpenCode; Codex usa
+- setup y uninstall idempotentes de Codex, Claude Code, Pi, OpenCode y Copilot en VS Code; Codex usa
   registro MCP global y los demás hosts configuración por proyecto;
 - compilación y pruebas en Windows, Linux y macOS arm64 desde el módulo Go.
 

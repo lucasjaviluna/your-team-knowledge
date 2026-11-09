@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
@@ -98,7 +99,7 @@ func run(args []string) error {
 	project := fs.String("project", "", "project id")
 	database := fs.String("database", "", "SQLite path")
 	area := fs.String("area", "", "memory area")
-	host := fs.String("host", "codex", "consumer host for doctor: codex, claude, pi, or opencode")
+	host := fs.String("host", "codex", "consumer host for doctor: codex, claude, pi, opencode, or copilot")
 	readOnlyDoctor := fs.Bool("read-only", false, "inspect SQLite without applying migrations (doctor only)")
 	to := fs.String("to", "", "backup target")
 	backupTo := fs.String("backup-to", "", "upgrade backup target")
@@ -133,8 +134,8 @@ func run(args []string) error {
 		return surface.NewService(store, surface.Config{ProjectID: cfg.project, Area: cfg.area}).Server().Run(context.Background(), &mcp.StdioTransport{})
 	}
 	if command == "doctor" {
-		if *host != "codex" && *host != "claude" && *host != "pi" && *host != "opencode" {
-			return errors.New("--host must be codex, claude, pi, or opencode.")
+		if *host != "codex" && *host != "claude" && *host != "pi" && *host != "opencode" && *host != "copilot" {
+			return errors.New("--host must be codex, claude, pi, opencode, or copilot.")
 		}
 		return doctorWithOptions(cfg, *jsonOutput, *host, *readOnlyDoctor)
 	}
@@ -384,8 +385,8 @@ func runRelease(args []string) error {
 }
 
 func runSetup(command string, args []string) error {
-	if len(args) == 0 || (args[0] != "codex" && args[0] != "claude" && args[0] != "pi" && args[0] != "opencode") {
-		return errors.New("usage: ytk-memory setup <codex|claude|pi|opencode> [--dry-run] [--portable]")
+	if len(args) == 0 || (args[0] != "codex" && args[0] != "claude" && args[0] != "pi" && args[0] != "opencode" && args[0] != "copilot") {
+		return errors.New("usage: ytk-memory setup <codex|claude|pi|opencode|copilot> [--dry-run] [--portable]")
 	}
 	host := args[0]
 	fs := flag.NewFlagSet(command, flag.ContinueOnError)
@@ -437,6 +438,8 @@ func runSetup(command string, args []string) error {
 			result, err = setup.UninstallClaude(context, *dryRun)
 		} else if host == "pi" {
 			result, err = setup.UninstallPi(context, *dryRun)
+		} else if host == "copilot" {
+			result, err = setup.UninstallCopilot(context, *dryRun)
 		} else if host == "opencode" {
 			result, err = setup.UninstallOpenCode(context, *dryRun)
 		} else {
@@ -454,6 +457,8 @@ func runSetup(command string, args []string) error {
 			result, err = setup.InstallClaude(context, true)
 		} else if host == "pi" {
 			result, err = setup.InstallPi(context, true)
+		} else if host == "copilot" {
+			result, err = setup.InstallCopilot(context, true)
 		} else if host == "opencode" {
 			result, err = setup.InstallOpenCode(context, true)
 		} else {
@@ -464,6 +469,8 @@ func runSetup(command string, args []string) error {
 			_, err = setup.InstallClaude(context, true)
 		} else if host == "pi" {
 			_, err = setup.InstallPi(context, true)
+		} else if host == "copilot" {
+			_, err = setup.InstallCopilot(context, true)
 		} else if host == "opencode" {
 			_, err = setup.InstallOpenCode(context, true)
 		} else {
@@ -486,6 +493,8 @@ func runSetup(command string, args []string) error {
 			result, err = setup.InstallClaude(context, false)
 		} else if host == "pi" {
 			result, err = setup.InstallPi(context, false)
+		} else if host == "copilot" {
+			result, err = setup.InstallCopilot(context, false)
 		} else if host == "opencode" {
 			result, err = setup.InstallOpenCode(context, false)
 		} else {
@@ -782,6 +791,12 @@ func doctorWithOptions(c config, jsonOutput bool, host string, readOnly bool) er
 		if setupCheck["status"] != "ok" {
 			healthy = false
 		}
+	} else if host == "copilot" {
+		setupCheck := inspectCopilotSetup(c.root)
+		checks = append(checks, setupCheck)
+		if setupCheck["status"] != "ok" {
+			healthy = false
+		}
 	} else {
 		setupCheck := inspectOpenCodeSetup(setup.OpenCodeConfigPath(c.root), filepath.Join(c.root, ".ytk-memory", "opencode-managed"))
 		checks = append(checks, setupCheck)
@@ -806,6 +821,48 @@ func doctorMode(readOnly bool) string {
 		return "read_only"
 	}
 	return "migrating"
+}
+
+func inspectCopilotSetup(root string) map[string]string {
+	fail := func(status, message string) map[string]string {
+		return map[string]string{"name": "copilot_mcp", "status": status, "message": message}
+	}
+	marker, err := os.ReadFile(filepath.Join(root, ".ytk-memory", "copilot-vscode-managed.json"))
+	if os.IsNotExist(err) {
+		return fail("not_configured", "Run ytk-memory setup copilot to register the workspace MCP server.")
+	}
+	if err != nil {
+		return fail("invalid", "Cannot read Copilot ownership marker.")
+	}
+	config, err := os.ReadFile(filepath.Join(root, ".vscode", "mcp.json"))
+	if err != nil {
+		return fail("invalid", "Cannot read VS Code workspace MCP configuration.")
+	}
+	var doc map[string]any
+	var owned any
+	if json.Unmarshal(config, &doc) != nil || json.Unmarshal(marker, &owned) != nil {
+		return fail("invalid", "Invalid VS Code configuration or ownership marker.")
+	}
+	servers, ok := doc["servers"].(map[string]any)
+	if !ok {
+		return fail("invalid", "VS Code servers object is missing.")
+	}
+	entry, ok := servers["ytk-memory"].(map[string]any)
+	if !ok || !reflect.DeepEqual(entry, owned) || entry["type"] != "stdio" || entry["cwd"] != root {
+		return fail("invalid", "Managed Copilot server is missing or modified.")
+	}
+	args, ok := entry["args"].([]any)
+	if !ok || len(args) != 1 || args[0] != "mcp" {
+		return fail("invalid", "Managed Copilot server arguments are invalid.")
+	}
+	exe, ok := entry["command"].(string)
+	if !ok || exe == "" {
+		return fail("invalid", "Managed Copilot executable is missing.")
+	}
+	if _, err = os.Stat(exe); err != nil {
+		return fail("invalid", "Registered native executable is unavailable.")
+	}
+	return fail("ok", "VS Code workspace MCP server is registered and available.")
 }
 
 func inspectOpenCodeSetup(filename, markerFile string) map[string]string {

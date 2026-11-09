@@ -24,7 +24,7 @@ de calidad en tareas/hosts reales.
   de sesión y aislamiento por proyecto.
 - CLI para setup/uninstall, doctor, backup, upgrade, rollback, conformance,
   evaluation, release y transferencia portable.
-- Configuración de Codex, Claude Code, Pi y OpenCode con alcance y archivos
+- Configuración de Codex, Claude Code, Pi, OpenCode y Copilot en VS Code con alcance y archivos
   documentados en [arquitectura técnica](technical-architecture.md).
 - Doctor valida TOML completo de Codex, tipo/acceso de ruta SQLite,
   `quick_check` y ejecutable registrado; existen pruebas de backup WAL y

@@ -79,6 +79,37 @@ registrar en el host. También se puede configurar directamente:
 }
 ```
 
+## GitHub Copilot en VS Code
+
+Desde la raíz del workspace, con el binario instalado:
+
+```text
+ytk-memory setup copilot --dry-run
+ytk-memory setup copilot
+ytk-memory doctor --host copilot
+ytk-memory uninstall copilot
+```
+
+El setup administra la entrada `servers.ytk-memory` en `.vscode/mcp.json`,
+con `type: stdio`, ejecutable y directorio de trabajo explícito, y un bloque
+en `.github/copilot-instructions.md`. La guía común queda en
+`.ytk-memory/YTK-MEMORY.md`; la desinstalación conserva la base y las
+configuraciones e instrucciones ajenas. La marca de propiedad se guarda en
+`.ytk-memory/copilot-vscode-managed.json`; una entrada preexistente ajena o
+una entrada administrada modificada bloquea la operación. El adaptador acepta
+JSON estricto: si el archivo tiene comentarios, comas finales u otro JSONC,
+se rechaza sin reescribirlo; resolver manualmente antes de instalar. Al editar
+JSON válido se preservan las claves y valores ajenos, pero no el formato.
+
+Abrí el workspace confiable en VS Code y usá **MCP: List Servers** para
+inspeccionar o iniciar el servidor. La configuración de workspace es
+independiente de `.mcp.json` de Claude; si VS Code también descubre una
+entrada portable homónima, revisar las fuentes habilitadas para evitar una
+configuración duplicada. La adaptación se verifica con pruebas automatizadas;
+no se ha validado aún una sesión real de Copilot. La documentación oficial
+explica el [formato MCP de VS Code](https://code.visualstudio.com/docs/agents/reference/mcp-configuration)
+y las [instrucciones de proyecto](https://code.visualstudio.com/docs/agents/reference/custom-instructions-reference).
+
 ## Herramientas
 
 | Herramienta             | Efecto                                                                   |
