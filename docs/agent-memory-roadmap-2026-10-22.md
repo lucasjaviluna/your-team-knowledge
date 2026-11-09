@@ -1,6 +1,6 @@
 # Estado y hoja de ruta de Agent Memory
 
-**Fecha de revisión:** 2026-10-27
+**Fecha de revisión:** 2026-11-09
 
 ## Alcance
 
@@ -85,10 +85,11 @@ agente: las tools correspondientes ya existen.
    actualización, con rango temporal y estado actual. Las versiones y
    relaciones se recorren con `memory_relations`. No reconstruye eventos de
    lifecycle que no se persistieron.
-7. **Implementado:** detección léxica de candidatos a conflicto para revisión;
-   no resuelve, enlaza ni archiva automáticamente. Calidad real no medida.
-8. **Después:** exportación portable versionada y validación previa a
-    importar memorias en otro workspace. No incluye sincronización automática.
+7. **Completado (v1):** detección léxica de candidatos a conflicto para revisión;
+   no resuelve, enlaza ni archiva automáticamente. La [línea base sintética](agent-memory-conflict-test-report-test2.md)
+   documenta resultados y controles pendientes; calidad real no medida.
+8. **Implementado (v1):** exportación portable, preview e importación confirmada
+    por CLI; ver [guía](agent-memory-portable-transfer.md). Sin sincronización.
 9. **Pendiente:** instalación y actualización reproducibles del release
    firmado, con clave pública confiable y rollback.
 10. **Diferido:** validar lifecycle de Claude Code cuando el host esté

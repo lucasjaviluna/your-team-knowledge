@@ -42,6 +42,10 @@ disponibilidad, listado acotado, timeline por última actualización, búsqueda,
 lectura individual, candidatos léxicos de conflicto para revisión, guardado idempotente, sesiones y revisión. El protocolo define bootstrap, búsqueda
 previa a decisiones, persistencia durable y handoff de sesión.
 
+La transferencia portable v1 usa JSON validado y un namespace por proyecto;
+la vista previa y la aplicación transaccional conservan el aislamiento. Ver
+[ADR 0012](adr/0012-portable-memory-transfer.md).
+
 ## Runtime y distribución
 
 El runtime Go es la única implementación de Agent Memory. El comando

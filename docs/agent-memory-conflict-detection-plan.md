@@ -1,6 +1,6 @@
 # Plan: detección revisable de conflictos entre memorias
 
-**Estado:** implementado parcialmente; falta evaluación cuantitativa y validación real. **Alcance:** Agent Memory local.
+**Estado:** v1 completada por decisión del usuario. **Alcance:** detección léxica local y revisable; sus limitaciones y validaciones pendientes se detallan abajo.
 
 ## Objetivo y límites
 
@@ -93,7 +93,7 @@ a consultar antes de actuar.
 
 El [corpus sintético de casos](agent-memory-conflict-test-cases.md) y la
 [guía de ejecución y registro](agent-memory-conflict-test-guide.md) están
-preparados; todavía no constituyen una evaluación ejecutada.
+preparados. La [línea base ejecutada en test2](agent-memory-conflict-test-report-test2.md) evalúa el core con datos sintéticos; no valida calidad real ni transporte MCP.
 
 ## Pruebas y criterios de aceptación
 
@@ -116,7 +116,7 @@ preparados; todavía no constituyen una evaluación ejecutada.
   `go build ./cmd/ytk-memory` desde `native/ytk-memory`. Documentar por
   separado cualquier validación manual real y cualquier check no ejecutado.
 
-**Terminado** significa contrato y documentación coherentes, pruebas y checks
-aprobados, evaluación registrada y ninguna mutación automática. No implica
-que se hayan detectado todas las contradicciones ni que otros hosts se hayan
-validado en uso real.
+La v1 se da por completada por decisión del usuario con el alcance implementado y
+la línea base registrada. Los controles que el informe señala como parciales,
+la validación MCP del corpus, concurrencia, rendimiento y calidad en tareas
+reales siguen pendientes como mejoras; no se consideran aprobados.

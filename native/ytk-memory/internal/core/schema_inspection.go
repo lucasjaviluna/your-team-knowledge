@@ -15,7 +15,7 @@ type SchemaInspection struct {
 	CanInspectLifecycle bool     `json:"canInspectLifecycle"`
 }
 
-var requiredSchemaTables = []string{"sessions", "memory_items", "memory_relations", "memory_items_fts"}
+var requiredSchemaTables = []string{"sessions", "memory_items", "memory_relations", "memory_items_fts", "portable_namespaces", "portable_imports"}
 
 var requiredSchemaColumns = map[string][]string{
 	"sessions": {
@@ -29,6 +29,8 @@ var requiredSchemaColumns = map[string][]string{
 	"memory_relations": {
 		"source_memory_id", "target_memory_id", "relation", "created_at",
 	},
+	"portable_namespaces": {"workspace_id", "namespace"},
+	"portable_imports":    {"workspace_id", "source_namespace", "source_id", "local_id", "source_digest", "local_digest"},
 	"memory_items_fts": {
 		"memory_id", "title", "content", "tags", "subject_key",
 	},

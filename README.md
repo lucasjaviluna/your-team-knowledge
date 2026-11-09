@@ -13,6 +13,7 @@ El binario `ytk-memory` ofrece:
 - aislamiento por proyecto;
 - `doctor`, `backup`, `upgrade` y `rollback`;
 - `doctor --read-only` para inspeccionar SQLite sin aplicar migraciones;
+- transferencia portable v1 por CLI con vista previa e importación confirmada;
 - CLI de lectura local: `search`, `list`, `get` y `stats`, limitada al proyecto
   resuelto desde `.ytk-memory.json` o los flags explícitos;
 - setup y uninstall idempotentes de Codex, Claude Code, Pi y OpenCode; Codex usa
@@ -34,6 +35,9 @@ ytk-memory stats --json
 
 Los comandos respetan el proyecto y área de `.ytk-memory.json`; aceptan
 `--project`, `--database` y `--area` para fijarlos explícitamente.
+
+La [guía de transferencia portable](docs/agent-memory-portable-transfer.md) explica
+el flujo de exportación e importación.
 
 La guía de instalación está en [docs/agent-memory-installation.md](docs/agent-memory-installation.md)
 y la guía de consumidores en [docs/agent-memory-native-consumer-guide.md](docs/agent-memory-native-consumer-guide.md).

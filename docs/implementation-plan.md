@@ -112,13 +112,10 @@ y compatibilidad.
     estado actual del registro. Las relaciones/versiones se siguen con
     `memory_relations`. No inventa eventos históricos que el esquema actual no
     registre.
-11. **Detección de candidatos a conflicto — implementada.** Ver el [plan de detección](agent-memory-conflict-detection-plan.md). Devuelve candidatos léxicos y
+11. **Detección de candidatos a conflicto — v1 completada.** Ver el [plan de detección](agent-memory-conflict-detection-plan.md). Devuelve candidatos léxicos y
     evidencia para que el agente los evalúe; no crear relaciones
     `conflicts_with`, corregir ni archivar automáticamente.
-12. **Exportación portable versionada — planificada.** Definir formato,
-    identidad de memorias, validación y vista previa de importación, con
-    compatibilidad explícita entre versiones/workspaces. No incluye
-    sincronización automática.
+12. **Exportación portable versionada — v1 implementada.** Ver la [guía](agent-memory-portable-transfer.md) y el [ADR 0012](adr/0012-portable-memory-transfer.md). Incluye exportación seleccionada, preview e importación confirmada; no incluye sincronización.
 
 ### P3 — Opciones exploratorias
 

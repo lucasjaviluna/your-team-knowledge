@@ -52,7 +52,7 @@ func main() {
 }
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: ytk-memory <mcp|setup|uninstall|search|list|get|stats|conformance|evaluate|release|doctor|backup|upgrade|rollback> [options]")
+		return errors.New("usage: ytk-memory <mcp|setup|uninstall|search|list|get|stats|portable-export|portable-preview|portable-import|conformance|evaluate|release|doctor|backup|upgrade|rollback> [options]")
 	}
 	if args[0] == "--version" || args[0] == "version" {
 		fmt.Println(version)
@@ -61,6 +61,9 @@ func run(args []string) error {
 	command := args[0]
 	if command == "search" || command == "list" || command == "get" || command == "stats" {
 		return runRead(command, args[1:])
+	}
+	if command == "portable-export" || command == "portable-preview" || command == "portable-import" {
+		return runPortable(command, args[1:])
 	}
 	if command == "conformance" {
 		fixture, database, err := conformanceArguments(args[1:])

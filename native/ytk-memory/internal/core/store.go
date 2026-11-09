@@ -155,6 +155,15 @@ func (s *Store) migrate(ctx context.Context) error {
 		);
 		CREATE INDEX IF NOT EXISTS memory_items_workspace_status_idx ON memory_items(workspace_id, status);
 		CREATE INDEX IF NOT EXISTS memory_items_subject_key_idx ON memory_items(workspace_id, subject_key);
+		CREATE TABLE IF NOT EXISTS portable_namespaces (
+            workspace_id TEXT PRIMARY KEY, namespace TEXT NOT NULL UNIQUE
+        );
+        CREATE TABLE IF NOT EXISTS portable_imports (
+            workspace_id TEXT NOT NULL, source_namespace TEXT NOT NULL, source_id TEXT NOT NULL,
+            local_id TEXT NOT NULL, source_digest TEXT NOT NULL, local_digest TEXT NOT NULL,
+            PRIMARY KEY(workspace_id, source_namespace, source_id),
+            FOREIGN KEY(local_id) REFERENCES memory_items(id) ON DELETE CASCADE
+        );
 		CREATE TABLE IF NOT EXISTS memory_relations (
 			source_memory_id TEXT NOT NULL, target_memory_id TEXT NOT NULL,
 			relation TEXT NOT NULL, created_at TEXT NOT NULL,
